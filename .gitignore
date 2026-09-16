@@ -21,10 +21,24 @@
 /storage/framework/*
 /storage/logs/*
 /bootstrap/cache/*
-/public/storage
 /vendor
-/.env
 Homestead.json
 Homestead.yaml
-Thumbs.db/public/phpmyadmin
+Thumbs.db
 /public/phpmyadmin
+
+# Backup
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+
+# Temporary
+/tmp
+temp/
+
+# Editor
+*.swp
+
+# Backup script logs
+backup.log
