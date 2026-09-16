@@ -1,0 +1,8 @@
+@import './create.css';
+
+/* ============================================================
+   INVENTARIS — EDIT BARANG
+   Same form language as create.css; only the differences here.
+   ============================================================ */
+
+.inv-form-subtitle strong { color: var(--text-primary); font-weight: 600; }

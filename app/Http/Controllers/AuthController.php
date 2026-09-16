@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
-use App\Services\AppsScriptService;
+use App\Models\User;
 
 class AuthController extends Controller
 {
-    public function __construct(private AppsScriptService $api) {}
-
     public function showLogin()
     {
         return view('auth.login');
@@ -19,25 +17,22 @@ class AuthController extends Controller
     public function processLogin(Request $request)
     {
         $request->validate([
-            'username' => 'required',
+            'login' => 'required', // field login bisa username atau NIK
             'password' => 'required'
         ]);
 
-        $res = $this->api->request('post', [
-            'action'   => 'login',
-            'username' => $request->username,
-            'password' => $request->password,
-        ], true);
+        // Cari user berdasarkan username atau NIK karyawan
+        $user = User::where('username', $request->login)
+                    ->orWhere('nik_karyawan', $request->login)
+                    ->first();
 
-        if (!$res['success']) {
-            return back()->withErrors(['login' => $res['message']]);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['login' => 'Username/NIK atau password salah']);
         }
 
-        if (!($res['data']['success'] ?? false)) {
-            return back()->withErrors(['login' => 'Username atau password salah']);
-        }
+        // Simpan session
+        session(['user' => $user->only(['id','username','email','role','ttd','nik_karyawan'])]);
 
-        session(['user' => $res['data']['user']]);
         return redirect()->route('dashboard');
     }
 

@@ -1,0 +1,44 @@
+@import './create.css';
+
+/* ============================================================
+   INVENTARIS — FORM PEMINJAMAN
+   Reuses create.css form language, adds the item-summary panel.
+   ============================================================ */
+
+.pinjam-info-panel {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pinjam-info-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+}
+
+.pinjam-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+}
+
+.pinjam-info-item span { color: var(--text-muted); font-size: 12.5px; }
+.pinjam-info-item .value { font-weight: 600; color: var(--text-primary); margin-top: 2px; }
+.pinjam-info-item .value.qty { font-weight: 700; color: var(--inv-green-dark); font-size: 18px; }
+
+.pinjam-officer-bar {
+    background: var(--bg-base);
+    padding: 13px 18px;
+    border-radius: var(--inv-radius-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+.pinjam-officer-bar .label { color: var(--text-muted); font-size: 13px; }
+.pinjam-officer-bar .value { font-weight: 600; color: var(--text-primary); }

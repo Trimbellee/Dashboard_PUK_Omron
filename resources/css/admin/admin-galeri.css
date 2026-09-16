@@ -1,0 +1,843 @@
+/* ==========================================================================
+   ADMIN GALERI — Full Styles
+   ========================================================================== */
+
+/* ---------- Layout Dasar ---------- */
+.lp-admin-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.lp-admin-head__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    font-family: var(--font-display, 'Inter', sans-serif);
+    color: var(--text-primary);
+}
+
+/* ---------- Statistik ---------- */
+.lp-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.lp-stat-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    text-align: center;
+}
+.lp-stat-card__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.lp-stat-card__value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-display, 'Inter', sans-serif);
+}
+.lp-stat-card--pending .lp-stat-card__value {
+    color: #d97706;
+}
+.lp-stat-card--success .lp-stat-card__value {
+    color: #059669;
+}
+
+/* ---------- Filter Tabs ---------- */
+.lp-filter-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+.lp-filter-tabs a {
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+.lp-filter-tabs a:hover {
+    color: var(--text-primary);
+    background: var(--bg-surface-alt);
+}
+.lp-filter-tabs a.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* ---------- Grid & Card ---------- */
+.lp-admin-galeri-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+.lp-admin-galeri-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-admin-galeri-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+.lp-admin-galeri-card__thumb {
+    position: relative;
+    aspect-ratio: 4/3;
+    background: var(--bg-surface-alt);
+    overflow: hidden;
+}
+.lp-admin-galeri-card__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.lp-admin-galeri-card__badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+}
+.lp-admin-galeri-card__body {
+    padding: 14px 16px 16px;
+}
+.lp-admin-galeri-card__judul {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+}
+.lp-admin-galeri-card__kegiatan {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+}
+.lp-admin-galeri-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.lp-admin-galeri-card__actions form {
+    display: inline;
+}
+
+/* ---------- Badge Status ---------- */
+.lp-admin-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    background: var(--bg-surface-alt);
+    color: var(--text-secondary);
+}
+.lp-admin-badge--draft {
+    background: #e5e7eb;
+    color: #374151;
+}
+.lp-admin-badge--revisi {
+    background: #fee2e2;
+    color: #991b1b;
+}
+.lp-admin-badge--submitted_bidang5,
+.lp-admin-badge--submitted_sekretaris {
+    background: #fef3c7;
+    color: #92400e;
+}
+.lp-admin-badge--published {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* ---------- Pill Buttons ---------- */
+.lp-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    background: var(--bg-surface-alt);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    line-height: 1.6;
+}
+.lp-pill-btn:hover {
+    transform: scale(1.04);
+}
+.lp-pill-btn--primary {
+    background: var(--accent);
+    color: #fff;
+}
+.lp-pill-btn--primary:hover {
+    background: var(--accent-hover);
+}
+.lp-pill-btn--success {
+    background: #059669;
+    color: #fff;
+}
+.lp-pill-btn--success:hover {
+    background: #047857;
+}
+.lp-pill-btn--danger {
+    background: #dc2626;
+    color: #fff;
+}
+.lp-pill-btn--danger:hover {
+    background: #b91c1c;
+}
+
+/* ---------- Reject Form ---------- */
+.lp-admin-reject-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+    margin-top: 6px;
+}
+.lp-admin-reject-form textarea {
+    flex: 1;
+    min-width: 120px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    resize: vertical;
+}
+.lp-admin-reject-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.lp-admin-reject-form .lp-pill-btn {
+    flex-shrink: 0;
+}
+
+/* ---------- Catatan Revisi ---------- */
+.lp-admin-note {
+    background: #fef3c7;
+    border-left: 3px solid #d97706;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #78350f;
+    margin: 6px 0 0;
+}
+[data-theme="dark"] .lp-admin-note {
+    background: #1e293b;
+    border-left-color: #f59e0b;
+    color: #fde68a;
+}
+
+/* ---------- Placeholder ---------- */
+.lp-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-surface-alt);
+    font-size: 48px;
+    color: var(--text-muted);
+}
+
+/* ---------- Video Badge ---------- */
+.lp-video-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    backdrop-filter: blur(4px);
+    border: 2px solid rgba(255,255,255,0.3);
+    z-index: 1;
+}
+
+/* ---------- Empty State ---------- */
+.lp-admin-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 20px;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+}
+.lp-admin-empty svg {
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+.lp-admin-empty p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* ---------- Pagination ---------- */
+.lp-pagination {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+}
+.lp-pagination nav {
+    display: flex;
+    gap: 4px;
+}
+.lp-pagination .page-item {
+    display: inline-block;
+}
+.lp-pagination .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.lp-pagination .page-link:hover {
+    background: var(--bg-surface-alt);
+}
+.lp-pagination .active .page-link {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+.lp-pagination .disabled .page-link {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ---------- Editor / Form ---------- */
+.lp-editor__topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+.lp-editor__topbar--simple {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.lp-editor__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.lp-editor__back:hover {
+    color: var(--accent);
+}
+.lp-editor__title-label {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    font-family: var(--font-display, 'Inter', sans-serif);
+}
+.lp-editor__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+.lp-editor__grid--narrow {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.lp-editor__main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.lp-editor__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.lp-editor__panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+.lp-editor__panel-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+}
+
+/* ---------- Form Elements ---------- */
+.lp-form__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lp-form__group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.lp-form__group input,
+.lp-form__group textarea {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-form__group input:focus,
+.lp-form__group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.lp-form__error {
+    color: #dc2626;
+    font-size: 13px;
+}
+.lp-editor-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+}
+.lp-form__submit {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* ---------- Responsive ---------- */
+@media (min-width: 640px) {
+    .lp-admin-galeri-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: 900px) {
+    .lp-admin-galeri-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .lp-editor__grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+@media (min-width: 1200px) {
+    .lp-admin-galeri-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+@media (max-width: 640px) {
+    .lp-stat-row {
+        grid-template-columns: 1fr;
+    }
+    .lp-admin-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .lp-admin-head__title {
+        font-size: 20px;
+    }
+    .lp-filter-tabs a {
+        font-size: 13px;
+        padding: 4px 12px;
+    }
+    .lp-admin-galeri-card__body {
+        padding: 10px 12px 12px;
+    }
+    .lp-admin-galeri-card__actions .lp-pill-btn {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+    .lp-editor__topbar {
+        flex-wrap: wrap;
+    }
+}
+
+/* ==========================================================================
+   ADMIN GALERI — Inline Preview + YouTube Control Bar (append ke admin-galeri.css)
+   Ganti seluruh blok preview versi sebelumnya kalau sudah sempat ditempel.
+   ========================================================================== */
+
+/* Pastikan thumb tetap jadi containing box untuk kedua state (static & playing) */
+.lp-admin-galeri-card__thumb {
+    position: relative;
+    aspect-ratio: 4/3;
+    background: var(--bg-surface-alt);
+    overflow: hidden;
+}
+
+/* ---------- State diam ---------- */
+.lp-thumb-static {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+}
+.lp-thumb-static img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.lp-thumb-hover-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0);
+    opacity: 0;
+    transition: background 0.2s ease, opacity 0.2s ease;
+    z-index: 1;
+    pointer-events: none;
+}
+.lp-thumb-static:hover .lp-thumb-hover-icon {
+    background: rgba(0, 0, 0, 0.28);
+    opacity: 1;
+}
+.lp-thumb-hover-icon svg {
+    width: 38px;
+    height: 38px;
+    color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+/* ---------- State aktif ---------- */
+.lp-thumb-playing {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    z-index: 2;
+}
+.lp-thumb-playing iframe,
+.lp-thumb-playing > div[id^="yt-player-"] {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+.lp-thumb-playing__empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+}
+
+.lp-thumb-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.lp-thumb-close:hover {
+    background: #dc2626;
+}
+
+/* ---------- Custom Control Bar (YouTube) ---------- */
+.lp-yt-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 70%, transparent 100%);
+    padding: 6px 8px 6px;
+}
+
+.lp-yt-progress {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    cursor: pointer;
+    margin: 0 0 6px;
+}
+.lp-yt-progress::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+.lp-yt-progress::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+
+.lp-yt-controls__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lp-yt-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.9;
+    transition: opacity 0.15s ease;
+}
+.lp-yt-btn:hover {
+    opacity: 1;
+}
+
+.lp-yt-time {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.lp-yt-ticker {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    height: 16px;
+}
+.lp-yt-ticker__text {
+    position: absolute;
+    white-space: nowrap;
+    font-size: 11px;
+    color: #fff;
+    opacity: 0.85;
+    left: 100%;
+    animation: lp-yt-ticker-scroll 14s linear infinite;
+}
+@keyframes lp-yt-ticker-scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-220%);
+    }
+}
+
+.lp-yt-hd {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    padding: 1px 4px;
+    letter-spacing: 0.02em;
+}
+
+/* Fullscreen: pastikan wrapper mengisi layar penuh dan tetap dark bg */
+.lp-thumb-playing:fullscreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+.lp-thumb-playing:fullscreen iframe,
+.lp-thumb-playing:fullscreen > div[id^="yt-player-"] {
+    height: 100%;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+    .lp-yt-time {
+        font-size: 10px;
+    }
+    .lp-yt-ticker__text {
+        font-size: 10px;
+    }
+}
+
+/* ==========================================================================
+   ADMIN GALERI — Responsive (GANTI seluruh blok "Responsive" yang lama
+   di bagian paling bawah admin-galeri.css dengan blok ini)
+   ========================================================================== */
+
+@media (min-width: 640px) {
+    .lp-admin-galeri-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ==========================================================================
+   ADMIN GALERI — Responsive (GANTI dua blok "min-width: 900px" dan
+   "min-width: 1300px" paling akhir di admin-galeri.css dengan blok ini)
+   ========================================================================== */
+
+@media (min-width: 900px) {
+    .lp-admin-galeri-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .lp-admin-galeri-card {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+    }
+    .lp-admin-galeri-card:hover {
+        transform: none;
+    }
+
+    .lp-admin-galeri-card__thumb {
+        width: 440px;
+        min-width: 380px;
+        aspect-ratio: 16/10;
+    }
+
+    .lp-admin-galeri-card__body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* judul/deskripsi ke atas, aksi ke bawah */
+        padding: 20px 28px;
+    }
+
+    .lp-admin-galeri-card__judul,
+    .lp-admin-galeri-card__kegiatan {
+        margin: 0 0 4px;
+    }
+
+    .lp-admin-galeri-card__judul {
+        font-size: 17px;
+    }
+
+    /* wrapper baru untuk judul + deskripsi + catatan revisi, biar nempel jadi satu blok di atas */
+    .lp-admin-galeri-card__body > .lp-admin-galeri-card__judul,
+    .lp-admin-galeri-card__body > .lp-admin-galeri-card__kegiatan,
+    .lp-admin-galeri-card__body > .lp-admin-note {
+        flex-shrink: 0;
+    }
+
+    .lp-admin-galeri-card__actions {
+        margin-top: 0;
+        align-items: center;
+        justify-content: flex-end; /* aksi menempel ke pinggir kanan-bawah */
+    }
+
+    .lp-admin-galeri-card__actions form {
+        display: inline-flex;
+    }
+
+    .lp-admin-reject-form {
+        flex-basis: 100%;
+        justify-content: flex-end;
+    }
+
+    .lp-editor__grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+@media (min-width: 1300px) {
+    .lp-admin-galeri-card__thumb {
+        width: 460px;
+        min-width: 460px;
+    }
+}
+
+@media (max-width: 640px) {
+    .lp-stat-row {
+        grid-template-columns: 1fr;
+    }
+    .lp-admin-head {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .lp-admin-head__title {
+        font-size: 20px;
+    }
+    .lp-filter-tabs a {
+        font-size: 13px;
+        padding: 4px 12px;
+    }
+    .lp-admin-galeri-card__body {
+        padding: 10px 12px 12px;
+    }
+    .lp-admin-galeri-card__actions .lp-pill-btn {
+        font-size: 11px;
+        padding: 3px 10px;
+    }
+    .lp-editor__topbar {
+        flex-wrap: wrap;
+    }
+}

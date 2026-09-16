@@ -1,237 +1,198 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>@yield('title', 'Dashboard | PUK OMRON')</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>@yield('title', 'Dashboard | PUK OMRON')</title>
 
-    <!-- FAVICON -->
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+<link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+@vite(['resources/css/app.css', 'resources/css/dashboard/app.css', 'resources/js/app.js', 'resources/js/dashboard/app.js'])
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+@stack('styles')
 </head>
 
+<body>
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<!-- OVERLAY -->
+<div id="overlay"></div>
 
-    <!-- ========== MOBILE OVERLAY (blur + translucent) ========== -->
-    <div id="overlay"
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 hidden md:hidden">
+<!-- SIDEBAR -->
+<aside id="sidebar">
+    <div class="sidebar-logo">
+        <img src="/puk_omron.PNG" alt="PUK OMRON">
     </div>
 
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu Utama</div>
 
-    <!-- ========== SIDEBAR ========== -->
-    <aside id="sidebar"
-        class="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-gray-800 shadow-xl
-               border-r border-gray-200 dark:border-gray-700 flex flex-col z-40
-               transition-all duration-300 ease-in-out
-               -translate-x-64 md:translate-x-0 md:w-64 md:hover:w-64 md:group">
+        @php
+        $menuItems = [
+            ['route'=>'dashboard',            'icon'=>'🏠', 'label'=>'Home'],
+            ['route'=>'agenda.index',          'icon'=>'📅', 'label'=>'Agenda'],
+            ['route'=>'pengajuan.index',       'icon'=>'📄', 'label'=>'Pengajuan Dana'],
+            ['route'=>'kode-surat.index',      'icon'=>'🧾', 'label'=>'Kode Penomoran Surat'],
+            ['route'=>'filemanager.index',     'icon'=>'📁', 'label'=>'File Manager'],
+            ['route'=>'anggota.index',         'icon'=>'👥', 'label'=>'Database Anggota'],  
+            ['route'=>'laporan-belanja.index', 'icon'=>'📊', 'label'=>'Pengeluaran Di Koperasi'],
+        ];
+        @endphp
 
-        <!-- LOGO -->
-        <div class="h-16 px-4 border-b border-gray-200 dark:border-gray-700
-            flex items-center justify-center bg-transparent">
-            <img src="/puk_omron.PNG" alt="Logo"
-            class="h-10 object-contain select-none opacity-90">
+        @foreach($menuItems as $item)
+        <a href="{{ route($item['route']) }}"
+            class="nav-item {{ request()->routeIs(str_replace('.index','.*',$item['route'])) ? 'active' : '' }}">
+            <span class="nav-icon">{{ $item['icon'] }}</span>
+            <span>{{ $item['label'] }}</span>
+        </a>
+        @endforeach
+
+        
+        <div class="nav-section-label" style="margin-top:8px;">Keuangan</div>
+        <a href="{{ route('laporan-bulanan.index') }}"
+            class="nav-item {{ request()->routeIs('laporan-bendahara.*') ? 'active' : '' }}">
+            <span class="nav-icon">📑</span>
+            <span>Laporan Keuangan Bulanan</span>
+        </a>
+        
+        
+        <!-- TAMBAHKAN INVENTARIS -->
+        <div class="nav-section-label" style="margin-top:8px;">Inventaris</div>
+        <a href="{{ route('inventaris.index') }}"
+            class="nav-item {{ request()->routeIs('inventaris.*') && !request()->routeIs('inventaris.peminjaman') ? 'active' : '' }}">
+            <span class="nav-icon">📦</span>
+            <span>Inventaris Barang</span>
+        </a>
+        <a href="{{ route('inventaris.peminjaman') }}"
+            class="nav-item {{ request()->routeIs('inventaris.peminjaman*') ? 'active' : '' }}">
+            <span class="nav-icon">📋</span>
+            <span>Peminjaman Barang</span>
+        </a>
+        <!-- END INVENTARIS -->
+
+        @if(in_array(session('user')['role'], ['Ketua','Sekretaris']))
+        <div class="nav-section-label" style="margin-top:8px;">Administrasi</div>
+        <a href="{{ route('users.index') }}"
+            class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+            <span class="nav-icon">🔧</span>
+            <span>User Management</span>
+        </a>
+        @endif
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user-card" onclick="openProfileModal()">
+            <div class="avatar">{{ strtoupper(substr(session('user')['username'],0,2)) }}</div>
+            <div>
+                <div class="user-name">{{ session('user')['username'] }}</div>
+                <div class="user-role">{{ session('user')['role'] }}</div>
+            </div>
+            <span class="chevron-icon">⚙️</span>
         </div>
+    </div>
+</aside>
 
+<!-- HEADER -->
+<header>
+    <div class="header-left">
+        <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
 
-        <!-- NAV MENU -->
-<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto text-sm font-medium">
-
-    <a href="{{ route('dashboard') }}"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all
-        {{ request()->routeIs('dashboard') 
-            ? 'bg-blue-600 text-white shadow-md' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-700' }}">
-        🏠 <span class="sidebar-text">Dashboard</span>
-    </a>
-
-    <a href="{{ route('pengajuan.index') }}"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all
-        {{ request()->routeIs('pengajuan.*') 
-            ? 'bg-blue-600 text-white shadow-md' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-700' }}">
-        📄 <span class="sidebar-text">Pengajuan Dana</span>
-    </a>
-
-    <a href="{{ route('kode-surat.index') }}"
-    class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all
-    {{ request()->routeIs('kode-surat.*') 
-        ? 'bg-blue-600 text-white shadow-md' 
-        : 'hover:bg-gray-200 dark:hover:bg-gray-700' }}">
-
-    🧾 <span class="sidebar-text">Kode Penomoran Surat</span>
-    </a>
-
-
-    @if(in_array(session('user')['role'], ['Ketua','Sekretaris']))
-    <a href="{{ route('users.index') }}"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg transition-all
-        {{ request()->routeIs('users.*') 
-            ? 'bg-blue-600 text-white shadow-md' 
-            : 'hover:bg-gray-200 dark:hover:bg-gray-700' }}">
-        👥 <span class="sidebar-text">User Management</span>
-    </a>
-    @endif
-
-</nav>
-
-
-        <!-- LOGOUT -->
-        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-            <a href="{{ route('logout') }}"
-               class="block w-full text-center py-2 rounded-lg bg-red-500 text-white 
-                      font-semibold hover:bg-red-600 transition">
-                Logout
-            </a>
+        <div class="clock-block">
+            <div class="clock-day" id="header-day"></div>
+            <div class="clock-datetime" id="header-date-time"></div>
         </div>
+    </div>
 
-    </aside>
-
-
-
-    <!-- ========== MAIN CONTENT WRAPPER ========== -->
-    <div id="main" class="md:ml-64 transition-all duration-300 flex flex-col min-h-screen">
-
-        <!-- HEADER -->
-        <header id="header"
-    class="fixed top-0 left-0 md:left-64 right-0 h-16 bg-white dark:bg-gray-800
-           border-b border-gray-200 dark:border-gray-700 shadow-sm 
-           flex items-center justify-between px-6 z-30 transition-all duration-300">
-
-
-            <!-- MOBILE HAMBURGER -->
-            <button id="menuBtn"
-                class="md:hidden text-2xl mr-3 focus:outline-none">
-                ☰
+    <div class="header-right">
+        <!-- User dropdown -->
+        <div style="position:relative;">
+            <button class="user-pill" id="userMenuBtn">
+                <div class="avatar" style="width:30px;height:30px;border-radius:7px;font-size:12px;">
+                    {{ strtoupper(substr(session('user')['username'],0,2)) }}
+                </div>
+                <div class="user-pill-info">
+                    <div class="user-pill-name">{{ session('user')['username'] }}</div>
+                    <div class="user-pill-role">{{ session('user')['role'] }}</div>
+                </div>
+                <span style="color:var(--text-muted);font-size:11px;margin-left:2px;">▾</span>
             </button>
 
-            <!-- DATE + TIME -->
-            <div class="flex items-center gap-6">
-                <div class="text-sm text-gray-600 dark:text-gray-300 leading-tight">
-                    <div id="header-day" class="font-semibold"></div>
-                    <div id="header-date-time" class="text-xs"></div>
-                </div>
+            <div class="dropdown" id="userDropdown">
+                <button onclick="openProfileModal()" class="dropdown-item">
+                    <span>✏️</span> Edit Profil
+                </button>
+                <div class="dropdown-divider"></div>
+                <a href="{{ route('logout') }}" class="dropdown-item danger">
+                    <span>🚪</span> Logout
+                </a>
             </div>
-
-            <!-- USER INFO -->
-            <div class="flex items-center gap-3">
-                <div class="text-right leading-tight">
-                    <div class="font-semibold">{{ session('user')['username'] }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                        {{ session('user')['role'] }}
-                    </div>
-                </div>
-
-                <div class="w-10 h-10 flex items-center justify-center rounded-full
-                            bg-blue-600 text-white font-bold uppercase">
-                    {{ strtoupper(substr(session('user')['username'], 0, 1)) }}
-                </div>
-            </div>
-
-        </header>
-
-
-        <!-- PAGE CONTENT -->
-        <main class="flex-1 pt-20 p-6 overflow-y-auto">
-            @yield('content')
-        </main>
-
+        </div>
     </div>
+</header>
 
+<!-- MAIN CONTENT -->
+<main>
+    @yield('content')
+</main>
 
+<!-- MODAL EDIT PROFIL -->
+<div class="modal-backdrop" id="profileModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Profil</h2>
+            <button class="modal-close" onclick="closeProfileModal()">✕</button>
+        </div>
 
+        <form id="profileForm"
+            method="POST"
+            action="{{ route('profile.update', session('user')['username']) }}">
+            @csrf
 
-    <!-- ========== CLOCK SCRIPT ========== -->
-    <script>
-        function updateHeaderClock() {
-            const now = new Date();
-            const dayName = now.toLocaleDateString("id-ID", { weekday: "long" });
-            const dateStr = now.toLocaleDateString("id-ID", {
-                day: "numeric", month: "long", year: "numeric"
-            });
-            const timeStr = now.toLocaleTimeString("id-ID", {
-                hour: "2-digit", minute: "2-digit", second: "2-digit"
-            });
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                <input type="text" readonly
+                    class="form-input"
+                    autocomplete="username"
+                    value="{{ session('user')['username'] }}">
+            </div>
 
-            document.getElementById("header-day").textContent = dayName;
-            document.getElementById("header-date-time").textContent = `${dateStr} • ${timeStr}`;
-        }
-        setInterval(updateHeaderClock, 1000);
-        updateHeaderClock();
-    </script>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" required
+                    class="form-input"
+                    autocomplete="email"
+                    value="{{ session('user')['email'] ?? '' }}"
+                    placeholder="nama@email.com">
+            </div>
 
+            <div class="form-group">
+                <label class="form-label">Password baru <span style="color:var(--text-muted);font-weight:400;">(opsional)</span></label>
+                <input type="password" name="password"
+                    class="form-input"
+                    autocomplete="new-password"
+                    placeholder="Kosongkan jika tidak ingin ganti">
+            </div>
 
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" onclick="closeProfileModal()">Batal</button>
+                <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                    <span id="saveText">Simpan</span>
+                    <div id="saveSpinner" class="spinner" style="display:none;"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <!-- ========== SIDEBAR INTERACTION SCRIPT ========== -->
-    <script>
-        const sidebar = document.getElementById("sidebar");
-        const overlay = document.getElementById("overlay");
-        const menuBtn = document.getElementById("menuBtn");
-        const main = document.getElementById("main");
-
-        // Mobile open
-        menuBtn.addEventListener("click", () => {
-            sidebar.classList.remove("-translate-x-64");
-            overlay.classList.remove("hidden");
-        });
-
-        // Click outside closes sidebar (mobile only)
-        overlay.addEventListener("click", () => {
-            sidebar.classList.add("-translate-x-64");
-            overlay.classList.add("hidden");
-        });
-
-        // Desktop compact mode (auto collapse)
-        sidebar.addEventListener("mouseenter", () => {
-        sidebar.classList.remove("md:w-20");
-        sidebar.classList.add("md:w-64");
-
-        });
-
-        sidebar.addEventListener("mouseleave", () => {
-        sidebar.classList.remove("md:w-64");
-        sidebar.classList.add("md:w-20");
-
-          
-        });
-        // Apply compact mode only on desktop:
-       function applyDesktopCompact() {
-            if (window.innerWidth >= 768) {
-                // Sidebar compact mode
-                sidebar.classList.add("md:w-20");
-                main.classList.add("md:ml-20");
-
-                // Sesuaikan header
-                document.getElementById("header").style.left = "16em"; // 20*4px = 80px
-            } else {
-                // Mobile / full sidebar
-                sidebar.classList.remove("md:w-20");
-                main.classList.remove("md:ml-20");
-
-                document.getElementById("header").style.left = "0";
-            }
-        }
-
-
-        window.addEventListener("resize", applyDesktopCompact);
-        applyDesktopCompact();
-    </script>
-
-
-   <style>
-@media (min-width:768px) {
-    #sidebar.md\:w-20 nav a {
-        justify-content: flex-start;
-    }
-
-    #sidebar.md\:w-20 nav a span {
-        white-space: nowrap;
-        font-size: 0.875rem;
-    }
-}
-</style>
-
+<!-- TOAST -->
+<div id="toast">
+    <div class="toast-icon">✓</div>
+    <span id="toastMsg">Profil berhasil diperbarui</span>
+</div>
+@stack('scripts')
 </body>
 </html>

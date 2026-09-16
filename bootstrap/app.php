@@ -16,9 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
     $middleware->alias([
         'authcheck' => \App\Http\Middleware\AuthCheck::class,
-        'rolecheck' => \App\Http\Middleware\RoleCheck::class,
+        'role.check' => \App\Http\Middleware\RoleCheck::class,
+        'anggota.role' => \App\Http\Middleware\EnsureAnggotaRole::class,
+        'anggota.auth' => \App\Http\Middleware\EnsureAnggotaAuthenticated::class,
+	'anggota.login' => \App\Http\Middleware\EnsureAnggotaLoggedIn::class,
+	'check.page.access' => \App\Http\Middleware\CheckPageAccess::class,
     ]);
-
     $middleware->web([
         // middleware web default
     ]);

@@ -1,0 +1,18 @@
+/* ==========================================================================
+   ADMIN PROFILE — Misi Items
+   ========================================================================== */
+
+.lp-misi-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: start;
+}
+.lp-misi-item input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-base);
+    color: var(--text-primary);
+}

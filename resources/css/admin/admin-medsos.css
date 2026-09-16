@@ -1,0 +1,513 @@
+/* ==========================================================
+   Kelola Media Sosial
+   ========================================================== */
+
+.lp-admin-section {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.lp-admin-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.lp-admin-section__heading h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.lp-admin-section__subtitle {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.lp-btn__icon {
+    font-weight: 800;
+    margin-right: 2px;
+}
+
+/* ----- TABLE (desktop/tablet) ----- */
+.lp-medsos-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.lp-medsos-table th {
+    background: var(--bg-surface-alt);
+    text-align: left;
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 12.5px;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.lp-medsos-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.lp-medsos-table tr:last-child td {
+    border-bottom: none;
+}
+
+.lp-medsos-th-aksi {
+    text-align: right;
+}
+
+.lp-medsos-platform {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.lp-medsos-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.lp-medsos-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.lp-medsos-platform__name {
+    color: var(--text-primary);
+}
+
+.lp-medsos-url {
+    display: inline-block;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.lp-medsos-url:hover {
+    text-decoration: underline;
+}
+
+.lp-admin-table__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.lp-medsos-td-aksi {
+    text-align: right;
+}
+
+.lp-admin-table__actions button,
+.lp-admin-table__actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    border-radius: 999px;
+    transition: background 0.2s;
+}
+
+/* Ikon UI (pensil, tempat sampah, share) — SVG inline berukuran kecil,
+   warnanya ikut warna teks tombol lewat currentColor. */
+.lp-icon-ui {
+    display: inline-flex;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.lp-icon-ui svg {
+    width: 100%;
+    height: 100%;
+}
+
+.lp-icon-ui--empty {
+    width: 34px;
+    height: 34px;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.lp-admin-table__actions button:hover,
+.lp-admin-table__actions a:hover {
+    background: var(--bg-surface-alt);
+}
+
+.lp-admin-danger {
+    color: #dc2626 !important;
+}
+
+.lp-admin-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 48px 20px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+
+/* ----- MOBILE CARD VIEW -----
+   Di layar sempit, header tabel disembunyikan dan setiap <tr> dirender
+   sebagai kartu. Setiap <td> jadi baris label:value memakai
+   `data-label` (di-set langsung di Blade), jadi tetap satu markup
+   yang sama dipakai untuk desktop maupun mobile — cuma CSS-nya yang
+   berubah, tidak perlu duplikasi HTML. */
+@media (max-width: 700px) {
+    .lp-medsos-table {
+        background: transparent;
+        border: none;
+    }
+
+    .lp-medsos-table table,
+    .lp-medsos-table tbody,
+    .lp-medsos-table tr,
+    .lp-medsos-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .lp-medsos-table thead {
+        display: none;
+    }
+
+    .lp-medsos-table tr {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .lp-medsos-table tr.lp-medsos-empty-row {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        padding: 0;
+    }
+
+    .lp-medsos-table td {
+        border: none;
+        padding: 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .lp-medsos-table td + td {
+        border-top: 1px solid var(--border-color);
+    }
+
+    .lp-medsos-table td::before {
+        content: attr(data-label);
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .lp-medsos-table td[data-label="Platform"]::before {
+        display: none;
+    }
+
+    .lp-medsos-url {
+        max-width: 60%;
+        text-align: right;
+    }
+
+    .lp-medsos-td-aksi {
+        justify-content: flex-start !important;
+    }
+
+    .lp-medsos-td-aksi::before {
+        display: none;
+    }
+
+    .lp-admin-table__actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .lp-admin-table__actions button,
+    .lp-admin-table__actions a {
+        flex: 1;
+        justify-content: center;
+        background: var(--bg-surface-alt);
+    }
+}
+
+/* ----- MODAL -----
+   RIWAYAT PERBAIKAN:
+   1) Sebelumnya `.lp-modal-overlay` dan `.lp-modal` punya `opacity: 0` sebagai
+      base style + rule `.x-transition { opacity: 1 !important }` yang TIDAK
+      PERNAH ditambahkan oleh Alpine.js — sehingga modal tidak pernah terlihat.
+      (Sudah diperbaiki: base opacity dihapus.)
+   2) Setelah itu modal muncul tapi transisinya terasa "meluncur dari pojok
+      kanan bawah". Penyebabnya kombinasi:
+        a) shorthand `x-transition.opacity` memberi durasi/easing default
+           yang tidak konsisten antara overlay & modal;
+        b) `backdrop-filter: blur(4px)` dianimasikan bersamaan opacity —
+           di banyak browser Chromium, backdrop-filter yang berubah bareng
+           opacity pada elemen `position:fixed; inset:0` dirender lewat
+           compositing layer yang "tumbuh" dari salah satu sudut, memberi
+           ilusi visual seolah elemen bergerak padahal posisinya statis.
+      Fix: pakai transition classes eksplisit (lp-modal-fade / --in / --out)
+      di Blade dengan durasi tetap, HANYA memindai opacity — dan blur
+      sekarang tidak lagi ikut dianimasikan bareng opacity (lihat class
+      `.lp-modal-fade` di bawah, blur diterapkan langsung tanpa transisi). */
+.lp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 100;
+}
+
+.lp-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 101;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Transisi eksplisit dipakai lewat x-transition:enter / x-transition:leave
+   di medsos/index.blade.php. Hanya opacity yang dianimasikan, durasi tetap,
+   tidak ada transform/posisi yang ikut berubah — jadi modal benar-benar
+   hanya fade di tempat, tidak "meluncur" dari mana pun. */
+.lp-modal-fade {
+    transition: opacity 200ms ease-out;
+}
+.lp-modal-fade--out {
+    opacity: 0;
+}
+.lp-modal-fade--in {
+    opacity: 1;
+}
+
+.lp-modal__content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.lp-modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 28px 16px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.lp-modal__header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.lp-modal__close {
+    background: none;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.lp-modal__close:hover {
+    color: var(--text-primary);
+}
+
+.lp-modal__form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.lp-modal__body {
+    padding: 20px 28px;
+    overflow-y: auto;
+}
+
+.lp-form__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+}
+
+.lp-form__group {
+    margin-bottom: 18px;
+}
+
+.lp-form__row .lp-form__group {
+    margin-bottom: 0;
+}
+
+.lp-form__label {
+    display: block;
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-bottom: 6px;
+    color: var(--text-primary);
+}
+
+.lp-form__input,
+.lp-form__select {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.lp-form__input:focus,
+.lp-form__select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.lp-form__error {
+    display: block;
+    color: #dc2626;
+    font-size: 12.5px;
+    margin-top: 5px;
+}
+
+.lp-form__info {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}
+
+/* Preview ikon di sebelah dropdown "Ikon" pada form — warnanya ikut
+   berubah sesuai platform yang dipilih (lihat currentColor di Alpine),
+   supaya admin langsung lihat kecocokan sebelum menyimpan. */
+.lp-icon-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lp-icon-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    transition: background 0.2s ease;
+}
+
+.lp-icon-preview svg {
+    width: 18px;
+    height: 18px;
+}
+
+.lp-icon-select .lp-form__input {
+    flex: 1;
+}
+
+.lp-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 28px;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    background: var(--bg-surface);
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (min-width: 560px) {
+    .lp-form__row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .lp-admin-section__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lp-admin-section__header .lp-btn {
+        width: 100%;
+    }
+
+    /* Modal jadi bottom-sheet penuh lebar di layar kecil */
+    .lp-modal {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        transform: none;
+        width: 100%;
+        max-width: none;
+        max-height: 88vh;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .lp-modal__header,
+    .lp-modal__body,
+    .lp-modal__actions {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}

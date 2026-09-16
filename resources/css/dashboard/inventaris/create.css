@@ -1,0 +1,41 @@
+@import './_shared.css';
+
+/* ============================================================
+   INVENTARIS — CREATE / FORM BARANG
+   (form-group, label, textarea, select, error-text: lihat _shared.css)
+   ============================================================ */
+
+.inv-form-shell { padding: 20px; max-width: 900px; margin: 0 auto; }
+
+.inv-form-card {
+    background: var(--bg-surface);
+    border-radius: var(--inv-radius-lg);
+    padding: 28px;
+    border: 1px solid var(--border);
+    box-shadow: var(--inv-shadow-sm);
+}
+
+.inv-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px 24px;
+}
+
+.inv-form-grid .form-input { width: 100%; min-height: 44px; padding: 11px 15px; }
+
+.inv-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+    .inv-form-shell { padding: 14px; }
+    .inv-form-card { padding: 18px; border-radius: var(--inv-radius); }
+    .inv-form-grid { grid-template-columns: 1fr; gap: 16px; }
+    .inv-form-actions { flex-direction: column-reverse; }
+    .inv-form-actions .btn { width: 100%; }
+}

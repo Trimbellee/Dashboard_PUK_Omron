@@ -1,0 +1,87 @@
+/* ── BK table input ─────────────────────────── */
+.bk-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    padding: 3px 2px;
+}
+.bk-input:focus {
+    background: var(--accent-muted);
+    border-radius: 5px;
+}
+.bk-input:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+    color: var(--text-secondary);
+}
+
+#tblBelanjaKoperasi tbody tr {
+    border-bottom: 1px solid var(--border);
+}
+#tblBelanjaKoperasi tbody tr:hover td {
+    background: var(--bg-elevated);
+}
+#tblBelanjaKoperasi td {
+    vertical-align: middle;
+}
+
+/* ── Suggest box ────────────────────────────── */
+.suggest-box {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    z-index: 50;
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+.suggest-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.1s;
+}
+.suggest-item:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+/* ── Toast ──────────────────────────────────── */
+.bk-toast {
+    background: #111827;
+    color: #F9FAFB;
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: pre-line;
+    animation: toastIn 0.2s ease;
+}
+.bk-toast-success { background: #166534; }
+.bk-toast-error   { background: #7F1D1D; }
+.bk-toast-confirm {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-10px) scale(.95); }
+    to   { opacity: 1; transform: none; }
+}
+
+tr.bg-error td {
+    background: rgba(239, 68, 68, 0.1);
+}

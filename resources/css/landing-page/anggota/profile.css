@@ -1,0 +1,351 @@
+/* ---------- Halaman Profil Anggota ---------- */
+.lp-profile-section {
+    padding-top: 20px;
+}
+
+.lp-profile-alert {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+.lp-profile-alert--success {
+    background: #dcfce7;
+    color: #166534;
+}
+.lp-profile-alert--error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+[data-theme="dark"] .lp-profile-alert--success {
+    background: #14311f;
+    color: #86efac;
+}
+[data-theme="dark"] .lp-profile-alert--error {
+    background: #3a1d1d;
+    color: #fca5a5;
+}
+
+.lp-profile-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    padding: 28px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 32px;
+}
+
+.lp-profile-header__avatar.lp-nav__avatar {
+    width: 96px;
+    height: 96px;
+    border-width: 2px;
+}
+.lp-profile-header__avatar .lp-nav__avatar-fallback {
+    font-size: 32px;
+}
+
+.lp-profile-header__info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.lp-profile-header__name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.lp-profile-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.lp-profile-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.lp-profile-header__nik {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.lp-profile-header__edit {
+    flex-shrink: 0;
+}
+
+.lp-profile-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+@media (min-width: 700px) {
+    .lp-profile-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.lp-profile-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 22px;
+}
+
+.lp-profile-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+}
+
+.lp-profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lp-profile-list__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.lp-profile-list__item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.lp-profile-list__item dt {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.lp-profile-list__item dd {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: right;
+}
+
+/* ---------- Halaman Edit Profil ---------- */
+.lp-profile-edit-container {
+    max-width: 900px;
+}
+
+.lp-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lp-edit-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    padding: 28px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.lp-edit-photo-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid var(--accent-soft);
+}
+.lp-edit-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.lp-edit-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 95, 180, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.lp-edit-photo-wrap:hover .lp-edit-photo-overlay {
+    opacity: 1;
+}
+.lp-edit-file-hidden {
+    display: none;
+}
+
+.lp-edit-header-info {
+    flex: 1;
+    min-width: 200px;
+}
+.lp-edit-header-name {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 6px;
+}
+.lp-edit-header-meta {
+    display: flex;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    margin-bottom: 6px;
+}
+.lp-edit-hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.lp-edit-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+}
+
+.lp-edit-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 22px;
+}
+.lp-edit-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lp-edit-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+.lp-edit-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+@media (min-width: 600px) {
+    .lp-edit-grid-2 { grid-template-columns: 1fr 1fr; }
+    .lp-edit-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+}
+.lp-edit-span-2 {
+    grid-column: 1 / -1;
+}
+
+.lp-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.lp-edit-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.lp-edit-req {
+    color: #ef4444;
+}
+
+.lp-edit-input, .lp-edit-textarea {
+    width: 100%;
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.lp-edit-input:focus, .lp-edit-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--bg-surface);
+}
+.lp-edit-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.lp-edit-textarea {
+    resize: vertical;
+}
+.lp-edit-sel-wrap {
+    position: relative;
+}
+
+.lp-edit-error {
+    font-size: 12.5px;
+    color: #ef4444;
+    margin: 0;
+}
+
+.lp-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+/* ---------- Toggle Show/Hide Password ---------- */
+.lp-edit-password-wrap {
+    position: relative;
+}
+.lp-edit-password-wrap .lp-edit-input {
+    padding-right: 42px; /* beri ruang untuk icon mata */
+}
+.lp-edit-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+}
+.lp-edit-password-toggle:hover {
+    color: var(--accent);
+    background: var(--bg-surface-alt);
+}

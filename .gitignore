@@ -26,4 +26,5 @@
 /.env
 Homestead.json
 Homestead.yaml
-Thumbs.db
+Thumbs.db/public/phpmyadmin
+/public/phpmyadmin

@@ -1,0 +1,383 @@
+/* ==========================================================================
+   GALERI PUBLIK — Halaman Semua Galeri
+   ========================================================================== */
+
+/* ---------- Header ---------- */
+.lp-galeri-header {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+.lp-galeri-header__stats {
+    display: flex;
+    gap: 16px;
+}
+.lp-galeri-stat {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 22px;
+    text-align: center;
+    min-width: 120px;
+}
+.lp-galeri-stat__value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent);
+}
+.lp-galeri-stat__label {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+@media (min-width: 700px) {
+    .lp-galeri-header {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+}
+
+/* ---------- Kurangi ruang kosong di atas header Galeri ---------- */
+.lp-galeri-page {
+    padding-top: 10px;
+}
+.lp-galeri-header__text .lp-hero__badge {
+    margin-bottom: 8px;
+}
+.lp-galeri-header__text .lp-section__title {
+    margin: 0 0 6px;
+}
+.lp-galeri-header__text .lp-section__desc {
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .lp-galeri-page {
+        padding-top: 20px;
+    }
+}
+/* ---------- Toolbar: Search & Filter ---------- */
+.lp-galeri-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 28px 0 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+}
+.lp-galeri-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    color: var(--text-secondary);
+}
+.lp-galeri-search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+}
+.lp-galeri-search__clear {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-surface-alt);
+    color: var(--text-secondary);
+}
+.lp-galeri-search__clear:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+.lp-galeri-toolbar__right {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.lp-galeri-select {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+}
+
+@media (min-width: 700px) {
+    .lp-galeri-toolbar {
+        flex-direction: row;
+        align-items: center;
+    }
+    .lp-galeri-search {
+        flex: 1;
+    }
+}
+
+/* ---------- Filter Tabs (Semua / Foto / Video) ---------- */
+.lp-galeri-filter-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    width: fit-content;
+    margin-bottom: 14px;
+}
+.lp-galeri-filter-tabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lp-galeri-filter-tabs a:hover {
+    color: var(--text-primary);
+}
+.lp-galeri-filter-tabs a.active {
+    background: var(--bg-surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Chip Filter Aktif ---------- */
+.lp-galeri-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.lp-galeri-active-filters__label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.lp-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 30px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+.lp-filter-chip:hover {
+    background: var(--border-color);
+}
+.lp-filter-chip span {
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* ---------- Result Count ---------- */
+.lp-galeri-result-count {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+
+/* ---------- Grid ---------- */
+.lp-galeri-full-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 16px;
+    margin: 0 0 8px;
+}
+@media (min-width: 700px) {
+    .lp-galeri-full-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.lp-galeri-full-grid .lp-galeri-item {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface-alt);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.lp-galeri-full-grid .lp-galeri-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+}
+
+.lp-galeri-full-grid .lp-thumb-static {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+}
+.lp-galeri-full-grid .lp-thumb-static img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+}
+.lp-galeri-full-grid .lp-thumb-static:hover img {
+    transform: scale(1.06);
+}
+
+.lp-galeri-full-grid .lp-thumb-playing {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    z-index: 2;
+}
+.lp-galeri-full-grid .lp-thumb-playing iframe,
+.lp-galeri-full-grid .lp-thumb-playing > div[id^="yt-full-player-"] {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+.lp-galeri-full-grid .lp-thumb-playing__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #9ca3af;
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+}
+.lp-galeri-full-grid .lp-thumb-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.lp-galeri-full-grid .lp-thumb-close:hover {
+    background: #dc2626;
+}
+
+/* ---------- Badges (tipe & kategori) ---------- */
+.lp-galeri-item__badges {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    pointer-events: none;
+}
+.lp-galeri-item__type-badge,
+.lp-galeri-item__kategori-badge {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(4px);
+    color: #fff;
+}
+.lp-galeri-item__type-badge--image { background: rgba(37, 99, 235, 0.85); }
+.lp-galeri-item__type-badge--video { background: rgba(220, 38, 38, 0.85); }
+
+.lp-galeri-item__kategori-badge { background: rgba(0, 0, 0, 0.55); }
+.lp-galeri-item__kategori-badge--rapat     { background: rgba(37, 99, 235, 0.85); }
+.lp-galeri-item__kategori-badge--pelatihan { background: rgba(5, 150, 105, 0.85); }
+.lp-galeri-item__kategori-badge--sosial    { background: rgba(217, 119, 6, 0.85); }
+.lp-galeri-item__kategori-badge--perayaan  { background: rgba(219, 39, 119, 0.85); }
+.lp-galeri-item__kategori-badge--olahraga  { background: rgba(124, 58, 237, 0.85); }
+.lp-galeri-item__kategori-badge--lainnya   { background: rgba(107, 114, 128, 0.85); }
+
+/* ---------- Overlay judul & kegiatan saat hover ---------- */
+.lp-galeri-item__overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    padding: 10px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 60%, transparent 100%);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+}
+.lp-galeri-full-grid .lp-galeri-item:hover .lp-galeri-item__overlay {
+    opacity: 1;
+    transform: translateY(0);
+}
+.lp-galeri-item__overlay-judul {
+    margin: 0;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    overflow: hidden;
+}
+.lp-galeri-item__overlay-kegiatan {
+    margin: 2px 0 0;
+    color: rgba(255,255,255,0.8);
+    font-size: 11px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    overflow: hidden;
+}
+
+/* ---------- Empty State ---------- */
+.lp-galeri-empty {
+    grid-column: 1 / -1;
+}
+
+/* ---------- Responsive kecil ---------- */
+@media (max-width: 480px) {
+    .lp-galeri-toolbar { padding: 12px; }
+    .lp-galeri-stat { min-width: 100px; padding: 10px 16px; }
+    .lp-galeri-item__overlay-judul { font-size: 12px; }
+    .lp-galeri-item__overlay-kegiatan { font-size: 10px; }
+}

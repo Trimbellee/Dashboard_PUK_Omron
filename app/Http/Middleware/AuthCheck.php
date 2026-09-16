@@ -10,8 +10,10 @@ class AuthCheck
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Session::has('user')) {
-            return redirect('/login')->with('error', 'Silakan login terlebih dahulu.');
+        if (!Session::has('user') &&
+        !$request->is('pengajuan/export-excel')
+        ) {
+            return redirect('dashboard/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
         return $next($request);

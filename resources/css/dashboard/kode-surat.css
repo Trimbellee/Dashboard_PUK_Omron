@@ -1,0 +1,325 @@
+/* ============================================================
+   KODE SURAT — STYLES
+   Mobile-first: base styles = layar kecil, lalu diperbesar
+   lewat media query min-width untuk layar besar.
+   ============================================================ */
+
+.ks-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-inline: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.ks-wrapper * {
+    box-sizing: border-box;
+    min-width: 0; /* cegah grid/flex child overflow di layar sempit */
+}
+
+/* ── CARD ─────────────────────────────────────────────────── */
+.ks-card {
+    background: var(--bg-surface);
+    padding: 18px 16px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.ks-card--history {
+    padding: 16px 14px;
+}
+
+.ks-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.ks-card-title--sm {
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+}
+
+@media (min-width: 640px) {
+    .ks-wrapper {
+        gap: 24px;
+        padding-inline: 0;
+    }
+    .ks-card {
+        padding: 28px 32px;
+        border-radius: 18px;
+    }
+    .ks-card--history {
+        padding: 24px 28px;
+    }
+    .ks-card-title {
+        font-size: 1.1rem;
+        margin-bottom: 24px;
+    }
+    .ks-card-title--sm {
+        font-size: 1rem;
+        margin-bottom: 20px;
+    }
+}
+
+/* ── FORM GENERATE ────────────────────────────────────────── */
+.ks-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+@media (min-width: 640px) {
+    .ks-form {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+}
+
+.ks-form-group--full {
+    grid-column: 1 / -1;
+}
+
+.ks-form .btn {
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .ks-form .btn {
+        width: auto;
+    }
+}
+
+/* ── HASIL ────────────────────────────────────────────────── */
+.ks-result-box {
+    display: none;
+    margin-top: 16px;
+}
+
+.ks-result-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.ks-result-code {
+    flex: 1 1 100%;
+    min-width: 180px;
+    padding: 10px 14px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    user-select: all;
+    word-break: break-all;
+}
+
+@media (min-width: 480px) {
+    .ks-result-code {
+        flex: 1 1 auto;
+        font-size: 1rem;
+    }
+}
+
+.ks-copy-info {
+    display: none;
+    font-size: 0.75rem;
+    color: #22C55E;
+    margin-top: 6px;
+}
+
+/* ── FILTER ───────────────────────────────────────────────── */
+.ks-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 560px) {
+    .ks-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 860px) {
+    .ks-filter-grid {
+        grid-template-columns: 1fr 1fr 1fr auto;
+        margin-bottom: 20px;
+    }
+}
+
+.ks-filter-btn-group {
+    display: flex;
+    align-items: flex-end;
+}
+
+.ks-filter-btn {
+    white-space: nowrap;
+    width: 100%;
+}
+
+@media (min-width: 860px) {
+    .ks-filter-btn {
+        width: auto;
+    }
+}
+
+/* ── TABLE ────────────────────────────────────────────────── */
+.ks-table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+}
+
+.ks-table {
+    width: 100%;
+    min-width: 480px; /* jaga kolom tetap terbaca, scroll horizontal di layar kecil */
+    font-size: 0.8125rem;
+    border-collapse: collapse;
+}
+
+.ks-table thead tr {
+    background: var(--bg-elevated);
+}
+
+.ks-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.ks-table td {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+@media (min-width: 640px) {
+    .ks-table-wrapper {
+        border-radius: 12px;
+    }
+    .ks-table {
+        font-size: 0.875rem;
+    }
+    .ks-table th,
+    .ks-table td {
+        padding: 10px 16px;
+    }
+}
+
+.ks-table td.ks-td-no-surat {
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary);
+}
+
+.ks-table tr {
+    transition: background 0.12s;
+}
+
+.ks-table tbody tr:hover {
+    background: var(--bg-elevated);
+}
+
+.ks-table-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+}
+
+/* ── FOOTER / PAGINATION ──────────────────────────────────── */
+.ks-footer-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+@media (min-width: 560px) {
+    .ks-footer-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+    }
+}
+
+.ks-page-info {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+@media (min-width: 560px) {
+    .ks-page-info {
+        font-size: 0.875rem;
+        text-align: left;
+    }
+}
+
+.ks-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+}
+
+@media (min-width: 560px) {
+    .ks-pagination {
+        justify-content: flex-end;
+    }
+}
+
+.ks-page-btn {
+    padding: 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+    min-width: 32px;
+}
+
+@media (min-width: 560px) {
+    .ks-page-btn {
+        padding: 5px 12px;
+        font-size: 0.8125rem;
+    }
+}
+
+.ks-page-btn:hover:not(.is-active):not(:disabled) {
+    background: var(--bg-elevated);
+}
+
+.ks-page-btn.is-active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.ks-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ks-page-dots {
+    padding: 5px 8px;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}

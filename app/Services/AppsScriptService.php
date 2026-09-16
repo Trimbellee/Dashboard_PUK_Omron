@@ -78,4 +78,24 @@ class AppsScriptService
             ];
         }
     }
+
+    /**
+     * ============================
+     * GET PENGAJUAN (SHEET Pengajuan)
+     * ============================
+     */
+    public function getPengajuanBendahara(array $params = [])
+    {
+        return $this->request('get', array_merge([
+            'action' => 'getPengajuanBendahara'
+        ], $params));
+    }
+
+    public function getBelanjaKoperasi(array $params = [])
+    {
+        return $this->request('get', array_merge([
+            'action' => 'getBelanjaKoperasi'
+        ], $params));
+    }
+
 }

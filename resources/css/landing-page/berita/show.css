@@ -1,0 +1,1346 @@
+/* ============================================================
+   NEWS — SHOW BERITA (landing-page/berita/show)
+   CSS ala Koran Perjuangan (KPonline) — Tema Biru
+   ============================================================ */
+
+
+/* ============================================================
+   1. BREADCRUMB
+   ============================================================ */
+.lp-breadcrumb {
+    padding: 12px 0;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+}
+.lp-breadcrumb__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.lp-breadcrumb__list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+.lp-breadcrumb__list li:not(:last-child)::after {
+    content: '/';
+    color: var(--border-color);
+    font-weight: 300;
+}
+.lp-breadcrumb__list a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.lp-breadcrumb__list a:hover {
+    color: #2563eb;
+}
+.lp-breadcrumb__list [aria-current="page"] {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   2. READING PROGRESS BAR
+   ============================================================ */
+.lp-reading-progress {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--bg-surface-alt);
+    z-index: 105;
+}
+.lp-reading-progress__bar {
+    height: 100%;
+    width: 0%;
+    background: #2563eb;
+    transition: width 0.1s linear;
+}
+
+
+/* ============================================================
+   3. LAYOUT GRID — 2 KOLOM (Artikel + Sidebar)
+   ============================================================ */
+.lp-article-wrapper {
+    padding: 28px 0 60px;
+}
+.lp-article-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    align-items: stretch; /* WAJIB stretch, agar .lp-article-sidebar setinggi main
+                              sehingga .lp-article-sidebar__inner (sticky) punya
+                              batas bawah yang benar dan berhenti sejajar main */
+}
+@media (min-width: 992px) {
+    .lp-article-grid {
+        grid-template-columns: 2fr 1fr;
+        gap: 48px;
+    }
+}
+
+
+/* ============================================================
+   4. KOLOM UTAMA (ARTIKEL)
+   ============================================================ */
+.lp-article-main {
+    min-width: 0;
+}
+.lp-article {
+    background: var(--bg-base);
+    border-radius: var(--radius-sm);
+    padding: 0;
+}
+
+
+/* ============================================================
+   4a. HEADER ARTIKEL
+   ============================================================ */
+.lp-article__header {
+    margin-bottom: 28px;
+}
+.lp-article__header-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.lp-article__kategori {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+.lp-article__kategori:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* Badge */
+.lp-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.lp-badge--breaking { background: #dc2626; color: #fff; }
+.lp-badge--featured { background: #d97706; color: #fff; }
+.lp-badge--headline { background: #2563eb; color: #fff; }
+.lp-badge--new { background: #059669; color: #fff; animation: pulse-badge 2s ease-in-out infinite; }
+@keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+[data-theme="dark"] .lp-badge--breaking { background: #b91c1c; }
+[data-theme="dark"] .lp-badge--featured { background: #b45309; }
+[data-theme="dark"] .lp-badge--headline { background: #1d4ed8; }
+[data-theme="dark"] .lp-badge--new { background: #047857; }
+
+/* Judul */
+.lp-article__title {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 3.5vw, 38px);
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0 0 14px;
+    color: var(--text-primary);
+}
+
+/* Meta container */
+.lp-article__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+    color: var(--text-muted);
+}
+@media (min-width: 640px) {
+    .lp-article__meta {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+/* Meta kiri: avatar + info */
+.lp-article__meta-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Avatar */
+.lp-article__avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border-color);
+}
+.lp-article__avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Info: penulis, tanggal, views dalam satu baris */
+.lp-article__meta-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.lp-article__author a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.lp-article__meta-separator {
+    color: var(--border-color);
+    font-weight: 300;
+}
+.lp-article__date {
+    color: var(--text-muted);
+}
+.lp-article__views {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* Meta kanan: ikon medsos (desktop only) */
+.lp-article__meta-right {
+    flex-shrink: 0;
+}
+.lp-article__meta-social {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.lp-article__meta-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #fff;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.lp-article__meta-social-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.35);
+}
+.lp-article__meta-social-link--ig {
+    background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+}
+.lp-article__meta-social-link--tw { background: #000000; }
+[data-theme="dark"] .lp-article__meta-social-link--tw { background: #1a1a1a; }
+.lp-article__meta-social-link--fb { background: #1877f2; }
+.lp-article__meta-social-link--wa { background: #25d366; }
+
+/* Sembunyikan di layar kecil agar tidak padat */
+@media (max-width: 639px) {
+    .lp-article__meta-right {
+        display: none;
+    }
+}
+
+/* Responsif: HP */
+@media (max-width: 480px) {
+    .lp-article__meta-left {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .lp-article__avatar {
+        width: 30px;
+        height: 30px;
+    }
+    .lp-article__meta-info {
+        font-size: 12px;
+    }
+    .lp-article__views {
+        font-size: 12px;
+    }
+    .lp-article__read-time {
+        font-size: 12px;
+    }
+}
+
+
+/* ============================================================
+   4b. FEATURED IMAGE
+   ============================================================ */
+.lp-article__featured {
+    margin: 0 0 28px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-surface-alt);
+}
+.lp-article__featured img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.lp-article__featured figcaption {
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--bg-surface-alt);
+    font-style: italic;
+}
+
+/* ============================================================
+   4c. BODY ARTIKEL
+   Selector digabung ".lp-article__body.ql-editor" (tanpa spasi)
+   supaya specificity-nya (0,2,0) lebih tinggi dari reset bawaan
+   quill.snow.css seperti ".ql-editor" / ".ql-editor p" dkk yang
+   juga (0,1,0)/(0,1,1) — kalau dipisah spasi, quill.snow.css bisa
+   menang karena di-load belakangan, sehingga font-size/margin
+   selalu ke-reset ke nilai default editor.
+   ============================================================ */
+.lp-article__body.ql-editor {
+    box-sizing: content-box;
+    height: auto;
+    overflow-y: visible;
+    padding: 0;
+    white-space: normal;
+    font-family: inherit;
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+.lp-article__body.ql-editor h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 32px 0 14px;
+}
+.lp-article__body.ql-editor h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    margin: 28px 0 12px;
+}
+.lp-article__body.ql-editor h4 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 24px 0 10px;
+}
+.lp-article__body.ql-editor p {
+    margin: 0 0 26px;
+}
+
+/* Paragraf kosong hasil tekan Enter manual — diberi tinggi
+   sendiri (bukan margin) supaya jaraknya bisa diatur bebas
+   dan tidak numpuk dengan margin-bottom paragraf isi di atasnya. */
+.lp-article__body.ql-editor p:empty,
+.lp-article__body.ql-editor p:has(> br:only-child) {
+    margin: 0;
+    height: 32px;
+}
+
+.lp-article__body.ql-editor ul,
+.lp-article__body.ql-editor ol {
+    margin: 0 0 18px;
+    padding-left: 24px;
+}
+.lp-article__body.ql-editor ul li,
+.lp-article__body.ql-editor ol li {
+    margin-bottom: 6px;
+}
+.lp-article__body.ql-editor blockquote {
+    margin: 24px 0;
+    padding: 16px 24px;
+    border-left: 4px solid #2563eb;
+    background: rgba(37, 99, 235, 0.06);
+    border-radius: var(--radius-sm);
+    font-style: italic;
+    color: var(--text-secondary);
+}
+.lp-article__body.ql-editor blockquote p {
+    margin: 0;
+}
+.lp-article__body.ql-editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    margin: 16px 0;
+}
+.lp-article__body.ql-editor a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.2s ease;
+}
+.lp-article__body.ql-editor a:hover {
+    color: #1d4ed8;
+}
+.lp-article__body.ql-editor hr {
+    margin: 32px 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ============================================================
+   4d. BACAAAN LAINNYA (inline di tengah artikel)
+   ============================================================ */
+.gmr-related-post.gmr-gallery-related-insidepost {
+    margin: 28px 0;
+    padding: 16px 20px;
+    background: var(--bg-surface-alt);
+    border-left: 4px solid #2563eb;
+    border-radius: var(--radius-sm);
+}
+.gmr-related-post__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+    
+}
+.gmr-related-post__title strong {
+    color: #2563eb;
+}
+.gmr-related-post__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+.gmr-related-post__item {
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border-color);
+    
+}
+.gmr-related-post__item:last-child {
+    border-bottom: none;
+    
+}
+.gmr-related-post__item a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    transition: color 0.2s ease;
+    display: block;
+    line-height: 1.4;
+    
+}
+.gmr-related-post__item a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+@media (min-width: 640px) {
+    .gmr-related-post__grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px 20px;
+    }
+    .gmr-related-post__item {
+        border-bottom: none;
+        padding: 0;
+    }
+}
+@media (max-width: 639px) {
+    .gmr-related-post__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ============================================================
+   4e. TAGS
+   ============================================================ */
+.lp-article__tags {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.lp-article__tags-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.lp-article__tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+.lp-article__tag:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* ============================================================
+   4f. BYLINE — PENULIS & EDITOR (simple text)
+   ============================================================ */
+.lp-byline {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lp-byline__line {
+    margin: 0;
+    font-size: 13.5px;
+    font-style: italic;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+
+/* ============================================================
+   4h. FOOTER ARTIKEL (Share + Back)
+   ============================================================ */
+.lp-article__footer {
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+}
+.lp-article__share {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.lp-article__share-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+.lp-article__share-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+.lp-article__share-link:hover {
+    transform: translateY(-3px) scale(1.05);
+}
+.lp-article__share-link--fb { background: #1877f2; }
+.lp-article__share-link--tw { background: #000000; }
+[data-theme="dark"] .lp-article__share-link--tw { background: #1a1a1a; }
+.lp-article__share-link--wa { background: #25d366; }
+
+.lp-article__back {
+    align-self: flex-start;
+}
+@media (min-width: 640px) {
+    .lp-article__footer {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .lp-article__back {
+        align-self: auto;
+    }
+}
+
+
+/* ============================================================
+   5. RELATED ARTICLES (di bawah artikel) — hanya judul, full text
+   ============================================================ */
+.lp-article-related {
+    margin-top: 40px;
+    padding-top: 28px;
+    border-top: 2px solid var(--border-color);
+}
+.lp-section__head {
+    margin-bottom: 20px;
+}
+.lp-section__eyebrow {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #2563eb;
+    margin-bottom: 4px;
+}
+.lp-section__title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+.lp-section__desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Grid: 3 kolom desktop, 2 kolom tablet & HP */
+.lp-article-related__grid--4col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+/* Card — clean tanpa border */
+.lp-news-card--related--clean {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+.lp-news-card--related--clean:hover {
+    transform: translateY(-4px);
+    box-shadow: none !important;
+}
+
+.lp-news-card--related--clean .lp-news-card__link {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Thumbnail */
+.lp-news-card--related--clean .lp-news-card__thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: var(--bg-surface-alt);
+    overflow: hidden;
+    border-radius: 6px;
+}
+.lp-news-card--related--clean .lp-news-card__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+.lp-news-card--related--clean:hover .lp-news-card__thumb img {
+    transform: scale(1.04);
+}
+.lp-news-card--related--clean .lp-news-card__thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent-soft);
+}
+.lp-news-card--related--clean .lp-news-card__badge-breaking {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 18px;
+}
+
+/* Body — hanya judul */
+.lp-news-card--related--clean .lp-news-card__body {
+    padding: 10px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Judul — TIDAK DIPOTONG, full text */
+.lp-news-card--related--clean .lp-news-card__judul {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+    color: var(--text-primary);
+    display: block !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    -webkit-line-clamp: unset !important;
+    line-clamp: unset !important;
+    max-height: none !important;
+}
+
+/* Responsif */
+@media (max-width: 991px) {
+    .lp-article-related__grid--4col {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}
+@media (max-width: 639px) {
+    .lp-article-related__grid--4col {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    .lp-news-card--related--clean .lp-news-card__judul {
+        font-size: 14px;
+    }
+    .lp-news-card--related--clean .lp-news-card__body {
+        padding: 8px 0 0 0;
+    }
+}
+
+/* ============================================================
+   6. SIDEBAR — STICKY (berhenti sejajar bawah main)
+   ============================================================ */
+
+.lp-article-sidebar {
+    min-width: 0;
+}
+
+.lp-article-sidebar__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: sticky;
+    top: 20px;
+}
+
+@media (max-width: 991px) {
+    .lp-article-sidebar__inner {
+        position: static !important;
+    }
+}
+
+/* ---- Widget card (base) ---- */
+.lp-sidebar-widget {
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px 20px 18px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -12px rgba(15, 23, 42, 0.08);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+    overflow: hidden;
+}
+.lp-sidebar-widget::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #2563eb, #60a5fa);
+    opacity: 0;
+    transform: scaleX(0.3);
+    transform-origin: left;
+    transition: opacity 0.3s ease, transform 0.4s ease;
+}
+.lp-sidebar-widget:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 4px 8px rgba(15, 23, 42, 0.05), 0 16px 32px -14px rgba(37, 99, 235, 0.22);
+    transform: translateY(-2px);
+}
+.lp-sidebar-widget:hover::before {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+/* ---- Widget title ---- */
+.lp-sidebar-widget__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    margin: 0 0 16px;
+    padding-bottom: 0;
+    border-bottom: none;
+    color: var(--text-primary);
+}
+.lp-sidebar-widget__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    font-size: 14px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(96, 165, 250, 0.12));
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.15);
+}
+
+/* ============================================================
+   6a. SIDEBAR — BERITA TERBARU
+   ============================================================ */
+.lp-sidebar-widget__list--recent {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item {
+    padding: 0;
+    border-bottom: none;
+}
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item + .lp-sidebar-widget__item {
+    margin-top: 4px;
+}
+
+.lp-sidebar-widget__link--recent {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+    padding: 8px;
+    margin: 0 -8px;
+    border-radius: 12px;
+    transition: background 0.25s ease, transform 0.25s ease;
+}
+.lp-sidebar-widget__link--recent:hover {
+    background: rgba(37, 99, 235, 0.06);
+    transform: translateX(2px);
+}
+.lp-sidebar-widget__link--recent:hover .lp-sidebar-widget__judul {
+    color: #2563eb;
+}
+
+/* Thumbnail */
+.lp-sidebar-widget__thumb {
+    position: relative;
+    flex: 0 0 72px;
+    width: 72px;
+    height: 54px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-surface-alt);
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+}
+.lp-sidebar-widget__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    transition: transform 0.4s ease;
+}
+.lp-sidebar-widget__link--recent:hover .lp-sidebar-widget__thumb img,
+.lp-sidebar-widget__link--popular:hover .lp-sidebar-widget__thumb img {
+    transform: scale(1.08);
+}
+.lp-sidebar-widget__thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #2563eb;
+    background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(96,165,250,0.08));
+}
+
+/* Content */
+.lp-sidebar-widget__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 1px;
+}
+
+.lp-sidebar-widget__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+.lp-sidebar-widget__kategori {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+.lp-sidebar-widget__time {
+    font-size: 10px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.lp-sidebar-widget__judul {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-primary);
+    display: block;
+    overflow: visible;
+    white-space: normal;
+    word-wrap: break-word;
+    transition: color 0.2s ease;
+}
+
+
+/* ============================================================
+   6b. SIDEBAR — POPULER
+   ============================================================ */
+.lp-sidebar-widget__list--popular {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item {
+    padding: 0;
+    border-bottom: none;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item + .lp-sidebar-widget__item {
+    margin-top: 4px;
+}
+
+.lp-sidebar-widget__link--popular {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+    padding: 8px;
+    margin: 0 -8px;
+    border-radius: 12px;
+    transition: background 0.25s ease, transform 0.25s ease;
+}
+.lp-sidebar-widget__link--popular:hover {
+    background: rgba(37, 99, 235, 0.06);
+    transform: translateX(2px);
+}
+.lp-sidebar-widget__link--popular:hover .lp-sidebar-widget__text {
+    color: #2563eb;
+}
+
+/* Nomor urut — badge gradient */
+.lp-sidebar-widget__number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #2563eb, #4f8cff);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px -2px rgba(37, 99, 235, 0.5);
+}
+.lp-sidebar-widget__item:nth-child(1) .lp-sidebar-widget__number {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    box-shadow: 0 3px 8px -2px rgba(249, 115, 22, 0.5);
+}
+.lp-sidebar-widget__item:nth-child(2) .lp-sidebar-widget__number {
+    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    box-shadow: 0 3px 8px -2px rgba(148, 163, 184, 0.5);
+}
+.lp-sidebar-widget__item:nth-child(3) .lp-sidebar-widget__number {
+    background: linear-gradient(135deg, #b45309, #d97706);
+    box-shadow: 0 3px 8px -2px rgba(180, 83, 9, 0.5);
+}
+
+.lp-sidebar-widget__content--popular {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.lp-sidebar-widget__text {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-primary);
+    display: block;
+    overflow: visible;
+    white-space: normal;
+    word-wrap: break-word;
+    transition: color 0.2s ease;
+}
+.lp-sidebar-widget__views {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.lp-sidebar-widget__views::before {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+/* ============================================================
+   6a-1 & 6b-1 — ITEM PERTAMA (FEATURED): gambar besar di atas
+   ============================================================ */
+
+/* --- Berita Terbaru: item #1 --- */
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item:first-child .lp-sidebar-widget__link--recent {
+    display: grid;
+    grid-template-areas:
+        "img"
+        "content";
+    gap: 12px;
+    align-items: start;
+}
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item:first-child .lp-sidebar-widget__thumb {
+    grid-area: img;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    flex: none;
+    border-radius: 14px;
+}
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item:first-child .lp-sidebar-widget__content {
+    grid-area: content;
+    gap: 5px;
+}
+.lp-sidebar-widget__list--recent .lp-sidebar-widget__item:first-child .lp-sidebar-widget__judul {
+    font-size: 15.5px;
+    font-weight: 700;
+}
+
+/* --- Berita Populer: item #1 --- */
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item:first-child .lp-sidebar-widget__link--popular {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+        "img img"
+        "num content";
+    gap: 10px 12px;
+    align-items: start;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item:first-child .lp-sidebar-widget__thumb {
+    grid-area: img;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    flex: none;
+    border-radius: 14px;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item:first-child .lp-sidebar-widget__number {
+    grid-area: num;
+    margin-top: 2px;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item:first-child .lp-sidebar-widget__content--popular {
+    grid-area: content;
+    gap: 5px;
+}
+.lp-sidebar-widget__list--popular .lp-sidebar-widget__item:first-child .lp-sidebar-widget__text {
+    font-size: 15.5px;
+    font-weight: 700;
+}
+
+/* ============================================================
+   6c. SIDEBAR — TAGS
+   ============================================================ */
+.lp-sidebar-widget__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.lp-sidebar-widget__tag {
+    display: inline-block;
+    padding: 5px 13px;
+    border-radius: 20px;
+    background: var(--bg-surface-alt);
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lp-sidebar-widget__tag:hover {
+    background: linear-gradient(135deg, #2563eb, #4f8cff);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.6);
+}
+
+
+/* ============================================================
+   6d. SIDEBAR — NEWSLETTER
+   ============================================================ */
+.lp-sidebar-widget--newsletter {
+    background: linear-gradient(160deg, rgba(37, 99, 235, 0.08), rgba(96, 165, 250, 0.03));
+    border-color: rgba(37, 99, 235, 0.25);
+    text-align: center;
+}
+.lp-sidebar-widget--newsletter::before {
+    background: linear-gradient(90deg, #2563eb, #60a5fa, #2563eb);
+    opacity: 1;
+    transform: scaleX(1);
+}
+.lp-sidebar-widget--newsletter .lp-sidebar-widget__title {
+    justify-content: center;
+}
+.lp-sidebar-widget__newsletter-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    font-size: 24px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(96, 165, 250, 0.1));
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.2);
+}
+.lp-newsletter-widget__desc {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin: 0 0 14px;
+    line-height: 1.55;
+}
+.lp-newsletter-widget__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.lp-newsletter-widget__input {
+    padding: 11px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 13px;
+    text-align: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-newsletter-widget__input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+.lp-sidebar-widget--newsletter .lp-btn--primary {
+    background: linear-gradient(135deg, #2563eb, #4f8cff);
+    border: none;
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 8px 18px -8px rgba(37, 99, 235, 0.55);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.lp-sidebar-widget--newsletter .lp-btn--primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -8px rgba(37, 99, 235, 0.65);
+}
+.lp-sidebar-widget--newsletter .lp-btn--primary:disabled {
+    opacity: 0.7;
+}
+.lp-newsletter-widget__msg {
+    margin: 10px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+}
+.lp-newsletter-widget__msg--success { color: #16a34a; }
+.lp-newsletter-widget__msg--error { color: #dc2626; }
+
+/* ============================================================
+   7. RESPONSIF — LAYAR KECIL (≤ 639px)
+   ============================================================ */
+@media (max-width: 639px) {
+    .lp-article-wrapper {
+        padding: 16px 0 40px;
+    }
+    .lp-article__title {
+        font-size: 22px;
+    }
+    .lp-article__body {
+        font-size: 15px;
+        line-height: 1.75;
+    }
+    .lp-article__body h2 {
+        font-size: 20px;
+    }
+    .lp-article__body h3 {
+        font-size: 17px;
+    }
+    .lp-article__meta {
+        font-size: 13px;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .lp-breadcrumb__list {
+        font-size: 13px;
+        gap: 6px 10px;
+    }
+    .lp-article__tags {
+        gap: 6px;
+    }
+    .lp-article__tag {
+        font-size: 12px;
+        padding: 3px 10px;
+    }
+    .lp-sidebar-widget {
+        padding: 14px 16px;
+    }
+    .lp-article-grid {
+        gap: 24px;
+    }
+
+    /* Sidebar thumb lebih kecil di HP */
+    .lp-sidebar-widget__thumb {
+        flex: 0 0 60px;
+        width: 60px;
+        height: 45px;
+    }
+    .lp-sidebar-widget__judul {
+        font-size: 12px;
+    }
+    .lp-sidebar-widget__text {
+        font-size: 12px;
+    }
+    .lp-sidebar-widget__kategori {
+        font-size: 9px;
+    }
+    .lp-sidebar-widget__time {
+        font-size: 9px;
+    }
+    .lp-sidebar-widget__views {
+        font-size: 9px;
+    }
+    .lp-sidebar-widget__number {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+}
+
+
+/* ============================================================
+   8. MOBILE BOTTOM NAV
+   ============================================================ */
+.lp-mobile-bottomnav {
+    display: none;
+}
+@media (max-width: 640px) {
+    body { padding-bottom: 64px; }
+    .lp-mobile-bottomnav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .lp-mobile-bottomnav__item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 9px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    .lp-mobile-bottomnav__item.active,
+    .lp-mobile-bottomnav__item:hover {
+        color: #2563eb;
+    }
+    .lp-mobile-bottomnav__item svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* ============================================================
+   9. DARK MODE
+   ============================================================ */
+[data-theme="dark"] .lp-article__kategori:hover {
+    background: #2563eb;
+    color: #fff;
+}
+[data-theme="dark"] .lp-article__tag:hover {
+    background: #2563eb;
+    color: #fff;
+}
+[data-theme="dark"] .gmr-related-post.gmr-gallery-related-insidepost {
+    background: rgb(0, 0, 0);
+}
+
+[data-theme="dark"] .lp-sidebar-widget {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 24px -14px rgba(0, 0, 0, 0.55);
+}
+[data-theme="dark"] .lp-sidebar-widget:hover {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 18px 36px -14px rgba(37, 99, 235, 0.35);
+}
+[data-theme="dark"] .lp-sidebar-widget__icon {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.22), rgba(37, 99, 235, 0.14));
+}
+[data-theme="dark"] .lp-sidebar-widget__link--recent:hover,
+[data-theme="dark"] .lp-sidebar-widget__link--popular:hover {
+    background: rgba(96, 165, 250, 0.1);
+}
+[data-theme="dark"] .lp-sidebar-widget__tag:hover {
+    background: linear-gradient(135deg, #2563eb, #4f8cff);
+    color: #fff;
+}
+[data-theme="dark"] .lp-sidebar-widget--newsletter {
+    background: linear-gradient(160deg, rgba(96, 165, 250, 0.1), rgba(37, 99, 235, 0.03));
+}

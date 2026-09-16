@@ -1,0 +1,324 @@
+/* ==========================================================================
+   LOGIN PAGE — PUK OMRON
+   ========================================================================== */
+
+/* ---------- Variabel Login ---------- */
+:root {
+    --login-bg-base:           #f6f9fc;
+    --login-bg-surface:        #ffffff;
+    --login-bg-surface-alt:    #f0f4f9;
+    --login-text-primary:      #0b1a2b;
+    --login-text-secondary:    #3d556b;
+    --login-text-muted:        #6b7f94;
+    --login-border-color:      #e2e9f0;
+    --login-accent:            #1a5fb4;
+    --login-accent-hover:      #0f4a8a;
+    --login-accent-soft:       #e4edf9;
+    --login-accent-gradient:   linear-gradient(135deg, #1a5fb4, #3b8bdb);
+    --login-shadow-sm:         0 2px 8px rgba(0, 20, 40, 0.06);
+    --login-shadow-md:         0 8px 30px rgba(0, 20, 40, 0.10);
+    --login-shadow-lg:         0 20px 60px rgba(0, 20, 40, 0.14);
+    --login-radius-sm:         10px;
+    --login-radius-md:         18px;
+    --login-radius-lg:         28px;
+    --login-font-display:      'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
+    --login-font-body:         'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
+    --login-transition:        0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+[data-theme="dark"] {
+    --login-bg-base:           #0f1724;
+    --login-bg-surface:        #1a2538;
+    --login-bg-surface-alt:    #243049;
+    --login-text-primary:      #f0f4fc;
+    --login-text-secondary:    #b0c6dd;
+    --login-text-muted:        #7e94ae;
+    --login-border-color:      #2d3c55;
+    --login-accent:            #4d8de0;
+    --login-accent-hover:      #6ca3f0;
+    --login-accent-soft:       #1d2f4a;
+    --login-accent-gradient:   linear-gradient(135deg, #4d8de0, #7bb0f5);
+    --login-shadow-sm:         0 2px 8px rgba(0, 0, 0, 0.35);
+    --login-shadow-md:         0 8px 30px rgba(0, 0, 0, 0.45);
+    --login-shadow-lg:         0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- Reset & Base ---------- */
+.lp-auth * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.lp-auth {
+    min-height: calc(100vh - 68px);
+    display: flex;
+    align-items: center;
+    background: var(--login-bg-base);
+    color: var(--login-text-primary);
+    font-family: var(--login-font-body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+}
+
+/* ---------- Container ---------- */
+.lp-auth__container {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: center;
+}
+
+/* ---------- Card ---------- */
+.lp-auth__card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--login-bg-surface);
+    border: 1px solid var(--login-border-color);
+    border-radius: var(--login-radius-md);
+    padding: 36px 32px;
+    text-align: center;
+    box-shadow: var(--login-shadow-sm);
+    animation: loginFadeUp 0.6s ease forwards;
+    opacity: 0;
+}
+
+@keyframes loginFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+/* ---------- Title & Description ---------- */
+.lp-auth__title {
+    font-family: var(--login-font-display);
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: var(--login-text-primary);
+}
+
+.lp-auth__desc {
+    color: var(--login-text-secondary);
+    font-size: 14px;
+    margin: 0 0 20px;
+}
+
+/* ---------- Alert ---------- */
+.lp-auth__alert {
+    display: block;
+    padding: 10px 14px;
+    border-radius: var(--login-radius-sm);
+    margin-bottom: 16px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.lp-auth__alert.lp-form__error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #dc2626;
+}
+
+[data-theme="dark"] .lp-auth__alert.lp-form__error {
+    background: #3a1d1d;
+    color: #fca5a5;
+    border-left-color: #ef4444;
+}
+
+.lp-auth__alert.lp-form__success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #059669;
+}
+
+[data-theme="dark"] .lp-auth__alert.lp-form__success {
+    background: #1a3a2a;
+    color: #6ee7b7;
+    border-left-color: #34d399;
+}
+
+/* ---------- Form ---------- */
+.lp-auth__form {
+    text-align: left;
+    padding: 0;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.lp-form__group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lp-form__group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--login-text-primary);
+}
+
+.lp-form__group input {
+    font-family: var(--login-font-body);
+    font-size: 15px;
+    padding: 12px 16px;
+    border-radius: var(--login-radius-sm);
+    border: 1px solid var(--login-border-color);
+    background: var(--login-bg-base);
+    color: var(--login-text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    outline: none;
+}
+
+.lp-form__group input:focus {
+    border-color: var(--login-accent);
+    box-shadow: 0 0 0 4px var(--login-accent-soft);
+}
+
+.lp-form__group input::placeholder {
+    color: var(--login-text-muted);
+}
+
+/* Password */
+.lp-password {
+    position: relative;
+}
+
+.lp-password input {
+    padding-right: 48px;
+}
+
+.lp-password__toggle {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    color: var(--login-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lp-password__toggle:hover {
+    color: var(--login-accent);
+}
+
+.lp-password__toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.lp-form__error {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+[data-theme="dark"] .lp-form__error {
+    color: #f87171;
+}
+
+/* ---------- Submit Button ---------- */
+.lp-form__submit {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 60px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    background: var(--login-accent-gradient);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(26, 95, 180, 0.30);
+    transition: all 0.25s ease;
+    font-family: var(--login-font-body);
+    margin-top: 4px;
+}
+
+.lp-form__submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(26, 95, 180, 0.40);
+}
+
+.lp-form__submit:active {
+    transform: translateY(0);
+}
+
+[data-theme="dark"] .lp-form__submit {
+    box-shadow: 0 4px 14px rgba(77, 141, 224, 0.30);
+}
+
+[data-theme="dark"] .lp-form__submit:hover {
+    box-shadow: 0 8px 24px rgba(77, 141, 224, 0.40);
+}
+
+/* ---------- Back Link ---------- */
+.lp-auth__back {
+    display: inline-block;
+    margin-top: 20px;
+    color: var(--login-text-secondary);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: color 0.2s ease;
+}
+
+.lp-auth__back:hover {
+    color: var(--login-accent);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+    .lp-auth__card {
+        padding: 28px 20px;
+    }
+    
+    .lp-auth__title {
+        font-size: 20px;
+    }
+    
+    .lp-auth__desc {
+        font-size: 13px;
+    }
+    
+    .lp-form__group input {
+        font-size: 14px;
+        padding: 10px 14px;
+    }
+    
+    .lp-form__submit {
+        font-size: 14px;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .lp-auth__card {
+        padding: 24px 16px;
+    }
+    
+    .lp-auth__title {
+        font-size: 18px;
+    }
+    
+    .lp-form__group input {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+}
