@@ -331,10 +331,10 @@
                                   rows="2"
                                   class="lp-form-textarea"
                                   placeholder="Deskripsi singkat untuk SEO..."
-                                  maxlength="160"
+                                  maxlength="250"
                                   x-model="metaDescription"
                                   @input="updateSeoScore()"></textarea>
-                        <span class="lp-form-counter" id="meta-desc-counter">{{ strlen(old('meta_description', $berita->meta_description ?? '')) }}/160</span>
+                        <span class="lp-form-counter" id="meta-desc-counter">{{ strlen(old('meta_description', $berita->meta_description ?? '')) }}/250</span>
                     </div>
 
                     <div class="lp-seo-score" x-show="showSeoScore">
@@ -742,7 +742,7 @@
                     let score = 0;
                     if (this.judul && this.judul.length >= 10) score += 25;
                     if (this.metaTitle && this.metaTitle.length >= 30 && this.metaTitle.length <= 70) score += 25;
-                    if (this.metaDescription && this.metaDescription.length >= 50 && this.metaDescription.length <= 160) score += 25;
+                    if (this.metaDescription && this.metaDescription.length >= 50 && this.metaDescription.length <= 250) score += 25;
                     if (this.wordCount >= 300) score += 25;
 
                     this.seoScore = score;
@@ -892,7 +892,7 @@
             }
             if (metaDesc && descCounter) {
                 metaDesc.addEventListener('input', function() {
-                    descCounter.textContent = this.value.length + '/160';
+                    descCounter.textContent = this.value.length + '/250';
                 });
             }
         });

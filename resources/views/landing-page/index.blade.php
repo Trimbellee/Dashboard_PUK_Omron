@@ -137,8 +137,8 @@
                 <div class="lp-hero__floating-card lp-hero__floating-card--2">
                     <span class="lp-hero__floating-icon">📋</span>
                     <div>
-                        <strong>PKB Terbaru</strong>
-                        <small>Perjanjian Kerja Bersama</small>
+                        <strong>Perwakilan Pekerja</strong>
+                        <small>Perundingan Upah, PKB dll</small>
                     </div>
                 </div>
 

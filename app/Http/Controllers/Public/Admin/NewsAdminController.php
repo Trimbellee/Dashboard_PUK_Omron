@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Public\Admin\Concerns\HandlesApprovalWorkflow;
 use App\Helpers\PermissionHelper;
 use App\Helpers\QuillSanitizer;
+use App\Helpers\ImageOptimizer;
 use App\Models\News;
 use App\Models\Tag;
 use App\Models\Media;
@@ -123,7 +124,7 @@ class NewsAdminController extends Controller
             'canApprove' => $canApprove,
             'canCreate' => $canCreate,
             'userId' => $userId,
-            
+
             // Dashboard Data
             'totalBerita' => $totalBerita,
             'totalViews' => $totalViews,
@@ -168,7 +169,14 @@ class NewsAdminController extends Controller
         $validated['meta_description'] = $request->meta_description ?? $validated['ringkasan'];
 
         if ($request->hasFile('gambar')) {
-            $validated['gambar'] = $request->file('gambar')->store('berita', 'public');
+            // Gambar utama dikonversi & dikompres ke .webp dulu (hemat storage),
+            // dengan nama file dari judul berita (maks 20 huruf) + timestamp,
+            // baru watermark diterapkan di atas hasil webp tersebut.
+            $validated['gambar'] = ImageOptimizer::storeAsWebp(
+                $request->file('gambar'),
+                'berita',
+                titleForFilename: $validated['judul']
+            );
             ImageWatermark::apply($validated['gambar']);
         }
 
@@ -192,12 +200,12 @@ class NewsAdminController extends Controller
     public function edit(News $berita): View
     {
         $this->authorizeEdit($berita);
-        
+
         // Deteksi apakah ini mode review edit
-        $isReviewEdit = request()->query('mode') === 'review' 
-            && PermissionHelper::can('review_news') 
+        $isReviewEdit = request()->query('mode') === 'review'
+            && PermissionHelper::can('review_news')
             && $berita->status === 'submitted_bidang5';
-        
+
         return view('landing-page.admin.berita.form', [
             'berita' => $berita,
             'isReviewEdit' => $isReviewEdit,
@@ -224,10 +232,16 @@ class NewsAdminController extends Controller
         // 'scheduled' saat disetujui Sekretaris lewat approve() di bawah.
 
         if ($request->hasFile('gambar')) {
+            // Hapus dulu gambar lama sebelum simpan yang baru, supaya file
+            // lama tidak menumpuk terus di storage tiap kali diganti.
             if ($berita->gambar) {
                 Storage::disk('public')->delete($berita->gambar);
             }
-            $validated['gambar'] = $request->file('gambar')->store('berita', 'public');
+            $validated['gambar'] = ImageOptimizer::storeAsWebp(
+                $request->file('gambar'),
+                'berita',
+                titleForFilename: $validated['judul']
+            );
             ImageWatermark::apply($validated['gambar']);
         }
 
@@ -260,10 +274,16 @@ class NewsAdminController extends Controller
     {
         $this->authorizeEdit($berita);
         abort_unless(in_array($berita->status, ['draft', 'revisi'], true), 400, 'Berita yang sudah disubmit tidak bisa dihapus.');
-        
+
+        // FIX: sebelumnya file gambar tidak pernah dihapus saat berita
+        // dihapus, sehingga file lama menumpuk terus di storage.
+        if ($berita->gambar) {
+            Storage::disk('public')->delete($berita->gambar);
+        }
+
         ActivityLog::log($berita, 'deleted', 'Berita dihapus');
         $berita->delete();
-        
+
         return back()->with('success', 'Berita berhasil dihapus.');
     }
 
@@ -300,7 +320,7 @@ class NewsAdminController extends Controller
 
         $this->reviewByBidang5($berita, true, null, $editedData, 'news');
 
-        return back()->with('success', $editedData 
+        return back()->with('success', $editedData
             ? 'Berita diedit oleh reviewer dan diteruskan ke Sekretaris.'
             : 'Berita diteruskan ke Sekretaris untuk approval final.');
     }
@@ -361,7 +381,7 @@ class NewsAdminController extends Controller
             'judul' => ['nullable', 'string', 'max:255'],
             'ringkasan' => ['nullable', 'string', 'max:500'],
             'konten' => ['nullable', 'string'],
-            'gambar' => ['nullable', 'image', 'max:2048'],
+            'gambar' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         $editedData = [];
@@ -383,10 +403,15 @@ class NewsAdminController extends Controller
         }
 
         if ($request->hasFile('gambar')) {
+            // Hapus dulu gambar lama sebelum simpan yang baru.
             if ($berita->gambar) {
                 Storage::disk('public')->delete($berita->gambar);
             }
-            $editedData['gambar'] = $request->file('gambar')->store('berita', 'public');
+            $editedData['gambar'] = ImageOptimizer::storeAsWebp(
+                $request->file('gambar'),
+                'berita',
+                titleForFilename: $editedData['judul'] ?? $berita->judul
+            );
             ImageWatermark::apply($editedData['gambar']);
             $hasChanges = true;
         }
@@ -447,7 +472,20 @@ class NewsAdminController extends Controller
                 News::whereIn('id', $ids)->where('status', 'published')->update(['status' => 'takedown', 'takedown_at' => now(), 'takedown_by' => session('anggota.id')]);
                 break;
             case 'delete':
-                News::whereIn('id', $ids)->whereIn('status', ['draft', 'revisi'])->delete();
+                // FIX: sebelumnya bulk delete tidak menghapus file gambar
+                // dari storage sama sekali. Sekarang ambil dulu berita yang
+                // akan dihapus, bersihkan gambarnya, baru hapus recordnya.
+                $beritaToDelete = News::whereIn('id', $ids)
+                    ->whereIn('status', ['draft', 'revisi'])
+                    ->get();
+
+                foreach ($beritaToDelete as $item) {
+                    if ($item->gambar) {
+                        Storage::disk('public')->delete($item->gambar);
+                    }
+                }
+
+                News::whereIn('id', $beritaToDelete->pluck('id'))->delete();
                 break;
             case 'feature':
                 News::whereIn('id', $ids)->update(['is_featured' => true]);
@@ -498,18 +536,23 @@ class NewsAdminController extends Controller
     {
         try {
             $request->validate([
-                'media.*' => ['required', 'image', 'max:5120']
+                'media.*' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120']
             ]);
 
             $uploaded = [];
             foreach ($request->file('media') as $file) {
-                $path = $file->store('media', 'public');
+                // Gambar yang di-drop/paste/upload lewat media library editor
+                // Quill juga dikonversi & dikompres ke .webp. Ukuran & mime
+                // type yang disimpan ke DB mengikuti hasil webp-nya, bukan
+                // file asli sebelum dikompres.
+                $optimized = ImageOptimizer::storeAsWebpWithMeta($file, 'media');
+
                 $media = Media::create([
-                    'name' => $file->getClientOriginalName(),
-                    'url' => Storage::url($path),
-                    'thumbnail' => Storage::url($path),
-                    'size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
+                    'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.webp',
+                    'url' => Storage::url($optimized['path']),
+                    'thumbnail' => Storage::url($optimized['path']),
+                    'size' => $optimized['size'],
+                    'mime_type' => $optimized['mime_type'],
                     'user_id' => session('anggota.id')
                 ]);
                 $uploaded[] = $media;
@@ -545,9 +588,9 @@ class NewsAdminController extends Controller
                     'created_by' => session('anggota.id'),
                     'status' => 'draft'
                 ]));
-                
+
                 return response()->json([
-                    'success' => true, 
+                    'success' => true,
                     'news_id' => $berita->id,
                     'message' => 'Draft baru dibuat'
                 ]);
@@ -599,7 +642,7 @@ class NewsAdminController extends Controller
             'ringkasan' => ['required', 'string', 'max:500'],
             'konten'    => ['required', 'string'], // HTML dari Quill
             'konten_delta' => ['nullable', 'json'], // Tambahkan ini
-            'gambar'    => ['nullable', 'image', 'max:4096'],
+            'gambar'    => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
             'tags'      => ['nullable', 'string'],
             // FIX: sebelumnya field ini TIDAK ADA di rule validasi sama sekali,
             // sehingga $request->validate() tidak pernah mengembalikannya di
@@ -609,7 +652,7 @@ class NewsAdminController extends Controller
             // input datetime-local menjadi null (ConvertEmptyStringsToNull).
             'scheduled_at' => ['nullable', 'date'],
         ]);
-        
+
         return $validated;
     }
 

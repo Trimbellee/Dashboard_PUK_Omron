@@ -52,9 +52,37 @@ class ImageWatermark
         |--------------------------------------------------------------------------
         | Font
         |--------------------------------------------------------------------------
+        | FIX: path lama hardcode ke 'C:/Windows/Fonts/arial.ttf' — hanya ada di
+        | Windows. Di server Linux (kebanyakan hosting production) path ini tidak
+        | pernah ketemu, sehingga watermark diam-diam selalu jatuh ke fallback
+        | font bitmap GD yang kasar tanpa ada tanda error apapun.
+        |
+        | Solusinya: bundel font TTF sendiri di dalam project (mis. di
+        | resources/fonts/arial.ttf, commit ke repo) lalu rujuk lewat
+        | resource_path() yang portable di OS manapun. Ini juga sekalian
+        | menghindari ketergantungan pada font sistem yang mungkin tidak
+        | ter-install di server manapun (Windows/Linux/mac).
+        |--------------------------------------------------------------------------
         */
 
-        $fontPath = 'C:/Windows/Fonts/arial.ttf';
+        $fontPath = resource_path('fonts/arial.ttf');
+
+        // Fallback berjenjang kalau font belum sempat kamu taruh di resources/fonts:
+        // masih coba beberapa lokasi umum sebelum benar-benar menyerah ke bitmap font.
+        if (!file_exists($fontPath)) {
+            $candidates = [
+                'C:/Windows/Fonts/arial.ttf',                 // Windows (dev lokal)
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', // Linux umum (Debian/Ubuntu)
+                '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+            ];
+
+            foreach ($candidates as $candidate) {
+                if (file_exists($candidate)) {
+                    $fontPath = $candidate;
+                    break;
+                }
+            }
+        }
 
         $useTtf = function_exists('imagettftext')
             && file_exists($fontPath);
@@ -165,6 +193,11 @@ class ImageWatermark
         |--------------------------------------------------------------------------
         | Simpan kembali
         |--------------------------------------------------------------------------
+        | FIX: imagewebp() sekarang dijaga function_exists(), simetris dengan
+        | penjagaan imagecreatefromwebp() di atas. Tanpa ini, di server yang GD-nya
+        | tidak mendukung penulisan webp, proses akan fatal error dan bisa
+        | meninggalkan file rusak di $fullPath.
+        |--------------------------------------------------------------------------
         */
 
         switch ($mime) {
@@ -178,7 +211,12 @@ class ImageWatermark
                 break;
 
             case 'image/webp':
-                imagewebp($image, $fullPath, 90);
+                if (function_exists('imagewebp')) {
+                    // Kualitas disamakan dengan ImageOptimizer (80) supaya tidak
+                    // ada penurunan kualitas tambahan akibat dua kali encode
+                    // dengan angka kualitas yang berbeda-beda.
+                    imagewebp($image, $fullPath, 80);
+                }
                 break;
         }
 
