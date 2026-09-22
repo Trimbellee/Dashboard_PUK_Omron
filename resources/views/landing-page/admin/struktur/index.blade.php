@@ -5,7 +5,7 @@
     @vite(['resources/css/admin/admin-struktur.css'])
 @endpush
 
-@section('title', 'Struktur Organisasi')
+@section('title', 'Struktur Organisasi - Admin PUK OMRON')
 
 @section('content')
 <div class="lp-admin-head">

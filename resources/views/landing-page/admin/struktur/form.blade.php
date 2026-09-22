@@ -5,7 +5,7 @@
     @vite(['resources/css/admin/admin-struktur.css'])
 @endpush
 
-@section('title', isset($struktur) ? 'Edit Jabatan' : 'Tambah Jabatan Baru')
+@section('title', isset($struktur) ? 'Edit Jabatan - Admin PUK OMRON' : 'Tambah Jabatan Baru - Admin PUK OMRON')
 
 @section('content')
 <div class="lp-form-container">

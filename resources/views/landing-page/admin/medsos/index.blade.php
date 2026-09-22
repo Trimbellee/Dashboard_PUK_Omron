@@ -190,7 +190,7 @@
          x-cloak
          role="dialog" aria-modal="true">
         <div class="lp-modal__content">
-            <div class="lp-modal__header" style="color: var(--text-secondary);">
+            <div class="lp-modal__header">
                 <h3 x-text="editId ? 'Edit Media Sosial' : 'Tambah Media Sosial'"></h3>
                 <button type="button" class="lp-modal__close" @click="closeModal()" aria-label="Tutup">&times;</button>
             </div>

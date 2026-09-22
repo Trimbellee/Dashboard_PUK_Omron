@@ -37,9 +37,16 @@ use App\Http\Controllers\Public\AnggotaPasswordResetController;
 use App\Http\Controllers\Public\LandingKeuanganController;
 use App\Http\Controllers\Public\AnggotaProfilController;
 use App\Http\Controllers\Public\Admin\PesanMasukController;
+use App\Http\Controllers\Public\Admin\AdminKegiatanController;
+use App\Http\Controllers\Public\Admin\AdminKegiatanPendaftaranController;
+use App\Http\Controllers\Public\KegiatanController;
 
 
 Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'check.page.access') ->group(function () {
+
+    Route::get('/welcome', function () {
+        return view('landing-page.admin.welcome');
+    })->name('welcome');
 
     Route::get('pesan-masuk', [PesanMasukController::class, 'index'])->name('pesan-masuk.index');
     Route::patch('pesan-masuk/{contact}/baca', [PesanMasukController::class, 'markAsRead'])->name('pesan-masuk.baca');
@@ -77,6 +84,26 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::post('/galeri/{foto}/review-bidang5', [GalleryAdminController::class, 'reviewBidang5'])->name('galeri.review-bidang5');
     Route::post('/galeri/{foto}/approve-sekretaris', [GalleryAdminController::class, 'approveSekretaris'])->name('galeri.approve-sekretaris');
 
+
+    Route::prefix('kegiatan')->name('kegiatan.')->group(function () { 
+        Route::get('/', [AdminKegiatanController::class, 'index'])->name('index');
+        Route::get('/create', [AdminKegiatanController::class, 'create'])->name('create');
+        Route::post('/', [AdminKegiatanController::class, 'store'])->name('store');
+        Route::get('/{kegiatan}/edit', [AdminKegiatanController::class, 'edit'])->name('edit');
+        Route::put('/{kegiatan}', [AdminKegiatanController::class, 'update'])->name('update');
+        Route::delete('/{kegiatan}', [AdminKegiatanController::class, 'destroy'])->name('destroy');
+        Route::patch('/{kegiatan}/tutup', [AdminKegiatanController::class, 'tutup'])->name('tutup');
+        Route::patch('/{kegiatan}/buka', [AdminKegiatanController::class, 'bukaKembali'])->name('buka');
+
+        Route::prefix('{kegiatan}/pendaftar')->name('pendaftar.')->group(function () {
+            Route::get('/', [AdminKegiatanPendaftaranController::class, 'index'])->name('index');
+            Route::get('/export', [AdminKegiatanPendaftaranController::class, 'exportCsv'])->name('export');
+            Route::patch('/{pendaftaran}/hadir', [AdminKegiatanPendaftaranController::class, 'tandaiHadir'])->name('hadir');
+            Route::delete('/{pendaftaran}', [AdminKegiatanPendaftaranController::class, 'destroy'])->name('destroy');
+            Route::get('/cari-anggota', [AdminKegiatanPendaftaranController::class, 'cariAnggota'])->name('cari-anggota');
+            Route::post('/', [AdminKegiatanPendaftaranController::class, 'storeManual'])->name('store');
+        });
+    });
 
     // Di dalam group admin yang sudah ada (middleware web + anggota.auth)
     
@@ -203,6 +230,11 @@ Route::middleware(['web', 'anggota.login'])->group(function () {
                     ->get(['code', 'name']);
             })->name('kelurahan');
         });
+
+        Route::get('/kegiatan', [KegiatanController::class, 'index'])->name('kegiatan.index');
+        Route::get('/kegiatan/{kegiatan}', [KegiatanController::class, 'show'])->name('kegiatan.show');
+        Route::post('/kegiatan/{kegiatan}/daftar', [KegiatanController::class, 'daftar'])->name('kegiatan.daftar');
+
 });      
 
 /*

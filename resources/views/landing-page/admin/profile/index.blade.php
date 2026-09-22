@@ -4,7 +4,7 @@
     @vite(['resources/css/admin/admin-profile.css'])
 @endpush
 
-@section('title', 'Kelola Visi & Misi')
+@section('title', 'Kelola Visi & Misi - Admin PUK OMRON')
 
 @section('content')
 <div class="lp-admin-head">

@@ -24,7 +24,7 @@
         </div>
         <div>
             <h2>{{ $informasi ? 'Edit Informasi' : 'Tambah Informasi' }}</h2>
-            <p class="lp-admin-section__subtitle" style="color: var(--text-secondary);">
+            <p class="lp-admin-section__subtitle">
                 {{ $informasi ? 'Perbarui konten informasi yang tampil di footer landing page.' : 'Buat konten baru seperti info iklan, pedoman siber, legal, dsb.' }}
             </p>
         </div>

@@ -28,7 +28,7 @@
 
     {{-- ===== HEADER ===== --}}
     <div class="lp-admin-section__header">
-        <div class="lp-admin-section__heading" style="color: var(--text-secondary);">
+        <div class="lp-admin-section__heading">
             <h2>Kelola Informasi</h2>
             <p class="lp-admin-section__subtitle">Konten seperti info iklan, pedoman siber, legal, dsb. yang tampil di footer landing page.</p>
         </div>

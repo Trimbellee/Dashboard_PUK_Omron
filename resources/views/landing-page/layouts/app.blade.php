@@ -15,7 +15,7 @@
 
         window.addEventListener('scroll', () => {
           scrolled = window.scrollY > 40;
-          const sections = ['beranda', 'tentang', 'visi-misi', 'struktur','berita', @if(session('anggota'))  'agenda', 'inventaris','keuangan', @endif 'galeri', 'faq', 'kontak'];
+          const sections = ['beranda', 'tentang', 'visi-misi', 'struktur','berita', @if(session('anggota'))  'kegiatan', 'agenda', 'inventaris','keuangan', @endif 'galeri', 'faq', 'kontak'];
           let current = 'beranda';
           const offset = 120;
           for (const id of sections) {
@@ -124,17 +124,27 @@
                 <a href="{{ route('landing.index') }}#berita" :class="{ active: activeSection === 'berita' }">Berita</a>
 
                 {{-- Dropdown: Area Anggota (hanya untuk anggota login) --}}
+                @php
+                    $kegiatanCarousel = \App\Models\Kegiatan::where('status', 'dibuka')
+                        ->orderBy('tanggal_mulai')
+                        ->limit(10)
+                        ->get();
+                @endphp
+
                 @if (session('anggota'))
                 <div class="lp-nav__dropdown" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
                     <button type="button"
                             class="lp-nav__dropdown-trigger"
                             @click="open = !open"
                             :aria-expanded="open.toString()"
-                            :class="{ active: ['agenda','inventaris','keuangan'].includes(activeSection) }">
+                            :class="{ active: ['kegiatan','agenda','inventaris','keuangan'].includes(activeSection) }">
                         Area Anggota
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :style="open && 'transform:rotate(180deg)'"><path d="m6 9 6 6 6-6"/></svg>
                     </button>
                     <div class="lp-nav__dropdown-menu" x-show="open" x-transition x-cloak>
+                        @if ($kegiatanCarousel->isNotEmpty())
+                        <a href="{{ route('landing.index') }}#kegiatan" :class="{ active: activeSection === 'Kegiatan' }" @click="open = false">Pendaftaran kegiatan</a>
+                        @endif
                         <a href="{{ route('landing.index') }}#agenda" :class="{ active: activeSection === 'agenda' }" @click="open = false">Agenda</a>
                         <a href="{{ route('landing.index') }}#inventaris" :class="{ active: activeSection === 'inventaris' }" @click="open = false">Inventaris</a>
                         <a href="{{ route('landing.index') }}#keuangan" :class="{ active: activeSection === 'keuangan' }" @click="open = false">Keuangan</a>
@@ -207,25 +217,12 @@
                                 $jabatan = strtolower(trim(session('anggota.jabatan_puk', '')));
                             @endphp
 
-                            @if(\App\Helpers\PermissionHelper::can('access_admin'))
-                                @php
-                                    $link = route('admin.berita.index');
-                                    if (\App\Helpers\PermissionHelper::can('create_gallery') ||
-                                        \App\Helpers\PermissionHelper::can('review_gallery') ||
-                                        \App\Helpers\PermissionHelper::can('approve_gallery')) {
-                                        $link = route('admin.galeri.index');
-                                    }
-                                    if (\App\Helpers\PermissionHelper::can('create_news') ||
-                                        \App\Helpers\PermissionHelper::can('review_news') ||
-                                        \App\Helpers\PermissionHelper::can('approve_news')) {
-                                        $link = route('admin.berita.index');
-                                    }
-                                @endphp
-                                <a href="{{ $link }}">Kelola Konten</a>
+                           @if(\App\Helpers\PermissionHelper::can('access_admin'))
+                                <a href="{{ route('admin.welcome') }}">Kelola Konten</a>
                             @endif
 
                             @if (session('anggota.punya_dashboard'))
-                                <a href="{{ route('login') }}" target="_blank" rel="noopener">Buka Dashboard PUK</a>
+                                <a href="{{ route('dashboard') }}" target="_blank" rel="noopener">Buka Dashboard PUK</a>
                             @endif
 
                             <form action="{{ route('anggota.logout') }}" method="POST">
@@ -282,6 +279,8 @@
             <a href="{{ route('landing.index') }}#berita" @click="mobileOpen = false">Berita</a>
 
             {{-- Grup: Area Anggota --}}
+
+            
             @if (session('anggota'))
             <div class="lp-nav__mobile-group" x-data="{ open: false }">
                 <button type="button" class="lp-nav__mobile-group-trigger" @click="open = !open" :aria-expanded="open.toString()">
@@ -290,6 +289,9 @@
                 </button>
                 <div class="lp-nav__mobile-group-items" :class="{ 'lp-nav__mobile-group-items--open': open }">
                     <div class="lp-nav__mobile-group-items-inner">
+                        @if ($kegiatanCarousel->isNotEmpty())
+                        <a href="{{ route('landing.index') }}#kegiatan" @click="mobileOpen = false">Pendaftaran kegiatan</a>
+                        @endif
                         <a href="{{ route('landing.index') }}#agenda" @click="mobileOpen = false">Agenda</a>
                         <a href="{{ route('landing.index') }}#inventaris" @click="mobileOpen = false">Inventaris</a>
                         <a href="{{ route('landing.index') }}#keuangan" @click="mobileOpen = false">Keuangan</a>
@@ -326,10 +328,8 @@
                 @endphp
 
                 @if (in_array($jabatanMobile, $jabatanPengelolaKontenMobile, true))
-                    <a href="{{ $jabatanMobile === 'tim media'
-                        ? route('admin.galeri.index')
-                        : route('admin.berita.index') }}"
-                        class="lp-btn lp-btn--ghost lp-nav__mobile-cta">
+                    <a href="{{ route('admin.welcome') }}"
+                    class="lp-btn lp-btn--ghost lp-nav__mobile-cta">
                         Kelola Konten
                     </a>
                 @endif

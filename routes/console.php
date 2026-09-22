@@ -23,3 +23,9 @@ Schedule::command('news:publish-scheduled')
     ->name('news-publish-scheduled')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/news-publish-scheduled.log'));
+
+Schedule::command('kegiatan:perbarui-status')
+    ->dailyAt('00:05')
+    ->name('kegiatan-perbarui-status')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/kegiatan-perbarui-status.log'));

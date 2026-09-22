@@ -25,8 +25,7 @@
         {{-- ===== SIDEBAR ===== --}}
         <aside class="lp-admin-sidebar" :class="{ 'lp-admin-sidebar--open': sidebarOpen }">
             <a href="{{ route('landing.index') }}" class="lp-admin-sidebar__brand">
-                <span class="lp-nav__brand-mark">PUK</span>
-                <span>Admin Konten</span>
+                <span class="lp-nav__brand-mark">PUK OMRON</span>
             </a>
 
             @php
@@ -92,10 +91,10 @@
                 <button type="button" class="lp-admin-menu-btn" @click="sidebarOpen = true" aria-label="Buka menu">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
                 </button>
-                <span class="lp-admin-topbar__title" style="color: var(--text-secondary);">@yield('title', 'Admin Konten')</span>
+                <span class="lp-admin-topbar__title">@yield('title')</span>
             </header>
 
-            <main class="lp-admin-main">
+            <main class="lp-admin-main" >
                 @yield('content')
             </main>
         </div>

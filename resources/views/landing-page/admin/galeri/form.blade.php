@@ -4,7 +4,7 @@
     @vite(['resources/css/admin/admin-galeri.css'])
 @endpush
 
-@section('title', 'Tambah Media Galeri')
+@section('title', 'Tambah Media Galeri - Admin PUK OMRON')
 
 @section('content')
     <div class="lp-editor__topbar lp-editor__topbar--simple">

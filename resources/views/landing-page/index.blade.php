@@ -137,8 +137,8 @@
                 <div class="lp-hero__floating-card lp-hero__floating-card--2">
                     <span class="lp-hero__floating-icon">📋</span>
                     <div>
-                        <strong>Perwakilan Pekerja</strong>
-                        <small>Perundingan Upah, PKB dll</small>
+                        <strong>PKB Terbaru</strong>
+                        <small>Perjanjian Kerja Bersama</small>
                     </div>
                 </div>
 
@@ -668,6 +668,7 @@
         </div>
     </section>
 
+    @include('landing-page.partials.kegiatan-section')
     @include('landing-page.partials.agenda-section')
     @include('landing-page.partials.inventaris-section')
     @include('landing-page.partials.keuangan-section')
@@ -835,7 +836,8 @@
                     ['q' => 'Apakah ada iuran keanggotaan?', 'a' => 'Ya, ada iuran anggota bulanan yang besarannya ditetapkan berdasarkan AD/ART dan Peraturan Organisasi yang digunakan untuk mendukung program kerja serta operasional PUK.'],
                     ['q' => 'Apa hak dan kewajiban sebagai anggota?', 'a' => 'Anggota berhak mendapat pendampingan hubungan industrial, mengikuti program kesejahteraan, dan menyuarakan aspirasi melalui pengurus. Kewajiban anggota antara lain membayar iuran dan mematuhi AD/ART dan Peraturan Organisasi.'],
                 ];
-            @endphp 
+            @endphp
+
             <div class="lp-faq" x-data="{ open: null }">
                 @foreach ($faqList as $index => $item)
                     <div class="lp-faq-item animate-on-scroll delay-{{ ($index % 3) + 1 }}">
@@ -867,24 +869,13 @@
             </div>
 
             <div class="lp-kontak">
+            @if (session('anggota') && session('anggota.email'))
                 <form action="{{ route('kontak.store') }}" method="POST" class="lp-form animate-on-scroll">
                     @csrf
 
                     <div class="lp-form__group">
-                        <label for="nama">Nama Lengkap</label>
-                        <input type="text" id="nama" name="nama" value="{{ old('nama') }}" placeholder="Nama Anda" required>
-                        @error('nama') <span class="lp-form__error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="lp-form__group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="email@contoh.com" required>
-                        @error('email') <span class="lp-form__error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="lp-form__group">
                         <label for="pesan">Pesan</label>
-                        <textarea id="pesan" name="pesan" rows="4" placeholder="Tulis pesan Anda...">{{ old('pesan') }}</textarea>
+                        <textarea id="pesan" name="pesan" rows="5" placeholder="Tulis pesan atau aspirasi Anda...">{{ old('pesan') }}</textarea>
                         @error('pesan') <span class="lp-form__error">{{ $message }}</span> @enderror
                     </div>
 
@@ -893,7 +884,28 @@
                     @if (session('success'))
                         <p class="lp-form__success">{{ session('success') }}</p>
                     @endif
+                    @if (session('error'))
+                        <p class="lp-form__error" style="margin-top:8px;">{{ session('error') }}</p>
+                    @endif
                 </form>
+            @elseif (session('anggota'))
+                <div class="lp-kontak__locked animate-on-scroll">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="11" width="18" height="10" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <p><strong>Email belum terdaftar.</strong><br>Silakan hubungi pengurus untuk memperbarui data akun Anda sebelum dapat mengirim pesan.</p>
+                </div>
+            @else
+                <div class="lp-kontak__locked animate-on-scroll">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="11" width="18" height="10" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <p><strong>Login diperlukan.</strong><br>Silakan login sebagai anggota untuk mengirim pesan ke pengurus.</p>
+                    <a href="{{ route('anggota.login') }}" class="lp-btn lp-btn--primary" style="margin-top:12px;">Login Anggota</a>
+                </div>
+            @endif
 
                 <div class="lp-kontak__info animate-on-scroll delay-2">
                     <div class="lp-kontak__item">
@@ -906,7 +918,7 @@
                     </div>
                     <div class="lp-kontak__item">
                         <span class="lp-kontak__label">Email</span>
-                        <p><a href="mailto:puk.spee.omron@outlook.com">puk.spee.omron@outlook.com</a></p>
+                        <p><a href="mailto:sekretariat@pukomron.id">sekretariat@pukomron.id</a></p>
                     </div>
                 </div>
             </div>
