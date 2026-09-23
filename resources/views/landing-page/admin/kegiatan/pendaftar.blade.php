@@ -198,6 +198,9 @@
                     <i class="ti ti-user-plus" aria-hidden="true"></i> Tambah Pendaftar
                 </button>
             @endif
+            <a href="{{ route('admin.kegiatan.pendaftar.scan-page', $kegiatan) }}" class="lp-btn-ghost">
+                <i class="ti ti-qrcode" aria-hidden="true"></i> Scan Kehadiran
+            </a>
         </div>
     </div>
 

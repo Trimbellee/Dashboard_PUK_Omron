@@ -968,6 +968,22 @@
     .lp-kontak { grid-template-columns: 1.2fr 1fr; }
 }
 
+.lp-kontak__locked {
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: var(--text-secondary);
+    gap: 10px;
+}
+.lp-kontak__locked svg { color: var(--accent); margin-bottom: 6px; }
+.lp-kontak__locked p { margin: 0; font-size: 14.5px; line-height: 1.6; }
+.lp-kontak__locked strong { color: var(--text-primary); }
+
 /* ---------- Breaking News Ticker ---------- */
 .lp-ticker {
     display: flex;

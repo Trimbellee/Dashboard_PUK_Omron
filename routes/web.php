@@ -40,6 +40,7 @@ use App\Http\Controllers\Public\Admin\PesanMasukController;
 use App\Http\Controllers\Public\Admin\AdminKegiatanController;
 use App\Http\Controllers\Public\Admin\AdminKegiatanPendaftaranController;
 use App\Http\Controllers\Public\KegiatanController;
+use App\Http\Controllers\AnggotaRfidPairingController;
 
 
 Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'check.page.access') ->group(function () {
@@ -102,17 +103,20 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
             Route::delete('/{pendaftaran}', [AdminKegiatanPendaftaranController::class, 'destroy'])->name('destroy');
             Route::get('/cari-anggota', [AdminKegiatanPendaftaranController::class, 'cariAnggota'])->name('cari-anggota');
             Route::post('/', [AdminKegiatanPendaftaranController::class, 'storeManual'])->name('store');
+            Route::get('/scan', [AdminKegiatanPendaftaranController::class, 'scanPage'])->name('scan-page');
+            Route::post('/scan', [AdminKegiatanPendaftaranController::class, 'scan'])->name('scan');
+            Route::get('/hadir-list', [AdminKegiatanPendaftaranController::class, 'daftarHadirJson'])->name('hadir-list');
         });
     });
 
     // Di dalam group admin yang sudah ada (middleware web + anggota.auth)
     
-Route::get('/informasi', [InformationAdminController::class, 'index'])->name('informasi.index');
-Route::get('/informasi/create', [InformationAdminController::class, 'create'])->name('informasi.create');
-Route::post('/informasi', [InformationAdminController::class, 'store'])->name('informasi.store');
-Route::get('/informasi/{informasi}/edit', [InformationAdminController::class, 'edit'])->name('informasi.edit');
-Route::put('/informasi/{informasi}', [InformationAdminController::class, 'update'])->name('informasi.update');
-Route::delete('/informasi/{informasi}', [InformationAdminController::class, 'destroy'])->name('informasi.destroy');
+    Route::get('/informasi', [InformationAdminController::class, 'index'])->name('informasi.index');
+    Route::get('/informasi/create', [InformationAdminController::class, 'create'])->name('informasi.create');
+    Route::post('/informasi', [InformationAdminController::class, 'store'])->name('informasi.store');
+    Route::get('/informasi/{informasi}/edit', [InformationAdminController::class, 'edit'])->name('informasi.edit');
+    Route::put('/informasi/{informasi}', [InformationAdminController::class, 'update'])->name('informasi.update');
+    Route::delete('/informasi/{informasi}', [InformationAdminController::class, 'destroy'])->name('informasi.destroy');
 
     // ===== Medsos =====
     Route::get('/medsos/{id}/edit', [AdminSocialMediaController::class, 'edit'])->name('medsos.edit');
@@ -204,13 +208,12 @@ Route::middleware(['web', 'anggota.login'])
     });
 
 Route::middleware(['web', 'anggota.login'])->group(function () {    
-        Route::get('/agenda-data', [LandingPageController::class, 'agendaData'])
-                    ->name('landing.agenda.data');
-        Route::get('/inventaris-data', [LandingPageController::class, 'inventarisData'])
-                    ->name('landing.inventaris.data');
+        Route::get('/agenda-data', [LandingPageController::class, 'agendaData'])->name('landing.agenda.data');
+        Route::get('/inventaris-data', [LandingPageController::class, 'inventarisData'])->name('landing.inventaris.data');
         Route::get('/anggota/profil', [AnggotaProfilController::class, 'show'])->name('anggota.profil');
         Route::get('/anggota/profil/edit', [AnggotaProfilController::class, 'edit'])->name('anggota.profil.edit');
         Route::put('/anggota/profil', [AnggotaProfilController::class, 'update'])->name('anggota.profil.update');
+        Route::get('/profil/qrcode', [AnggotaProfilController::class, 'qrCode'])->name('anggota.profil.qrcode');
         Route::prefix('anggota/api/wilayah')->name('anggota.api.wilayah.')->group(function () {
             Route::get('/kota/{provinsiCode}', function (string $provinsiCode) {
                 return \Laravolt\Indonesia\Models\City::where('province_code', $provinsiCode)
@@ -488,6 +491,12 @@ Route::middleware(['authcheck'])->group(function () {
     Route::get('/tren', [AnggotaDashboardController::class, 'trenApi'])
         ->name('tren');
     });  
+
+    Route::get('/anggota/rfid-pairing', [AnggotaRfidPairingController::class, 'index'])->name('anggota.rfid-pairing');
+    Route::post('/anggota/rfid-pairing/check', [AnggotaRfidPairingController::class, 'check'])->name('anggota.rfid-pairing.check');
+    Route::get('/anggota/rfid-pairing/search', [AnggotaRfidPairingController::class, 'search'])->name('anggota.rfid-pairing.search');
+    Route::post('/anggota/rfid-pairing/assign', [AnggotaRfidPairingController::class, 'assign'])->name('anggota.rfid-pairing.assign');
+    
 
     Route::post('anggota/total-karyawan', [AnggotaController::class, 'saveTotalKaryawan'])
     ->name('anggota.total-karyawan.save');

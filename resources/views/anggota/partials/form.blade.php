@@ -232,6 +232,100 @@
                 @error('nomor_identitas')<p class="af-error">{{ $message }}</p>@enderror
             </div>
 
+            <div class="af-field af-span-2"
+                x-data="rfidField('{{ addslashes(old('rfid_code', $anggota->rfid_code ?? '')) }}')">
+                <label class="af-label">Kode RFID / NFC</label>
+
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" name="rfid_code" x-model="value"
+                        @change="confirmIfNeeded()"
+                        class="af-input" style="flex:1;min-width:200px;"
+                        placeholder="Tap kartu di reader USB, atau ketik manual"
+                        autocomplete="off">
+
+                    <button type="button" class="af-file-btn" @click="tapNfc()" x-show="nfcSupported" x-cloak>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+                            <path d="M8 12a4 4 0 0 1 8 0"/>
+                        </svg>
+                        <span x-text="nfcButtonLabel"></span>
+                    </button>
+                </div>
+
+                <template x-if="originalValue">
+                    <p style="font-size:11px;color:#16A34A;margin-top:6px;">
+                        ✓ Kartu sudah terdaftar: <code x-text="originalValue"></code>
+                    </p>
+                </template>
+
+                <p style="font-size:11px;color:var(--af-text-faint);margin-top:4px;">
+                    Klik field lalu tap kartu di reader USB, atau tekan tombol "Tap NFC" untuk scan pakai HP (Chrome Android saja).
+                </p>
+
+                @error('rfid_code')<p class="af-error">{{ $message }}</p>@enderror
+            </div>
+
+            <script>
+            function rfidField(initial) {
+                return {
+                    value: initial,
+                    originalValue: initial,
+                    nfcSupported: 'NDEFReader' in window,
+                    nfcButtonLabel: 'Tap NFC (HP)',
+
+                    confirmIfNeeded() {
+                        if (!this.originalValue || this.value === this.originalValue) return;
+
+                        const proceed = (ok) => { if (!ok) this.value = this.originalValue; };
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Ganti Kode RFID?',
+                                html: `Anggota ini sudah punya kartu terdaftar (<b>${this.originalValue}</b>).<br>Kartu lama akan digantikan kode baru saat data disimpan.`,
+                                showCancelButton: true,
+                                confirmButtonText: 'Ya, Ganti',
+                                cancelButtonText: 'Batal',
+                                reverseButtons: true,
+                            }).then(res => proceed(res.isConfirmed));
+                        } else {
+                            proceed(confirm(`Anggota ini sudah punya kartu terdaftar (${this.originalValue}). Ganti dengan kode baru?`));
+                        }
+                    },
+
+                    async tapNfc() {
+                        if (!this.nfcSupported) {
+                            alert('HP/browser ini tidak mendukung Web NFC. Gunakan Chrome di Android.');
+                            return;
+                        }
+                        try {
+                            this.nfcButtonLabel = 'Tempelkan kartu...';
+                            const reader = new NDEFReader();
+                            await reader.scan();
+
+                            reader.onreading = (event) => {
+                                const normalized = (event.serialNumber || '')
+                                    .toUpperCase()
+                                    .replace(/[^A-Z0-9]/g, '');
+
+                                this.nfcButtonLabel = 'Tap NFC (HP)';
+                                this.value = normalized;
+                                this.confirmIfNeeded();
+                            };
+
+                            reader.onreadingerror = () => {
+                                this.nfcButtonLabel = 'Tap NFC (HP)';
+                                alert('Gagal membaca kartu, coba tap ulang.');
+                            };
+                        } catch (e) {
+                            this.nfcButtonLabel = 'Tap NFC (HP)';
+                            alert('Tidak bisa akses NFC — pastikan izin diberikan dan NFC aktif di pengaturan HP.');
+                        }
+                    },
+                };
+            }
+            </script>
+
             <div class="af-field">
                 <label class="af-label">Nomor WhatsApp <span class="af-req">*</span></label>
                 <input type="text" name="nomor_whatsapp" maxlength="13" inputmode="tel"

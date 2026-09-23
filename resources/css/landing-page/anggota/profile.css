@@ -26,37 +26,117 @@
     color: #fca5a5;
 }
 
+/* ============================================
+   PROFILE HEADER — Blue Theme
+   ============================================ */
 .lp-profile-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 20px;
-    padding: 28px;
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    box-shadow:
+        0 10px 30px -12px rgba(37, 99, 235, 0.25),
+        0 2px 8px -4px rgba(37, 99, 235, 0.10);
     margin-bottom: 32px;
+    isolation: isolate;
+}
+
+/* Gradient biru lembut — nuansa utama */
+.lp-profile-header__bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(120% 120% at 0% 0%, rgba(37, 99, 235, 0.18) 0%, transparent 55%),
+        radial-gradient(120% 120% at 100% 0%, rgba(59, 130, 246, 0.14) 0%, transparent 55%),
+        radial-gradient(120% 120% at 50% 100%, rgba(96, 165, 250, 0.10) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(255, 255, 255, 0) 60%);
+    z-index: -1;
+    pointer-events: none;
+}
+[data-theme="dark"] .lp-profile-header__bg {
+    background:
+        radial-gradient(120% 120% at 0% 0%, rgba(37, 99, 235, 0.30) 0%, transparent 55%),
+        radial-gradient(120% 120% at 100% 0%, rgba(59, 130, 246, 0.22) 0%, transparent 55%),
+        radial-gradient(120% 120% at 50% 100%, rgba(96, 165, 250, 0.18) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0) 60%);
+}
+
+.lp-profile-header__content {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+}
+
+/* ---------- Avatar ---------- */
+.lp-profile-header__avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
 }
 
 .lp-profile-header__avatar.lp-nav__avatar {
+    display: block;
     width: 96px;
     height: 96px;
-    border-width: 2px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid var(--bg-surface);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.18),
+        0 10px 26px -10px rgba(37, 99, 235, 0.45);
+    background: var(--bg-surface-alt);
+}
+.lp-profile-header__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 .lp-profile-header__avatar .lp-nav__avatar-fallback {
     font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
 }
 
+/* Titik status online — tetap hijau agar kontras */
+.lp-profile-header__status {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #22C55E;
+    border: 3px solid var(--bg-surface);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+    animation: lp-pulse 2s infinite;
+}
+
+@keyframes lp-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* ---------- Info ---------- */
 .lp-profile-header__info {
-    flex: 1;
-    min-width: 200px;
+    min-width: 0;
 }
 
 .lp-profile-header__name {
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: 800;
-    margin: 0 0 8px;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    word-break: break-word;
 }
 
 .lp-profile-header__meta {
@@ -64,27 +144,171 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+    margin-bottom: 16px;
 }
 
+/* NIK — pill biru muda */
+.lp-profile-header__nik {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1D4ED8;
+    padding: 6px 12px;
+    background: rgba(37, 99, 235, 0.10);
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    border-radius: 999px;
+}
+.lp-profile-header__nik svg {
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+[data-theme="dark"] .lp-profile-header__nik {
+    color: #93C5FD;
+    background: rgba(37, 99, 235, 0.22);
+    border-color: rgba(96, 165, 250, 0.30);
+}
+
+/* Badge jabatan — biru kental */
 .lp-profile-badge {
     display: inline-block;
     padding: 4px 12px;
     border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    color: #fff;
     font-size: 12.5px;
     font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 10px -4px rgba(37, 99, 235, 0.55);
 }
 
-.lp-profile-header__nik {
-    color: var(--text-muted);
-    font-size: 14px;
+/* ---------- Actions ---------- */
+.lp-profile-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
+/* Tombol Edit — biru */
 .lp-profile-header__edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #1D4ED8;
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+.lp-profile-header__edit:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 8px 18px -6px rgba(37, 99, 235, 0.55);
+}
+.lp-profile-header__edit:active {
+    transform: translateY(0);
+}
+[data-theme="dark"] .lp-profile-header__edit {
+    color: #93C5FD;
+    background: rgba(37, 99, 235, 0.20);
+    border-color: rgba(96, 165, 250, 0.30);
+}
+[data-theme="dark"] .lp-profile-header__edit:hover {
+    color: #fff;
+}
+
+/* ---------- QR Code ---------- */
+.lp-profile-header__qrcode {
     flex-shrink: 0;
 }
 
+.lp-profile-card--qrcode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.06),
+        0 10px 22px -12px rgba(37, 99, 235, 0.35);
+}
+.lp-profile-card--qrcode img {
+    width: 140px;
+    height: 140px;
+    border-radius: 10px;
+    display: block;
+    background: #fff;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+}
+.lp-profile-header__qrcode-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #2563EB;
+    text-align: center;
+    letter-spacing: 0.01em;
+}
+[data-theme="dark"] .lp-profile-header__qrcode-label {
+    color: #93C5FD;
+}
+
+/* ---------- Responsive Header ---------- */
+@media (max-width: 900px) {
+    .lp-profile-header__content {
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "avatar info"
+            "qr     qr";
+        gap: 20px;
+        padding: 24px;
+    }
+    .lp-profile-header__avatar-wrap { grid-area: avatar; }
+    .lp-profile-header__info       { grid-area: info; }
+    .lp-profile-header__qrcode     { grid-area: qr; justify-self: center; width: 100%; display: flex; justify-content: center; }
+}
+
+@media (max-width: 560px) {
+    .lp-profile-header { border-radius: 16px; }
+    .lp-profile-header__content {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "avatar"
+            "info"
+            "qr";
+        text-align: center;
+        gap: 16px;
+        padding: 24px 18px;
+    }
+    .lp-profile-header__avatar-wrap { justify-self: center; }
+    .lp-profile-header__avatar.lp-nav__avatar {
+        width: 88px;
+        height: 88px;
+    }
+    .lp-profile-header__meta { justify-content: center; }
+    .lp-profile-header__actions { justify-content: center; }
+    .lp-profile-header__edit {
+        width: 100%;
+        justify-content: center;
+    }
+    .lp-profile-card--qrcode img {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+/* ============================================
+   GRID INFORMASI PROFIL
+   ============================================ */
 .lp-profile-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -100,6 +324,11 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 22px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-profile-card:hover {
+    border-color: rgba(37, 99, 235, 0.25);
+    box-shadow: 0 8px 20px -12px rgba(37, 99, 235, 0.30);
 }
 
 .lp-profile-card__title {
@@ -107,8 +336,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--text-secondary);
+    color: #2563EB;
     margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.15);
+}
+[data-theme="dark"] .lp-profile-card__title {
+    color: #93C5FD;
+    border-bottom-color: rgba(96, 165, 250, 0.25);
 }
 
 .lp-profile-list {
@@ -134,14 +369,16 @@
     color: var(--text-muted);
     flex-shrink: 0;
 }
-
 .lp-profile-list__item dd {
     color: var(--text-primary);
     font-weight: 600;
     text-align: right;
+    word-break: break-word;
 }
 
-/* ---------- Halaman Edit Profil ---------- */
+/* ============================================
+   Halaman Edit Profil
+   ============================================ */
 .lp-profile-edit-container {
     max-width: 900px;
 }
@@ -158,7 +395,9 @@
     align-items: center;
     gap: 20px;
     padding: 28px;
-    background: var(--bg-surface);
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(255, 255, 255, 0) 60%),
+        var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
 }
@@ -171,7 +410,8 @@
     border-radius: 50%;
     overflow: hidden;
     cursor: pointer;
-    border: 2px solid var(--accent-soft);
+    border: 2px solid rgba(37, 99, 235, 0.35);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
 }
 .lp-edit-photo-img {
     width: 100%;
@@ -182,7 +422,7 @@
 .lp-edit-photo-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(26, 95, 180, 0.72);
+    background: rgba(37, 99, 235, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -225,11 +465,16 @@
 
 .lp-edit-note {
     font-size: 13px;
-    color: var(--text-muted);
-    background: var(--bg-surface-alt);
-    border: 1px solid var(--border-color);
+    color: #1D4ED8;
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.20);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
+}
+[data-theme="dark"] .lp-edit-note {
+    color: #93C5FD;
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(96, 165, 250, 0.30);
 }
 
 .lp-edit-card {
@@ -243,10 +488,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--text-secondary);
+    color: #2563EB;
     margin: 0 0 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(37, 99, 235, 0.15);
+}
+[data-theme="dark"] .lp-edit-card__title {
+    color: #93C5FD;
+    border-bottom-color: rgba(96, 165, 250, 0.25);
 }
 
 .lp-edit-grid-2 {
@@ -291,11 +540,11 @@
     font-size: 14px;
     padding: 10px 14px;
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 .lp-edit-input:focus, .lp-edit-textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
     background: var(--bg-surface);
 }
 .lp-edit-input:disabled {
@@ -327,7 +576,7 @@
     position: relative;
 }
 .lp-edit-password-wrap .lp-edit-input {
-    padding-right: 42px; /* beri ruang untuk icon mata */
+    padding-right: 42px;
 }
 .lp-edit-password-toggle {
     position: absolute;
@@ -346,6 +595,6 @@
     transition: color 0.15s, background 0.15s;
 }
 .lp-edit-password-toggle:hover {
-    color: var(--accent);
-    background: var(--bg-surface-alt);
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.10);
 }

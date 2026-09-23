@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Intervention\Image\Laravel\Facades\Image;
 use Laravolt\Indonesia\Models\Province;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Http\Response;
 
 class AnggotaProfilController extends Controller
 {
@@ -43,6 +46,29 @@ class AnggotaProfilController extends Controller
 
         return view('landing-page.anggota.profil', compact('anggota', 'wilayahDomisili', 'wilayahKtp'));
     }
+
+    public function qrCode()
+    {
+        $anggota = Anggota::find(session('anggota.id'));
+
+        if (! $anggota) {
+            abort(404);
+        }
+
+        $qrCode = new QrCode(
+            data: $anggota->ulid,
+            size: 300,
+            margin: 10,
+        );
+
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+
+        return response($result->getString(), 200)
+            ->header('Content-Type', $result->getMimeType())
+            ->header('Cache-Control', 'no-store');
+    }
+
 
     public function edit(): View|RedirectResponse
     {

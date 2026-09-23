@@ -47,6 +47,7 @@ class Anggota extends Model
         'kelurahan_ktp',
         'nomor_whatsapp',
         'email',
+        'rfid_code',
     ];
 
     protected $casts = [

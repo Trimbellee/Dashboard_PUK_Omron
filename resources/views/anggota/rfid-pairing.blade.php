@@ -1,0 +1,887 @@
+@extends('layouts.app')
+
+@section('title', 'Pairing Kartu RFID')
+
+@section('content')
+
+<div class="rfid-wrap" x-data="rfidPairing()" x-init="init()">
+
+    {{-- ── BACK BUTTON ─────────────────────────────────────── --}}
+    <a href="{{ route('anggota.index') }}" class="rfid-back" aria-label="Kembali ke daftar anggota">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12H5"/>
+            <path d="m12 19-7-7 7-7"/>
+        </svg>
+        <span>Kembali</span>
+    </a>
+
+    {{-- ── HEADER ──────────────────────────────────────────── --}}
+    <header class="rfid-header">
+        <div class="rfid-header__icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7V5a1 1 0 0 1 1-1h2"/>
+                <path d="M20 7V5a1 1 0 0 0-1-1h-2"/>
+                <path d="M4 17v2a1 1 0 0 0 1 1h2"/>
+                <path d="M20 17v2a1 1 0 0 1-1 1h-2"/>
+                <rect x="8" y="9" width="8" height="6" rx="1.5"/>
+            </svg>
+        </div>
+        <div class="rfid-header__text">
+            <h1 class="rfid-header__title">Pairing Kartu RFID</h1>
+            <p class="rfid-header__subtitle">
+                Tap kartu di reader, atau gunakan tombol <strong>Tap NFC</strong> di HP untuk memasangkan kartu ke anggota.
+            </p>
+        </div>
+    </header>
+
+    {{-- ── AREA TAP ────────────────────────────────────────── --}}
+    <section class="rfid-card rfid-card--tap"
+             :class="{ 'is-busy': loading }">
+        <div class="rfid-tap__input-row">
+            <div class="rfid-tap__input-wrap">
+                <span class="rfid-tap__input-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="12" rx="2"/>
+                        <path d="M7 10h.01M11 10h2"/>
+                    </svg>
+                </span>
+                <input type="text" x-ref="tapInput" x-model="kodeInput"
+                       @keydown.enter.prevent="prosesKode(kodeInput)"
+                       @blur="fokusInput()"
+                       class="form-input rfid-tap__input"
+                       placeholder="Tap kartu di reader, atau ketik manual..."
+                       autocomplete="off">
+                <span class="rfid-tap__pulse" x-show="!loading" aria-hidden="true"></span>
+            </div>
+
+            <button type="button" class="btn btn-ghost rfid-tap__nfc"
+                    @click="tapNfc()" x-show="nfcSupported" x-cloak>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 8.32a7.43 7.43 0 0 1 0 7.36"/>
+                    <path d="M9.46 6.21a11.76 11.76 0 0 1 0 11.58"/>
+                    <path d="M12.91 4.1a15.91 15.91 0 0 1 .01 15.8"/>
+                    <path d="M16.37 2a20.16 20.16 0 0 1 0 20"/>
+                </svg>
+                Tap NFC (HP)
+            </button>
+        </div>
+
+        <p class="rfid-tap__status">
+            <span class="rfid-tap__dot" :class="{ 'is-active': !loading }"></span>
+            <span x-text="loading ? 'Memproses kode...' : statusText"></span>
+        </p>
+    </section>
+
+    {{-- ── HASIL: KODE SUDAH TERDAFTAR ─────────────────────── --}}
+    <template x-if="mode === 'sudah_terdaftar'">
+        <section class="rfid-card rfid-card--warn">
+            <div class="rfid-warn__head">
+                <span class="rfid-warn__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <path d="M12 9v4M12 17h.01"/>
+                    </svg>
+                </span>
+                <div>
+                    <div class="rfid-warn__title">Kartu ini sudah terdaftar</div>
+                    <div class="rfid-warn__sub">Pilih tindakan untuk melanjutkan.</div>
+                </div>
+            </div>
+
+            <div class="rfid-owner">
+                <div class="rfid-owner__avatar"
+                     x-text="pemilikSaatIni.nama ? pemilikSaatIni.nama.substring(0,2).toUpperCase() : '-'"></div>
+                <div class="rfid-owner__info">
+                    <div class="rfid-owner__name" x-text="pemilikSaatIni.nama"></div>
+                    <div class="rfid-owner__nik" x-text="pemilikSaatIni.nik"></div>
+                </div>
+            </div>
+
+            <div class="rfid-actions">
+                <button type="button" class="btn btn-ghost" @click="batalkan()">Batal</button>
+                <button type="button" class="btn btn-primary" @click="mode = 'cari_anggota'">
+                    Ganti ke Anggota Lain
+                </button>
+            </div>
+        </section>
+    </template>
+
+    {{-- ── PENCARIAN ANGGOTA ───────────────────────────────── --}}
+    <template x-if="mode === 'cari_anggota'">
+        <section class="rfid-card">
+            <div class="rfid-search__head">
+                <span class="rfid-search__step">Langkah 2</span>
+                <div class="rfid-search__title">
+                    Pilih anggota untuk kode
+                    <code class="rfid-code" x-text="kodeAktif"></code>
+                </div>
+            </div>
+
+            <div class="rfid-search__field">
+                <svg class="rfid-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="m20 20-3.5-3.5"/>
+                </svg>
+                <input type="text" x-model="cari" @input.debounce.300ms="cariAnggota()"
+                       class="form-input rfid-search__input"
+                       placeholder="Ketik nama atau NIK..." autocomplete="off">
+            </div>
+
+            <div class="rfid-search__results">
+                <template x-for="item in hasilCari" :key="item.id">
+                    <button type="button" @click="pilihAnggota(item)" class="rfid-result">
+                        <div class="rfid-result__avatar"
+                             x-text="item.nama_lengkap.substring(0,2).toUpperCase()"></div>
+                        <div class="rfid-result__info">
+                            <div class="rfid-result__name" x-text="item.nama_lengkap"></div>
+                            <div class="rfid-result__meta">
+                                <span x-text="item.nik_karyawan"></span>
+                                <span class="rfid-result__sep">·</span>
+                                <span x-text="item.departemen"></span>
+                            </div>
+                        </div>
+                        <template x-if="item.rfid_code">
+                            <span class="rfid-result__badge">Sudah ada kartu</span>
+                        </template>
+                    </button>
+                </template>
+
+                <template x-if="cari.length >= 2 && hasilCari.length === 0">
+                    <p class="rfid-search__empty">Tidak ditemukan anggota dengan kata kunci tersebut.</p>
+                </template>
+
+                <template x-if="cari.length < 2">
+                    <p class="rfid-search__empty rfid-search__empty--hint">
+                        Ketik minimal 2 karakter untuk mulai mencari.
+                    </p>
+                </template>
+            </div>
+
+            <div class="rfid-actions">
+                <button type="button" class="btn btn-ghost" @click="batalkan()">Batal</button>
+            </div>
+        </section>
+    </template>
+
+    {{-- ── FEEDBACK ─────────────────────────────────────────── --}}
+    <template x-if="feedback" x-cloak>
+        <div class="rfid-feedback"
+             :class="feedback.ok ? 'rfid-feedback--ok' : 'rfid-feedback--err'">
+            <span class="rfid-feedback__icon" aria-hidden="true">
+                <template x-if="feedback.ok">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                </template>
+                <template x-if="!feedback.ok">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                </template>
+            </span>
+            <span class="rfid-feedback__msg" x-text="feedback.message"></span>
+        </div>
+    </template>
+
+    {{-- ── RIWAYAT SESI INI ─────────────────────────────────── --}}
+    <template x-if="riwayat.length > 0">
+        <section class="rfid-history">
+            <div class="rfid-history__head">
+                <span>Dipasangkan sesi ini</span>
+                <span class="rfid-history__count" x-text="riwayat.length"></span>
+            </div>
+            <div class="rfid-history__list">
+                <template x-for="row in riwayat" :key="row.kode + row.nama">
+                    <div class="rfid-history__item">
+                        <span class="rfid-history__name" x-text="row.nama"></span>
+                        <span class="rfid-history__code" x-text="row.kode"></span>
+                    </div>
+                </template>
+            </div>
+        </section>
+    </template>
+
+</div>
+
+{{-- ── STYLE: RFID Pairing ──────────────────────────────────── --}}
+@push('styles')
+<style>
+
+/* ---------- Back Button ---------- */
+.rfid-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 8px 14px 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.rfid-back svg {
+    transition: transform 0.2s ease;
+}
+.rfid-back:hover {
+    color: #2563EB;
+    border-color: rgba(37, 99, 235, 0.35);
+    background: rgba(37, 99, 235, 0.06);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -10px rgba(37, 99, 235, 0.55);
+}
+.rfid-back:hover svg {
+    transform: translateX(-3px);
+}
+.rfid-back:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+[data-theme="dark"] .rfid-back {
+    color: var(--text-secondary);
+}
+[data-theme="dark"] .rfid-back:hover {
+    color: #93C5FD;
+    border-color: rgba(96, 165, 250, 0.35);
+    background: rgba(37, 99, 235, 0.15);
+}
+
+/* ---------- Wrapper ---------- */
+.rfid-wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 8px 0 32px;
+}
+
+/* ---------- Header ---------- */
+.rfid-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 2px 0;
+}
+.rfid-header__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    box-shadow: 0 8px 20px -10px rgba(37, 99, 235, 0.55);
+}
+.rfid-header__text { min-width: 0; }
+.rfid-header__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+    letter-spacing: -0.01em;
+}
+.rfid-header__subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ---------- Card dasar ---------- */
+.rfid-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.08);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.rfid-card--tap {
+    background:
+        radial-gradient(120% 120% at 0% 0%, rgba(37, 99, 235, 0.06) 0%, transparent 55%),
+        var(--bg-surface);
+    border-color: rgba(37, 99, 235, 0.18);
+}
+.rfid-card--tap.is-busy {
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+}
+
+/* ---------- Input Tap ---------- */
+.rfid-tap__input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+.rfid-tap__input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    align-items: center;
+}
+.rfid-tap__input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    display: inline-flex;
+}
+.rfid-tap__input {
+    padding-left: 38px !important;
+    padding-right: 38px !important;
+    text-align: left !important;
+    letter-spacing: 0.02em !important;
+    font-weight: 500;
+}
+.rfid-tap__pulse {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #22C55E;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+    animation: rfid-pulse 2s infinite;
+    pointer-events: none;
+}
+@keyframes rfid-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.rfid-tap__nfc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+/* ---------- Status bar ---------- */
+.rfid-tap__status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+}
+.rfid-tap__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94A3B8;
+    transition: background 0.2s ease;
+}
+.rfid-tap__dot.is-active {
+    background: #22C55E;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+/* ---------- Card WARN (sudah terdaftar) ---------- */
+.rfid-card--warn {
+    background:
+        linear-gradient(135deg, rgba(251, 191, 36, 0.10) 0%, transparent 60%),
+        var(--bg-surface);
+    border-color: rgba(251, 191, 36, 0.45);
+}
+.rfid-warn__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.rfid-warn__icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #FEF3C7;
+    color: #B45309;
+}
+.rfid-warn__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #92400E;
+    margin-bottom: 2px;
+}
+.rfid-warn__sub {
+    font-size: 12.5px;
+    color: #A16207;
+}
+
+/* ---------- Owner card ---------- */
+.rfid-owner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--bg-surface);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    margin-bottom: 16px;
+}
+.rfid-owner__avatar {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #92400E;
+    background: #FEF3C7;
+}
+.rfid-owner__info { min-width: 0; }
+.rfid-owner__name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.rfid-owner__nik {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+}
+
+/* ---------- Search section ---------- */
+.rfid-search__head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+}
+.rfid-search__step {
+    display: inline-block;
+    width: fit-content;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.10);
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+.rfid-search__title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.rfid-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--text-primary);
+    margin-left: 4px;
+}
+
+.rfid-search__field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.rfid-search__icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.rfid-search__input {
+    padding-left: 38px !important;
+}
+
+.rfid-search__results {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.rfid-search__results::-webkit-scrollbar { width: 6px; }
+.rfid-search__results::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+}
+
+.rfid-search__empty {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 16px;
+    margin: 0;
+}
+.rfid-search__empty--hint { opacity: 0.75; }
+
+/* ---------- Result item ---------- */
+.rfid-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-base);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.rfid-result:hover {
+    border-color: rgba(37, 99, 235, 0.45);
+    background: rgba(37, 99, 235, 0.05);
+    transform: translateY(-1px);
+}
+.rfid-result__avatar {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.12);
+}
+.rfid-result__info { flex: 1; min-width: 0; }
+.rfid-result__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.rfid-result__meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.rfid-result__sep { opacity: 0.5; }
+.rfid-result__badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #92400E;
+    background: #FEF3C7;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+/* ---------- Actions ---------- */
+.rfid-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+/* ---------- Feedback ---------- */
+.rfid-feedback {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: rfid-fade-in 0.25s ease;
+}
+.rfid-feedback--ok {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: #065F46;
+}
+.rfid-feedback--err {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+}
+.rfid-feedback__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+}
+.rfid-feedback__msg { line-height: 1.4; }
+
+@keyframes rfid-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-theme="dark"] .rfid-feedback--ok {
+    background: #14311f;
+    border-color: #166534;
+    color: #86efac;
+}
+[data-theme="dark"] .rfid-feedback--err {
+    background: #3a1d1d;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+/* ---------- Riwayat ---------- */
+.rfid-history {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+}
+.rfid-history__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+.rfid-history__count {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563EB;
+    background: rgba(37, 99, 235, 0.10);
+    padding: 2px 9px;
+    border-radius: 999px;
+}
+.rfid-history__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rfid-history__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    font-size: 12.5px;
+}
+.rfid-history__name {
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rfid-history__code {
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    flex-shrink: 0;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+    .rfid-header__icon { width: 42px; height: 42px; border-radius: 12px; }
+    .rfid-header__title { font-size: 18px; }
+    .rfid-header__subtitle { font-size: 12.5px; }
+    .rfid-card { padding: 18px; border-radius: 14px; }
+    .rfid-tap__input-wrap { min-width: 0; }
+    .rfid-tap__nfc { width: 100%; justify-content: center; }
+    .rfid-actions { flex-direction: column-reverse; }
+    .rfid-actions .btn { width: 100%; justify-content: center; }
+        .rfid-back {
+        font-size: 12.5px;
+        padding: 7px 12px 7px 10px;
+    }
+}
+</style>
+@endpush
+
+{{-- ── SCRIPT: tetap sama (tidak diubah) ───────────────────── --}}
+<script>
+function rfidPairing() {
+    return {
+        kodeInput: '',
+        kodeAktif: '',
+        mode: 'idle',
+        statusText: 'Siap menerima kartu...',
+        pemilikSaatIni: {},
+        cari: '',
+        hasilCari: [],
+        feedback: null,
+        riwayat: [],
+        nfcSupported: 'NDEFReader' in window,
+        loading: false,
+
+        init() {
+            this.fokusInput();
+        },
+
+        fokusInput() {
+            if (this.mode !== 'idle' && this.mode !== 'sudah_terdaftar') return;
+            this.$nextTick(() => this.$refs.tapInput?.focus());
+        },
+
+        async prosesKode(kode) {
+            kode = (kode || '').trim();
+            if (!kode || this.loading) return;
+
+            this.loading = true;
+            this.feedback = null;
+
+            try {
+                const res = await fetch('{{ route('anggota.rfid-pairing.check') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify({ kode }),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    this.feedback = { ok: false, message: data.message || 'Kode tidak valid.' };
+                    this.mode = 'idle';
+                    return;
+                }
+
+                this.kodeAktif = data.kode;
+
+                if (data.exists) {
+                    this.pemilikSaatIni = data.anggota;
+                    this.mode = 'sudah_terdaftar';
+                    this.statusText = 'Kartu sudah terdaftar — pilih tindakan di bawah.';
+                } else {
+                    this.mode = 'cari_anggota';
+                    this.cari = '';
+                    this.hasilCari = [];
+                    this.statusText = 'Kartu baru — cari anggota untuk dipasangkan.';
+                }
+            } catch (e) {
+                this.feedback = { ok: false, message: 'Gagal terhubung ke server.' };
+            } finally {
+                this.loading = false;
+                this.kodeInput = '';
+            }
+        },
+
+        async cariAnggota() {
+            if (this.cari.trim().length < 2) {
+                this.hasilCari = [];
+                return;
+            }
+            try {
+                const res = await fetch('{{ route('anggota.rfid-pairing.search') }}?q=' + encodeURIComponent(this.cari));
+                this.hasilCari = await res.json();
+            } catch (e) {
+                this.hasilCari = [];
+            }
+        },
+
+        async pilihAnggota(item) {
+            try {
+                const res = await fetch('{{ route('anggota.rfid-pairing.assign') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    },
+                    body: JSON.stringify({ kode: this.kodeAktif, anggota_id: item.id }),
+                });
+                const data = await res.json();
+
+                this.feedback = { ok: data.ok, message: data.message };
+
+                if (data.ok) {
+                    this.riwayat.unshift({ kode: this.kodeAktif, nama: data.anggota.nama });
+                }
+
+                this.selesai();
+            } catch (e) {
+                this.feedback = { ok: false, message: 'Gagal menyimpan, coba lagi.' };
+                this.selesai();
+            }
+        },
+
+        batalkan() {
+            this.feedback = { ok: false, message: 'Dibatalkan.' };
+            this.selesai();
+        },
+
+        selesai() {
+            this.mode = 'idle';
+            this.statusText = 'Siap menerima kartu...';
+            this.pemilikSaatIni = {};
+            this.cari = '';
+            this.hasilCari = [];
+            this.fokusInput();
+
+            setTimeout(() => { this.feedback = null; }, 3000);
+        },
+
+        async tapNfc() {
+            if (!this.nfcSupported) {
+                alert('Browser/HP ini tidak mendukung Web NFC. Gunakan Chrome di Android.');
+                return;
+            }
+            try {
+                this.statusText = 'Tempelkan kartu ke HP...';
+                const reader = new NDEFReader();
+                await reader.scan();
+
+                reader.onreading = (event) => {
+                    if (event.serialNumber) {
+                        this.prosesKode(event.serialNumber);
+                    }
+                };
+
+                reader.onreadingerror = () => {
+                    this.feedback = { ok: false, message: 'Gagal membaca kartu, coba tap ulang.' };
+                };
+            } catch (e) {
+                this.feedback = { ok: false, message: 'Tidak bisa akses NFC — pastikan izin diberikan dan NFC aktif.' };
+            }
+        },
+    };
+}
+</script>
+
+@endsection

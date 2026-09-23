@@ -17,22 +17,54 @@
 
         {{-- ===== HEADER PROFIL ===== --}}
         <div class="lp-profile-header">
-            <span class="lp-nav__avatar lp-profile-header__avatar">
-                <img src="{{ $anggota->foto_url }}" alt="{{ $anggota->nama_lengkap }}">
-            </span>
+            <div class="lp-profile-header__bg" aria-hidden="true"></div>
 
-            <div class="lp-profile-header__info">
-                <h1 class="lp-profile-header__name">{{ $anggota->nama_lengkap }}</h1>
-                <div class="lp-profile-header__meta">
-                    <span class="lp-profile-badge">{{ ucwords($anggota->jabatan_puk ?? 'Anggota') }}</span>
-                    <span class="lp-profile-header__nik">NIK {{ $anggota->nik_karyawan }}</span>
+            <div class="lp-profile-header__content">
+                {{-- Avatar --}}
+                <div class="lp-profile-header__avatar-wrap">
+                    <span class="lp-nav__avatar lp-profile-header__avatar">
+                        <img src="{{ $anggota->foto_url }}" alt="{{ $anggota->nama_lengkap }}">
+                    </span>
+                    <span class="lp-profile-header__status" title="Aktif"></span>
+                </div>
+
+                {{-- Info --}}
+                <div class="lp-profile-header__info">
+                    <h1 class="lp-profile-header__name">{{ $anggota->nama_lengkap }}</h1>
+
+                    <div class="lp-profile-header__meta">
+                        <span class="lp-profile-badge">{{ ucwords($anggota->jabatan_puk ?? 'Anggota') }}</span>
+                        <span class="lp-profile-header__nik">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                            </svg>
+                            NIK {{ $anggota->nik_karyawan }}
+                        </span>
+                    </div>
+
+                    <div class="lp-profile-header__actions">
+                        <a href="{{ route('anggota.profil.edit') }}" class="lp-btn lp-btn--ghost lp-profile-header__edit">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edit Profil
+                        </a>
+                    </div>
+                </div>
+
+                {{-- QR Code --}}
+                <div class="lp-profile-header__qrcode">
+                    <div class="lp-profile-card lp-profile-card--qrcode">
+                        <img
+                            src="{{ route('anggota.profil.qrcode') }}"
+                            alt="QR Code Absensi {{ $anggota->nama_lengkap }}"
+                        >
+                        <span class="lp-profile-header__qrcode-label">Scan untuk absensi</span>
+                    </div>
                 </div>
             </div>
-
-            {{-- Tombol edit disiapkan untuk pengembangan berikutnya --}}
-            <a href="{{ route('anggota.profil.edit') }}" class="lp-btn lp-btn--ghost lp-profile-header__edit">
-                Edit Profil
-            </a>
         </div>
 
         {{-- ===== GRID INFORMASI ===== --}}
@@ -73,7 +105,7 @@
                     <div class="lp-profile-list__item">
                         <dt>Tempat & Tanggal Lahir</dt>
                         <dd>
-                            {{ $anggota->tempat_lahir ?? '-' }}{{ $anggota->tempat_lahir && $anggota->tanggal_lahir ? ', ' : '' }}{{ $anggota->tanggal_lahir?->translatedFormat('d F Y') ?? '' }}
+                            {{ $anggota->tempat_lahir ?? '-' }}, {{ $anggota->tempat_lahir && $anggota->tanggal_lahir ? ', ' : '' }}{{ $anggota->tanggal_lahir?->translatedFormat('d F Y') ?? '' }}
                         </dd>
                     </div>
                     <div class="lp-profile-list__item">

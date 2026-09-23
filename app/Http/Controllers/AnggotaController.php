@@ -13,7 +13,11 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+
 
 
 class AnggotaController extends Controller
@@ -148,14 +152,25 @@ class AnggotaController extends Controller
             'kelurahan_ktp'         => 'nullable',
             'alamat_ktp'            => 'nullable',
             'foto'                  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'rfid_code' => 'nullable|string|max:50|unique:anggota,rfid_code',
         ]);
 
         if ($request->hasFile('foto')) {
             $validated['foto'] = $this->uploadFoto( $request->file('foto'), $validated['nik_karyawan']);
         }
 
+        if (!empty($validated['rfid_code'])) {
+            $validated['rfid_code'] = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $validated['rfid_code']));
+        } else {
+            $validated['rfid_code'] = null;
+        }
+
         $validated['tanggal_masuk_anggota'] = now();
         $validated['is_active']             = 1;
+        $validated['password']              = $this->generatePassword(
+            $validated['nama_lengkap'],
+            $validated['nik_karyawan']
+        );
 
         Anggota::create($validated);
 
@@ -219,6 +234,7 @@ class AnggotaController extends Controller
             'kelurahan_ktp'         => 'nullable',
             'alamat_ktp'            => 'nullable',
             'foto'                  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'rfid_code' => 'nullable|string|max:50|unique:anggota,rfid_code,' . $anggota->id,
         ]);
 
         if ($request->hasFile('foto')) {
@@ -254,6 +270,13 @@ class AnggotaController extends Controller
                 $validated['foto'] = $newRelativePath;
             }
         }
+
+        if (!empty($validated['rfid_code'])) {
+            $validated['rfid_code'] = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $validated['rfid_code']));
+        } else {
+            $validated['rfid_code'] = null;
+        }
+        
         $anggota->update($validated);
 
         return redirect()
@@ -972,7 +995,7 @@ class AnggotaController extends Controller
  
                     $data = collect($data)
                         ->filter(fn ($value) => $value !== null)
-                        ->toArray();
+                        ->toArray();  
  
                     if ($existing->tanggal_keluar_anggota) {
                         $data['tanggal_keluar_anggota'] = null;
@@ -986,11 +1009,11 @@ class AnggotaController extends Controller
                 } else {
  
                     if ($data['jabatan'] === null) $data['jabatan'] = 'Jabatan Kosong';
- 
+
                     $data['tanggal_masuk_anggota']  = $periodeMasuk;
                     $data['tanggal_keluar_anggota'] = null;
                     $data['is_active']              = 1;
- 
+
                     Anggota::create($data);
                     $newMembers[] = ['nik' => $nik, 'nama' => $namaLengkap];
                 }
@@ -1012,6 +1035,7 @@ class AnggotaController extends Controller
                 ]);
  
             DB::commit();
+            \App\Jobs\BackfillPasswordJob::dispatch();
 
             TotalKaryawan::updateOrCreate(
                 [
@@ -1309,6 +1333,28 @@ class AnggotaController extends Controller
             'ok'      => true,
             'message' => 'Total karyawan berhasil disimpan.',
         ]);
+    }
+
+    private function generatePassword(string $namaLengkap, string $nik): string
+    {
+        $plain = strtoupper($namaLengkap . '_' . $nik);
+
+        return Hash::make($plain);
+    }
+
+    public function qrImage(Anggota $anggota)
+    {
+        $qrCode = new QrCode(
+            data: $anggota->ulid,
+            size: 300,
+            margin: 10,
+        );
+
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+
+        return response($result->getString(), 200)
+            ->header('Content-Type', $result->getMimeType());
     }
     
 
