@@ -26,153 +26,12 @@
 <link href="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@enzedonline/quill-blot-formatter2/dist/css/quill-blot-formatter2.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet">
-
-<style>
-    /* Toggle switch buat "Wajib diisi" — ganti checkbox polos */
-    .kf-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        user-select: none;
-    }
-    .kf-toggle input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    .kf-toggle-track {
-        position: relative;
-        width: 38px;
-        height: 22px;
-        background: var(--border-color, #d1d5db);
-        border-radius: 999px;
-        transition: background .18s ease;
-        flex-shrink: 0;
-    }
-    .kf-toggle-thumb {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 18px;
-        height: 18px;
-        background: #fff;
-        border-radius: 50%;
-        box-shadow: 0 1px 2px rgba(0,0,0,.25);
-        transition: transform .18s ease;
-    }
-    .kf-toggle input:checked ~ .kf-toggle-track {
-        background: var(--accent, #7c3aed);
-    }
-    .kf-toggle input:checked ~ .kf-toggle-track .kf-toggle-thumb {
-        transform: translateX(16px);
-    }
-    .kf-toggle-label {
-        font-size: 13.5px;
-        color: var(--text-primary, #111827);
-    }
-
-    /* Quill wrapper untuk field Deskripsi */
-    .kf-quill-wrap .ql-toolbar.ql-snow {
-        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-        border-color: var(--border-color, #d1d5db);
-        background: var(--bg-surface-alt, #f0f4f9);
-    }
-    .kf-quill-wrap .ql-container.ql-snow {
-        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-        border-color: var(--border-color, #d1d5db);
-        min-height: 180px;
-        font-family: var(--font-body);
-        font-size: 14px;
-        background: var(--bg-base, #fff);
-        color: var(--text-primary);
-    }
-
-    .kf-quill-wrap.kf-quill-fullscreen {
-        position: fixed;
-        inset: 0;
-        z-index: 1050;
-        background: var(--bg-base, #fff);
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-    }
-    .kf-quill-wrap.kf-quill-fullscreen .ql-container {
-        flex: 1;
-        min-height: 0;
-    }
-
-    /* ===== Toolbar Quill: rapi & wrap di layar kecil ===== */
-    .kf-quill-wrap .ql-toolbar.ql-snow {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        row-gap: 4px;
-        column-gap: 2px;
-    }
-    .kf-quill-wrap .ql-toolbar.ql-snow .ql-formats {
-        display: inline-flex;
-        align-items: center;
-        margin: 2px 6px 2px 0 !important; /* override margin default Quill (0 15px 0 0) */
-    }
-
-    @media (max-width: 640px) {
-        .kf-quill-wrap .ql-toolbar.ql-snow {
-            padding: 6px 8px;
-            row-gap: 3px;
-            column-gap: 1px;
-        }
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-formats {
-            margin: 2px 4px 2px 0 !important;
-        }
-        /* Tombol icon dikecilin dikit biar muat lebih banyak per baris */
-        .kf-quill-wrap .ql-toolbar.ql-snow button {
-            width: 24px;
-            height: 24px;
-            padding: 2px;
-        }
-        .kf-quill-wrap .ql-toolbar.ql-snow button svg {
-            width: 15px;
-            height: 15px;
-        }
-        /* Dropdown font/size/header/color/align dipersempit */
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker {
-            font-size: 12px;
-        }
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-font,
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-size,
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-header {
-            width: 64px;
-        }
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker-label {
-            padding-right: 12px;
-        }
-        /* Editor sendiri jangan terlalu tinggi di HP */
-        .kf-quill-wrap .ql-container.ql-snow {
-            min-height: 140px;
-            font-size: 13.5px;
-        }
-        /* Toolbar table-better bawa dropdown sendiri yang suka lebar, kecilin juga */
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-table-better {
-            width: 24px;
-            height: 24px;
-        }
-    }
-
-    @media (max-width: 400px) {
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-script,
-        .kf-quill-wrap .ql-toolbar.ql-snow .ql-direction {
-            display: none;
-        }
-    }
-
-
-</style>
+@vite('resources/css/admin/kegiatan/form.css')
 @endpush
 
 <form method="POST"
       enctype="multipart/form-data"
+      class="kf-form-wrap"
       action="{{ isset($kegiatan) ? route('admin.kegiatan.update', $kegiatan->slug) : route('admin.kegiatan.store') }}"
       x-data="kegiatanForm({
           jenis: '{{ old('jenis', $kegiatan->jenis ?? '') }}',
@@ -189,8 +48,8 @@
     @endif
 
     {{-- ===== INFORMASI UMUM ===== --}}
-    <div class="lp-form-card" style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:24px; margin-bottom:20px;">
-        <h2 style="font-size:14px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Informasi Umum</h2>
+    <div class="lp-form-card">
+        <h2 style="color:var(--text-primary); font-size:14px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Informasi Umum</h2>
 
         <div style="margin-bottom:16px;">
             <label class="lp-form__info" style="display:block; font-weight:600; color:var(--text-primary); margin-bottom:6px;">Nama kegiatan</label>
@@ -199,7 +58,7 @@
             @error('nama') <span class="lp-form__error">{{ $message }}</span> @enderror
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px;">
+        <div class="kf-info-grid">
             <div>
                 <label class="lp-form__info" style="display:block; font-weight:600; color:var(--text-primary); margin-bottom:6px;">Tanggal</label>
                 {{-- FIX: kolomnya `tanggal_mulai`, bukan `tanggal` --}}
@@ -274,8 +133,8 @@
     </div>
 
     {{-- ===== JENIS & TINGKAT ===== --}}
-    <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:24px; margin-bottom:20px;">
-        <h2 style="font-size:14px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Jenis &amp; Tingkat</h2>
+    <div class="lp-form-card">
+        <h2 style="color: var(--text-primary); font-size:14px; font-weight:700; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Jenis &amp; Tingkat</h2>
 
         <div style="margin-bottom:16px;">
             <label class="lp-form__info" style="display:block; font-weight:600; color:var(--text-primary); margin-bottom:6px;">Jenis kegiatan</label>
@@ -325,8 +184,8 @@
     </div>
 
     {{-- ===== FIELD PENDAFTARAN CUSTOM ===== --}}
-    <div style="background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:24px; margin-bottom:20px;">
-        <h2 style="font-size:14px; font-weight:700; margin-bottom:4px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Field Pendaftaran Custom</h2>
+    <div class="lp-form-card">
+        <h2 style="color: var(--text-primary); font-size:14px; font-weight:700; margin-bottom:4px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">Field Pendaftaran Custom</h2>
         <p class="lp-editor-hint" style="margin-bottom:16px;">Field tambahan ini dirender di form pendaftaran publik, di luar field standar (nama/NIK/departemen/email).</p>
 
         <template x-if="customFields.length === 0">
@@ -334,8 +193,8 @@
         </template>
 
         <template x-for="(field, index) in customFields" :key="index">
-            <div style="border:1px solid var(--border-color); background:var(--bg-surface-alt); border-radius:var(--radius-sm); padding:16px; margin-bottom:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="kf-field-card">
+                <div class="kf-field-card__head">
                     <span style="font-size:12px; font-weight:700; color:var(--accent);" x-text="'FIELD ' + (index + 1)"></span>
                     <button type="button" class="lp-admin-danger" style="background:none; border:none; font-size:12.5px; font-weight:600; cursor:pointer;" @click="customFields.splice(index, 1)">Hapus</button>
                 </div>
@@ -373,7 +232,7 @@
     </div>
 
     {{-- ===== AKSI ===== --}}
-    <div style="display:flex; justify-content:space-between; gap:12px;">
+    <div class="kf-form-actions">
         <button type="submit" class="lp-btn lp-btn--primary">{{ isset($kegiatan) ? 'Simpan perubahan' : 'Simpan & Buka Pendaftaran' }}</button>
         <a href="{{ route('admin.kegiatan.index') }}" class="lp-btn lp-btn--ghost">Batal</a>
     </div>

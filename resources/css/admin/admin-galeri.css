@@ -374,6 +374,7 @@
     font-weight: 700;
     margin: 0;
     font-family: var(--font-display, 'Inter', sans-serif);
+    color: var(--text-primary);
 }
 .lp-editor__grid {
     display: grid;

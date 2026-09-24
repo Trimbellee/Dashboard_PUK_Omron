@@ -30,6 +30,7 @@
 
             @php
                 use App\Helpers\PermissionHelper;
+                use Illuminate\Support\Str;
                 $jabatanAdmin = strtolower(trim(session('anggota.jabatan_puk', '')));
             @endphp
             <nav class="lp-admin-sidebar__nav">
@@ -39,9 +40,21 @@
                             ? $item->route_name
                             : 'admin.halaman.show';
                         $targetParams = $targetRoute === 'admin.halaman.show' ? ['page' => $item->slug] : [];
+
+                        // Cocokkan active state berdasarkan PREFIX MODUL (mis. "admin.kegiatan"),
+                        // bukan exact route_name. Sebelumnya routeIs($item->route_name . '*') cuma
+                        // match kalau nama route lain kebetulan berawalan sama persis dengan string
+                        // route_name lengkap — makanya submodule seperti kegiatan.create / .edit /
+                        // .pendaftar.* / .scan tidak pernah dianggap "active" walau masih satu menu.
+                        $itemModulePrefix = ($item->route_name && str_contains($item->route_name, '.'))
+                            ? Str::beforeLast($item->route_name, '.')
+                            : $item->route_name;
+
+                        $isActive = $item->route_name
+                            ? (request()->routeIs($itemModulePrefix . '.*') || request()->routeIs($item->route_name))
+                            : (request()->route('page')?->slug === $item->slug);
                     @endphp
-                    <a href="{{ route($targetRoute, $targetParams) }}"
-                    class="{{ (request()->routeIs($item->route_name . '*') || request()->route('page')?->slug === $item->slug) ? 'active' : '' }}">
+                    <a href="{{ route($targetRoute, $targetParams) }}" class="{{ $isActive ? 'active' : '' }}">
                         {!! $item->icon_svg !!}
                         {{ $item->label }}
                     </a>

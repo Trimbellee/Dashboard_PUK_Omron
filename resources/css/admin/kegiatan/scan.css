@@ -1,0 +1,160 @@
+/* ==========================================================================
+   admin/kegiatan/scan — dipakai di scan.blade.php (Scan Kehadiran)
+   Dipisah dari <style> inline. Palet gelap file ini sebelumnya sudah benar
+   (custom property --scan-* di-override lewat [data-theme="dark"] .lp-scan),
+   jadi isinya dipertahankan — cuma ditambah 1 breakpoint ekstra buat HP
+   sangat sempit (<380px) biar 3 kartu statistik tidak berdesakan.
+   ========================================================================== */
+
+[x-cloak] { display: none !important; }
+
+.lp-scan {
+    --scan-ok: #16a34a;   --scan-ok-bg: #dcfce7;   --scan-ok-fg: #166534;
+    --scan-info: #4f46e5; --scan-info-bg: #e0e7ff; --scan-info-fg: #3730a3;
+    --scan-warn: #d97706; --scan-warn-bg: #fef3c7; --scan-warn-fg: #92400e;
+    --scan-err: #dc2626;  --scan-err-bg: #fee2e2;  --scan-err-fg: #991b1b;
+    max-width: 980px; margin: 0 auto; padding: 1rem 0 2rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+}
+[data-theme="dark"] .lp-scan {
+    --scan-ok-bg: #14311f;   --scan-ok-fg: #86efac;
+    --scan-info-bg: #1e1b4b; --scan-info-fg: #a5b4fc;
+    --scan-warn-bg: #3a2a0a; --scan-warn-fg: #fcd34d;
+    --scan-err-bg: #3a1d1d;  --scan-err-fg: #fca5a5;
+}
+
+/* ── Header ── */
+.lp-scan__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lp-scan__back { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-secondary, #6b7280); text-decoration: none; margin-bottom: 6px; }
+.lp-scan__back:hover { color: var(--accent, #7c3aed); }
+.lp-scan__title { font-size: 1.25rem; font-weight: 700; margin: 0; letter-spacing: -.01em; color: var(--text-primary); }
+.lp-scan__sub { font-size: .85rem; color: var(--text-secondary, #6b7280); margin: 2px 0 0; }
+.lp-scan__tools { display: flex; align-items: center; gap: 8px; }
+.lp-scan__live {
+    display: inline-flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 600;
+    padding: 6px 11px; border-radius: 999px; background: var(--scan-ok-bg); color: var(--scan-ok-fg);
+}
+.lp-scan__live i { width: 7px; height: 7px; border-radius: 50%; background: var(--scan-ok); animation: lp-scan-pulse 1.6s ease-in-out infinite; }
+.lp-scan__live.is-off { background: var(--scan-err-bg); color: var(--scan-err-fg); }
+.lp-scan__live.is-off i { background: var(--scan-err); animation: none; }
+.lp-scan__icon-btn {
+    width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 10px; border: 1px solid var(--border-color, #e5e7eb); background: var(--bg-surface, #fff);
+    color: var(--text-secondary, #6b7280); cursor: pointer; transition: color .15s, border-color .15s;
+}
+.lp-scan__icon-btn:hover { color: var(--accent, #7c3aed); border-color: var(--accent, #7c3aed); }
+@keyframes lp-scan-pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ── Statistik ── */
+.lp-scan__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.lp-scan__stat {
+    background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-md, 12px); padding: 14px 16px;
+}
+.lp-scan__stat span { display: block; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary, #8992a3); }
+.lp-scan__stat strong { display: block; font-size: 1.7rem; font-weight: 700; line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--text-secondary, #8992a3); }
+.lp-scan__stat--ok strong { color: var(--scan-ok); }
+.lp-scan__progress { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; }
+.lp-scan__bar { flex: 1; height: 8px; border-radius: 999px; background: var(--bg-surface-alt, #e5e7eb); overflow: hidden; }
+.lp-scan__bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .5s ease; }
+.lp-scan__pct { font-size: .8rem; font-weight: 700; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary);}
+
+/* ── Area scan ── */
+.lp-scan__scan-area { width: 100%; max-width: 520px; margin: 0 auto; }
+.lp-scan__tabs { display: flex; gap: 6px; background: var(--bg-surface-alt, #f3f4f6); border-radius: var(--radius-md, 12px); padding: 4px; margin-bottom: 12px; }
+.lp-scan__tab {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 8px; border-radius: var(--radius-sm, 8px); font-size: .82rem; font-weight: 600;
+    background: none; border: none; cursor: pointer; color: var(--text-secondary, #6b7280); transition: background .15s, color .15s;
+}
+.lp-scan__tab.is-active { background: var(--text-secondary, #fff); color: var(--accent, #7c3aed); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08)); }
+.lp-scan__tab:disabled { opacity: .45; cursor: not-allowed; }
+
+.lp-scan__panel {
+    background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-md, 12px); padding: 20px;
+}
+.lp-scan__reader-input {
+    width: 100%; text-align: center; font-size: 1.1rem; letter-spacing: .05em; padding: 14px;
+    border: 2px dashed var(--border-color, #d1d5db); border-radius: var(--radius-sm, 8px);
+    background: var(--bg-surface-alt, #f9fafb); color: var(--text-secondary); transition: border-color .15s, box-shadow .15s;
+}
+.lp-scan__reader-input:focus { outline: none; border-style: solid; border-color: var(--accent, #7c3aed); box-shadow: 0 0 0 4px rgba(124, 58, 237, .12); }
+.lp-scan__hint { font-size: .78rem; color: var(--text-secondary, #9ca3af); margin: 10px 0 0; text-align: center; }
+#qr-reader { width: 100%; border-radius: var(--radius-sm, 8px); overflow: hidden; min-height: 120px; }
+.lp-scan__nfc { padding: 26px 12px 8px; text-align: center; }
+.lp-scan__nfc i { font-size: 46px; color: var(--accent, #7c3aed); }
+.lp-scan__nfc p { margin: 10px 0 0; font-weight: 600; }
+
+/* ── Kartu hasil (tinggi tetap → layout tidak loncat) ── */
+.lp-scan__result {
+    margin-top: 14px; min-height: 92px; display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+    border-radius: var(--radius-md, 12px); border: 1px solid transparent; transition: background .2s, color .2s;
+}
+.lp-scan__result[data-state="idle"] { background: var(--bg-surface-alt, #f3f4f6); color: var(--text-secondary, #6b7280); border-color: var(--border-color, #e5e7eb); }
+.lp-scan__result[data-state="berhasil"] { background: var(--scan-ok-bg); color: var(--scan-ok-fg); animation: lp-scan-pop .25s ease; }
+.lp-scan__result[data-state="sudah_hadir"] { background: var(--scan-info-bg); color: var(--scan-info-fg); animation: lp-scan-pop .25s ease; }
+.lp-scan__result[data-state="belum_daftar"],
+.lp-scan__result[data-state="tidak_boleh"] { background: var(--scan-warn-bg); color: var(--scan-warn-fg); animation: lp-scan-pop .25s ease; }
+.lp-scan__result[data-state="tidak_dikenali"],
+.lp-scan__result[data-state="error"] { background: var(--scan-err-bg); color: var(--scan-err-fg); animation: lp-scan-pop .25s ease; }
+@keyframes lp-scan-pop { from { transform: scale(.97); opacity: .6; } to { transform: scale(1); opacity: 1; } }
+.lp-scan__result-icon { font-size: 34px; line-height: 1; flex-shrink: 0; }
+.lp-scan__result-body { min-width: 0; }
+.lp-scan__result-title { font-size: 1rem; font-weight: 700; }
+.lp-scan__result-msg { font-size: .85rem; margin-top: 2px; opacity: .9; }
+.lp-scan__result-person { font-size: .78rem; margin-top: 6px; opacity: .85; font-family: 'DM Mono', monospace; }
+
+/* ── Daftar hadir ── */
+.lp-scan__list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lp-scan__list-head h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+.lp-scan__search {
+    display: flex; align-items: center; gap: 8px; padding: 0 12px; min-width: 240px; flex: 1; max-width: 340px;
+    background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px;
+    transition: border-color .15s, box-shadow .15s;
+}
+.lp-scan__search:focus-within { border-color: var(--accent, #7c3aed); box-shadow: 0 0 0 3px rgba(124, 58, 237, .12); }
+.lp-scan__search input { flex: 1; border: none; outline: none; background: transparent; padding: 9px 0; font-size: .82rem; color: var(--text-secondary, #9ca3af); font-family: inherit; }
+.lp-scan__search i { color: var(--text-secondary, #9ca3af); }
+.lp-scan__clear { border: none; background: none; cursor: pointer; font-size: 1.1rem; line-height: 1; color: var(--text-secondary, #9ca3af); }
+
+.lp-scan__table-wrap { background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: var(--radius-md, 12px); overflow-x: auto; }
+.lp-scan__table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .85rem; }
+.lp-scan__table thead th {
+    text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--text-secondary, #6b7280); padding: .7rem .9rem; border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-surface-alt, #f9fafb); white-space: nowrap;
+}
+.lp-scan__table tbody td { padding: .65rem .9rem; border-bottom: 1px solid var(--border-color, #f1f2f4); vertical-align: middle; color: var(--text-secondary); }
+.lp-scan__table tbody tr:last-child td { border-bottom: none; }
+.lp-scan__table tbody tr.is-new { animation: lp-scan-highlight 2s ease-out; }
+@keyframes lp-scan-highlight { from { background: var(--scan-ok-bg); } to { background: transparent; } }
+.lp-scan__user { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.lp-scan__avatar {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: .68rem; font-weight: 700; color: var(--accent, #7c3aed); background: rgba(124, 58, 237, .12);
+}
+.lp-scan__mono { font-family: 'DM Mono', monospace; font-size: .78rem; color: var(--text-secondary, #6b7280); }
+.lp-scan__muted { font-size: .78rem; color: var(--text-secondary, #6b7280); white-space: nowrap; }
+.lp-scan__chip { display: inline-block; font-size: .68rem; font-weight: 600; padding: .2rem .55rem; border-radius: 999px; background: var(--scan-ok-bg); color: var(--scan-ok-fg); }
+.lp-scan__empty { text-align: center; padding: 2rem 1rem !important; color: var(--text-secondary, #9ca3af); }
+.lp-scan__foot { font-size: .75rem; color: var(--text-secondary, #6b7280); text-align: center; margin: 0; }
+
+@media (max-width: 560px) {
+    .lp-scan__stat { padding: 12px; }
+    .lp-scan__stat strong { font-size: 1.35rem; }
+    .lp-scan__tab { font-size: .76rem; padding: 9px 4px; }
+    .lp-scan__search { max-width: none; min-width: 0; width: 100%; }
+}
+
+/* HP sangat sempit: 3 kartu statistik jadi berdesakan, turunkan ke 2 kolom
+   (kartu ke-3 otomatis melebar ke baris baru; progress bar tetap full width). */
+@media (max-width: 380px) {
+    .lp-scan__stats { grid-template-columns: repeat(2, 1fr); }
+    .lp-scan__head { gap: 8px; }
+    .lp-scan__tools { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-scan *, .lp-scan *::before { animation: none !important; transition: none !important; }
+}

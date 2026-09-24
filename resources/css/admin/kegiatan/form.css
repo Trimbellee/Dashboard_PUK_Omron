@@ -1,0 +1,256 @@
+/* ==========================================================================
+   admin/kegiatan/form — dipakai di _form.blade.php (create & edit)
+   Dipisah dari <style> inline supaya ikut dicache/di-minify Vite seperti
+   modul admin lain, dan supaya breakpoint responsive bisa diatur di sini
+   (inline style di Blade tidak bisa punya @media).
+   ========================================================================== */
+
+/* ---------- Kartu section (Informasi Umum / Jenis & Tingkat / Field Custom) ---------- */
+.lp-form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+/* Lebar form dibatasi di layar besar — sebelumnya full-bleed sampai ke tepi
+   konten admin, jadi input terasa kepanjangan & kosong di monitor lebar. */
+.kf-form-wrap {
+    max-width: 880px;
+    margin-inline: auto;
+}
+
+/* ---------- Grid field tanggal/lokasi/kuota ---------- */
+.kf-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+@media (min-width: 640px) {
+    .kf-info-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1024px) {
+    .kf-info-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- Kartu field custom pendaftaran ---------- */
+.kf-field-card {
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface-alt);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.kf-field-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* ---------- Aksi bawah (Simpan / Batal) ---------- */
+.kf-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+@media (max-width: 560px) {
+    .lp-form-card { padding: 16px; }
+    .kf-field-card { padding: 12px; }
+}
+
+/* Toggle switch buat "Wajib diisi" — ganti checkbox polos */
+.kf-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+.kf-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.kf-toggle-track {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    background: var(--border-color, #d1d5db);
+    border-radius: 999px;
+    transition: background .18s ease;
+    flex-shrink: 0;
+}
+.kf-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    transition: transform .18s ease;
+}
+.kf-toggle input:checked ~ .kf-toggle-track {
+    background: var(--accent, #7c3aed);
+}
+.kf-toggle input:checked ~ .kf-toggle-track .kf-toggle-thumb {
+    transform: translateX(16px);
+}
+.kf-toggle-label {
+    font-size: 13.5px;
+    color: var(--text-primary, #111827);
+}
+
+/* Quill wrapper untuk field Deskripsi */
+.kf-quill-wrap .ql-toolbar.ql-snow {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border-color: var(--border-color, #d1d5db);
+    background: var(--bg-surface-alt, #f0f4f9);
+
+}
+
+.kf-form-wrap input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.8;
+    cursor: pointer;
+    filter: var(--date-icon-filter);
+}
+
+/* Warna icon toolbar Quill */
+.kf-quill-wrap .ql-toolbar .ql-stroke {
+    stroke: var(--text-primary) !important;
+}
+
+.kf-quill-wrap .ql-toolbar .ql-fill {
+    fill: var(--text-primary) !important;
+}
+
+/* Icon saat hover */
+.kf-quill-wrap .ql-toolbar button:hover .ql-stroke {
+    stroke: var(--accent) !important;
+}
+
+.kf-quill-wrap .ql-toolbar button:hover .ql-fill {
+    fill: var(--accent) !important;
+}
+
+/* Icon aktif */
+.kf-quill-wrap .ql-toolbar button.ql-active .ql-stroke {
+    stroke: var(--accent) !important;
+}
+
+.kf-quill-wrap .ql-toolbar button.ql-active .ql-fill {
+    fill: var(--accent) !important;
+}
+
+.kf-quill-wrap .ql-toolbar .ql-picker-label {
+    color: var(--text-primary) !important;
+}
+
+.kf-quill-wrap .ql-toolbar .ql-picker-label::before {
+    color: var(--text-primary) !important;
+}
+
+.kf-quill-wrap .ql-toolbar .ql-picker-options {
+    background: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+}
+
+.kf-quill-wrap .ql-toolbar .ql-picker-item {
+    color: var(--text-primary) !important;
+}
+
+
+.kf-quill-wrap .ql-container.ql-snow {
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border-color: var(--border-color, #d1d5db);
+    min-height: 180px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    background: var(--bg-base, #fff);
+    color: var(--text-primary);
+}
+
+.kf-quill-wrap .ql-editor::before {
+    color: #9ca3af;
+}
+
+.kf-quill-wrap.kf-quill-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: var(--bg-base, #fff);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+.kf-quill-wrap.kf-quill-fullscreen .ql-container {
+    flex: 1;
+    min-height: 0;
+}
+
+/* ===== Toolbar Quill: rapi & wrap di layar kecil ===== */
+.kf-quill-wrap .ql-toolbar.ql-snow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 4px;
+    column-gap: 2px;
+}
+.kf-quill-wrap .ql-toolbar.ql-snow .ql-formats {
+    display: inline-flex;
+    align-items: center;
+    margin: 2px 6px 2px 0 !important; /* override margin default Quill (0 15px 0 0) */
+}
+
+@media (max-width: 640px) {
+    .kf-quill-wrap .ql-toolbar.ql-snow {
+        padding: 6px 8px;
+        row-gap: 3px;
+        column-gap: 1px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-formats {
+        margin: 2px 4px 2px 0 !important;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow button {
+        width: 24px;
+        height: 24px;
+        padding: 2px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow button svg {
+        width: 15px;
+        height: 15px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker {
+        font-size: 12px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-font,
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-size,
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker.ql-header {
+        width: 64px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-picker-label {
+        padding-right: 12px;
+    }
+    .kf-quill-wrap .ql-container.ql-snow {
+        min-height: 140px;
+        font-size: 13.5px;
+    }
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-table-better {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+@media (max-width: 400px) {
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-script,
+    .kf-quill-wrap .ql-toolbar.ql-snow .ql-direction {
+        display: none;
+    }
+}

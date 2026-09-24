@@ -1,0 +1,3 @@
+@push('page-styles')
+
+@endpush

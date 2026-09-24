@@ -25,6 +25,7 @@
     --font-display:      'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
     --font-body:         'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
     --transition:        0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+     --date-icon-filter: invert(30%);
 }
 
 [data-theme="dark"] {
@@ -42,6 +43,8 @@
     --shadow-sm:         0 2px 8px rgba(0, 0, 0, 0.35);
     --shadow-md:         0 8px 30px rgba(0, 0, 0, 0.45);
     --shadow-lg:         0 20px 60px rgba(0, 0, 0, 0.55);
+    --date-icon-filter: invert(90%);
+
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -227,6 +230,7 @@ html { scroll-behavior: smooth; }
 .lp-admin-topbar__title {
     font-weight: 700;
     font-size: 15px;
+    color: var(--text-primary);
 }
 .lp-admin-main {
     padding-block: 32px 60px;
@@ -665,6 +669,7 @@ html { scroll-behavior: smooth; }
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
     padding: 22px;
+    color: var(--text-secondary);
 }
 
 /* ---------- ADMIN LIST ROWS ---------- */

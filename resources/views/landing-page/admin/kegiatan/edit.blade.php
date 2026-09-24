@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="lp-page-header" style="margin-bottom: 1rem;">
-    <h1 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Edit Kegiatan</h1>
+    <h1 style="font-size: 1.1rem; font-weight: 600; margin: 0; color: var(--text-primary">Edit Kegiatan</h1>
     <p style="font-size: .8125rem; color: var(--text-secondary, #6b7280); margin: .2rem 0 0;">
         {{ $kegiatan->judul }}
     </p>

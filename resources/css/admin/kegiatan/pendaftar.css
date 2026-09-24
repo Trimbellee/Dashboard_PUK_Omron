@@ -1,0 +1,200 @@
+/* ==========================================================================
+   admin/kegiatan/pendaftar — dipakai di pendaftar.blade.php
+   Dipisah dari <style> inline. Sekalian benerin nama CSS variable yang salah:
+   file lama pakai var(--border, ...), var(--surface-1, ...), var(--surface-2, ...)
+   padahal token global di admin-panel.css namanya --border-color / --bg-surface.
+   Karena variabel itu tidak pernah ada, selama ini yang kepakai selalu nilai
+   fallback (warna terang) → makanya halaman pendaftar kelihatan "nyasar" terang
+   sendiri di dark mode walau elemen lain sudah gelap.
+   ========================================================================== */
+
+.lp-pendaftar .lp-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.lp-pendaftar .lp-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.lp-pendaftar .lp-filters input,
+.lp-pendaftar .lp-filters select {
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 8px;
+    padding: .45rem .65rem;
+    font-size: .8125rem;
+    background: var(--bg-surface, #fff);
+    color: var(--text-primary);
+}
+
+/* Grup tombol aksi kanan toolbar (Kembali/Export/Tambah/Scan) — sebelumnya
+   flex tanpa wrap, jadi bertabrakan di layar sempit. */
+.lp-pendaftar .lp-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.lp-pendaftar .lp-btn-ghost {
+    border: 1px solid var(--border-color, #d1d5db);
+    background: var(--bg-surface, #fff);
+    border-radius: 8px;
+    padding: .5rem .9rem;
+    font-size: .8125rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.lp-pendaftar .lp-table-wrap {
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.lp-pendaftar table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: .8125rem;
+}
+
+.lp-pendaftar thead th {
+    text-align: left;
+    font-size: .72rem;
+    color: var(--text-secondary, #6b7280);
+    padding: .7rem .85rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-surface-alt, #f9fafb);
+    white-space: nowrap;
+}
+
+.lp-pendaftar tbody td {
+    padding: .7rem .85rem;
+    border-bottom: 1px solid var(--border-color, #f1f2f4);
+    vertical-align: middle;
+    color: var(--text-secondary);
+}
+
+.lp-pendaftar tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.lp-pendaftar .lp-chip {
+    display: inline-block;
+    font-size: .7rem;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+}
+
+.lp-pendaftar .lp-chip-diterima      { background: #dcfce7; color: #15803d; }
+.lp-pendaftar .lp-chip-ditolak_kuota { background: #fee2e2; color: #b91c1c; }
+.lp-pendaftar .lp-chip-hadir         { background: #e0e7ff; color: #3730a3; }
+
+/* Varian dark mode buat chip status — sebelumnya tidak ada sama sekali,
+   jadi pastel terang ini nabrak dengan latar gelap. Palet disamakan dengan
+   admin-panel.css / kegiatan/index.css biar konsisten. */
+[data-theme="dark"] .lp-pendaftar .lp-chip-diterima      { background: #16301f; color: #4ade80; }
+[data-theme="dark"] .lp-pendaftar .lp-chip-ditolak_kuota { background: #3a1616; color: #f87171; }
+[data-theme="dark"] .lp-pendaftar .lp-chip-hadir         { background: #1d2a55; color: #a5b4fc; }
+
+.lp-pendaftar .lp-aksi {
+    display: flex;
+    gap: .4rem;
+    white-space: nowrap;
+}
+
+.lp-pendaftar .lp-icon-btn {
+    border: 1px solid var(--border-color, #d1d5db);
+    background: var(--bg-surface, #fff);
+    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.lp-pendaftar .lp-icon-btn.danger {
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+[data-theme="dark"] .lp-pendaftar .lp-icon-btn.danger {
+    color: #f87171;
+    border-color: #5b2323;
+}
+
+.lp-pendaftar .lp-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary, #9ca3af);
+}
+
+@media (max-width: 640px) {
+    .lp-pendaftar .lp-filters {
+        width: 100%;
+    }
+    .lp-pendaftar .lp-filters input,
+    .lp-pendaftar .lp-filters select {
+        flex: 1 1 auto;
+        min-width: 140px;
+    }
+    .lp-pendaftar .lp-toolbar-actions {
+        width: 100%;
+    }
+    .lp-pendaftar .lp-btn-ghost {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+.lp-tambah-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+}
+.lp-tambah-modal {
+    background: var(--bg-surface, #fff); border-radius: var(--radius-md, 12px);
+    width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+}
+.lp-tambah-modal__head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 20px; border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.lp-tambah-modal__head h2 { font-size: 16px; font-weight: 700; margin: 0; }
+.lp-tambah-modal__body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+.lp-tambah-field { position: relative; }
+.lp-tambah-field label {
+    display: block; font-weight: 600; font-size: 13.5px;
+    color: var(--text-primary, #111827); margin-bottom: 6px;
+}
+
+.lp-tambah-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+    background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: var(--radius-sm, 8px); box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,.1));
+    max-height: 220px; overflow-y: auto; z-index: 10;
+}
+.lp-tambah-dropdown__item {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: 100%; text-align: left; padding: 10px 12px; background: none; border: none;
+    cursor: pointer; border-bottom: 1px solid var(--border-color, #f1f2f4);
+}
+.lp-tambah-dropdown__item:last-child { border-bottom: none; }
+.lp-tambah-dropdown__item:hover { background: var(--bg-surface-alt, #f9fafb); }
+.lp-tambah-dropdown__item span { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+.lp-tambah-dropdown__item small { font-size: 12px; color: var(--text-secondary); }

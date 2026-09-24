@@ -61,7 +61,6 @@
                             src="{{ route('anggota.profil.qrcode') }}"
                             alt="QR Code Absensi {{ $anggota->nama_lengkap }}"
                         >
-                        <span class="lp-profile-header__qrcode-label">Scan untuk absensi</span>
                     </div>
                 </div>
             </div>

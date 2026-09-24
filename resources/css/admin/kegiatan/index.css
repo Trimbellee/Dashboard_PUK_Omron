@@ -1,0 +1,206 @@
+/* ==========================================================================
+   admin/kegiatan/index — daftar kegiatan
+   Semua warna lewat token admin-panel.css (--bg-surface, --border-color, dst.)
+   supaya otomatis ikut dark mode. Warna badge/pill punya varian gelap sendiri.
+   ========================================================================== */
+
+.kg-index {
+    --kg-violet-bg: #ede9fe;  --kg-violet-fg: #6d28d9;
+    --kg-aqua-bg:   #cffafe;  --kg-aqua-fg:   #0e7490;
+    --kg-orange-bg: #ffedd5;  --kg-orange-fg: #c2410c;
+    --kg-gray-bg:   #f1f5f9;  --kg-gray-fg:   #475569;
+    --kg-green-bg:  #dcfce7;  --kg-green-fg:  #15803d;
+    --kg-red-bg:    #fee2e2;  --kg-red-fg:    #b91c1c;
+    --kg-indigo-bg: #e0e7ff;  --kg-indigo-fg: #3730a3;
+    --kg-bar-ok:    #16a34a;  --kg-bar-warn:  #f59e0b;  --kg-bar-full: #dc2626;
+    --kg-danger:    #dc2626;  --kg-danger-border: #fecaca;
+
+    max-width: 1280px;
+    margin-inline: auto;
+}
+
+[data-theme="dark"] .kg-index {
+    --kg-violet-bg: #2b2250;  --kg-violet-fg: #c4b5fd;
+    --kg-aqua-bg:   #12323b;  --kg-aqua-fg:   #67e8f9;
+    --kg-orange-bg: #3b2412;  --kg-orange-fg: #fdba74;
+    --kg-gray-bg:   #243049;  --kg-gray-fg:   #b0c6dd;
+    --kg-green-bg:  #16301f;  --kg-green-fg:  #4ade80;
+    --kg-red-bg:    #3a1616;  --kg-red-fg:    #f87171;
+    --kg-indigo-bg: #1d2a55;  --kg-indigo-fg: #a5b4fc;
+    --kg-bar-ok:    #22c55e;  --kg-bar-warn:  #fbbf24;  --kg-bar-full: #f87171;
+    --kg-danger:    #f87171;  --kg-danger-border: #5b2323;
+}
+
+/* ---------- Toolbar ---------- */
+.kg-index .kg-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.kg-index .kg-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.kg-index .kg-filters select {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+}
+.kg-index .kg-filters select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.kg-index .kg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+.kg-index .kg-btn:hover { background: var(--accent-hover); }
+
+@media (min-width: 720px) {
+    .kg-index .kg-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .kg-index .kg-filters { grid-template-columns: repeat(2, 180px); }
+}
+
+/* ---------- Tabel (tetap tabular; geser horizontal di layar kecil) ---------- */
+.kg-index .kg-table-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.kg-index table {
+    width: 100%;
+    min-width: 880px;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    color: var(--text-primary);
+}
+.kg-index thead th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg-surface-alt);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.kg-index tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+.kg-index tbody tr:last-child td { border-bottom: none; }
+.kg-index tbody tr:hover td { background: var(--bg-surface-alt); }
+
+.kg-index .kg-col-no { width: 48px; color: var(--text-muted); }
+.kg-index .kg-judul { font-weight: 600; line-height: 1.35; }
+.kg-index .kg-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.kg-index .kg-link { color: var(--accent); font-weight: 600; text-decoration: none; }
+.kg-index .kg-link:hover { text-decoration: underline; }
+
+/* ---------- Badge jenis & pill status ---------- */
+.kg-index .kg-badge,
+.kg-index .kg-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+.kg-index .kg-badge--pendidikan { background: var(--kg-violet-bg); color: var(--kg-violet-fg); }
+.kg-index .kg-badge--seminar    { background: var(--kg-aqua-bg);   color: var(--kg-aqua-fg); }
+.kg-index .kg-badge--aksi       { background: var(--kg-orange-bg); color: var(--kg-orange-fg); }
+.kg-index .kg-badge--lainnya    { background: var(--kg-gray-bg);   color: var(--kg-gray-fg); }
+
+.kg-index .kg-pill--draft   { background: var(--kg-gray-bg);   color: var(--kg-gray-fg); }
+.kg-index .kg-pill--dibuka  { background: var(--kg-green-bg);  color: var(--kg-green-fg); }
+.kg-index .kg-pill--ditutup { background: var(--kg-red-bg);    color: var(--kg-red-fg); }
+.kg-index .kg-pill--selesai { background: var(--kg-indigo-bg); color: var(--kg-indigo-fg); }
+
+/* ---------- Kuota ---------- */
+.kg-index .kg-kuota-bar {
+    width: 96px;
+    height: 6px;
+    margin-bottom: 5px;
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.kg-index .kg-kuota-bar > div { height: 100%; border-radius: inherit; }
+.kg-index .kg-kuota-text { font-size: 12px; color: var(--text-secondary); }
+
+/* ---------- Aksi ---------- */
+.kg-index .kg-aksi {
+    display: flex;
+    gap: 6px;
+    white-space: nowrap;
+}
+.kg-index .kg-icon-btn {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.kg-index .kg-icon-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.kg-index .kg-icon-btn--danger {
+    color: var(--kg-danger);
+    border-color: var(--kg-danger-border);
+}
+.kg-index .kg-icon-btn--danger:hover {
+    color: var(--kg-danger);
+    border-color: var(--kg-danger);
+    background: var(--kg-red-bg);
+}
+
+/* ---------- Kosong & paginasi ---------- */
+.kg-index .kg-empty {
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--text-muted);
+}
+.kg-index .kg-pager { margin-top: 16px; }

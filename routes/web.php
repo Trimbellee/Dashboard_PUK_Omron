@@ -41,6 +41,7 @@ use App\Http\Controllers\Public\Admin\AdminKegiatanController;
 use App\Http\Controllers\Public\Admin\AdminKegiatanPendaftaranController;
 use App\Http\Controllers\Public\KegiatanController;
 use App\Http\Controllers\AnggotaRfidPairingController;
+use App\Http\Controllers\Public\Admin\SesiAbsensiController;
 
 
 Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'check.page.access') ->group(function () {
@@ -52,6 +53,21 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::get('pesan-masuk', [PesanMasukController::class, 'index'])->name('pesan-masuk.index');
     Route::patch('pesan-masuk/{contact}/baca', [PesanMasukController::class, 'markAsRead'])->name('pesan-masuk.baca');
     Route::delete('pesan-masuk/{contact}', [PesanMasukController::class, 'destroy'])->name('pesan-masuk.destroy');
+    
+    Route::prefix('sesi-absensi')->name('sesi-absensi.')->group(function () {
+        Route::get('/', [SesiAbsensiController::class, 'index'])->name('index');
+        Route::get('/create', [SesiAbsensiController::class, 'create'])->name('create');
+        Route::post('/', [SesiAbsensiController::class, 'store'])->name('store');
+        Route::get('/{sesi}', [SesiAbsensiController::class, 'show'])->name('show');
+        Route::get('/{sesi}/edit', [SesiAbsensiController::class, 'edit'])->name('edit');
+        Route::put('/{sesi}', [SesiAbsensiController::class, 'update'])->name('update');
+        Route::delete('/{sesi}', [SesiAbsensiController::class, 'destroy'])->name('destroy');
+        Route::post('/{sesi}/scan', [SesiAbsensiController::class, 'scan'])->name('scan');
+        Route::get('/{sesi}/entries', [SesiAbsensiController::class, 'entries'])->name('entries');
+        Route::post('/{sesi}/tutup', [SesiAbsensiController::class, 'tutup'])->name('tutup');
+        Route::get('/{sesi}/export', [SesiAbsensiController::class, 'export'])->name('export');
+    });    
+
     // ===== Berita =====
     Route::get('/berita', [NewsAdminController::class, 'index'])->name('berita.index');
     Route::get('/berita/create', [NewsAdminController::class, 'create'])->name('berita.create');
@@ -496,6 +512,7 @@ Route::middleware(['authcheck'])->group(function () {
     Route::post('/anggota/rfid-pairing/check', [AnggotaRfidPairingController::class, 'check'])->name('anggota.rfid-pairing.check');
     Route::get('/anggota/rfid-pairing/search', [AnggotaRfidPairingController::class, 'search'])->name('anggota.rfid-pairing.search');
     Route::post('/anggota/rfid-pairing/assign', [AnggotaRfidPairingController::class, 'assign'])->name('anggota.rfid-pairing.assign');
+    Route::get('/anggota/rfid-pairing/paired-list', [AnggotaRfidPairingController::class, 'pairedList'])->name('anggota.rfid-pairing.paired-list');
     
 
     Route::post('anggota/total-karyawan', [AnggotaController::class, 'saveTotalKaryawan'])
