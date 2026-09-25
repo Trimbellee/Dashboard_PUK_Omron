@@ -894,7 +894,7 @@
                         <rect x="3" y="11" width="18" height="10" rx="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <p><strong>Email belum terdaftar.</strong><br>Silakan hubungi pengurus untuk memperbarui data akun Anda sebelum dapat mengirim pesan.</p>
+                    <p><strong>Email belum terdaftar.</strong><br>Silahkan lengkapi profil akun Anda untuk dapat mengirim pesan.</p>
                 </div>
             @else
                 <div class="lp-kontak__locked animate-on-scroll">
@@ -918,7 +918,7 @@
                     </div>
                     <div class="lp-kontak__item">
                         <span class="lp-kontak__label">Email</span>
-                        <p><a href="mailto:sekretariat@pukomron.id">sekretariat@pukomron.id</a></p>
+                        <p><a href="mailto:puk.spee.omron@outlook.com">puk.spee.omron@outlook.com</a></p>
                     </div>
                 </div>
             </div>

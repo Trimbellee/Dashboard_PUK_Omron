@@ -60,6 +60,7 @@ class AnggotaAuthController extends Controller
                 'jabatan_puk'       => $anggota->jabatan_puk,
                 'punya_dashboard'   => $punyaAksesDashboard,
                 'foto_url'          => $anggota->foto_url,
+                'email'             => $anggota->email,
             ],
         ]);
 

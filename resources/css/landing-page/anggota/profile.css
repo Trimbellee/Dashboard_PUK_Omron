@@ -508,6 +508,12 @@
     grid-template-columns: 1fr;
     gap: 16px;
 }
+
+.lp-edit-input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.8;
+    cursor: pointer;
+    filter: var(--date-icon-filter);
+}
 @media (min-width: 600px) {
     .lp-edit-grid-2 { grid-template-columns: 1fr 1fr; }
     .lp-edit-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -526,6 +532,7 @@
     font-weight: 600;
     color: var(--text-secondary);
 }
+
 .lp-edit-req {
     color: #ef4444;
 }

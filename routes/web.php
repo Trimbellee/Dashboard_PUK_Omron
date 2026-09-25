@@ -66,6 +66,7 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
         Route::get('/{sesi}/entries', [SesiAbsensiController::class, 'entries'])->name('entries');
         Route::post('/{sesi}/tutup', [SesiAbsensiController::class, 'tutup'])->name('tutup');
         Route::get('/{sesi}/export', [SesiAbsensiController::class, 'export'])->name('export');
+	Route::post('/{sesi}/buka', [SesiAbsensiController::class, 'buka'])->name('buka');
     });    
 
     // ===== Berita =====

@@ -25,6 +25,7 @@
     --font-display:      'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
     --font-body:         'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
     --transition:        0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --date-icon-filter: invert(30%);
 }
 
 [data-theme="dark"] {
@@ -42,6 +43,7 @@
     --shadow-sm:         0 2px 8px rgba(0, 0, 0, 0.35);
     --shadow-md:         0 8px 30px rgba(0, 0, 0, 0.45);
     --shadow-lg:         0 20px 60px rgba(0, 0, 0, 0.55);
+    --date-icon-filter: invert(90%);
 }
 
 /* ---------- Reset & Base ---------- */
@@ -538,7 +540,6 @@ body {
     .lp-hamburger { display: none; }
     .lp-nav__mobile { display: none !important; }
 }
-
 
 /* ---------- Notice Banner ---------- */
 .lp-notice-banner {
