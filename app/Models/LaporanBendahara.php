@@ -13,6 +13,7 @@ class LaporanBendahara extends Model
         'tahun',
         'cos',
         'pajak_bank',
+        'pajak_json',
         'saldo_awal_json',
         'debit_manual_json',
         'kredit_manual_json',
@@ -38,6 +39,7 @@ class LaporanBendahara extends Model
         'dibuka_kembali_oleh',
         'dibuka_kembali_alasan',
         'dibuka_kembali_at',
+        'konfigurasi_kas_json',
     ];
 
     protected $casts = [
@@ -56,6 +58,9 @@ class LaporanBendahara extends Model
         'ditolak_at'   => 'datetime',
         'riwayat_json' => 'array',
         'dibuka_kembali_at' => 'datetime',
+        'pajak_json' => 'array',
+        'konfigurasi_kas_json' => 'array',
+        
     ];
 
     public function arsip()

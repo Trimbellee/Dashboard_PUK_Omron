@@ -42,6 +42,9 @@ use App\Http\Controllers\Public\Admin\AdminKegiatanPendaftaranController;
 use App\Http\Controllers\Public\KegiatanController;
 use App\Http\Controllers\AnggotaRfidPairingController;
 use App\Http\Controllers\Public\Admin\SesiAbsensiController;
+use App\Http\Controllers\InsentifController;
+use App\Http\Controllers\KasSettingController;
+
 
 
 Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'check.page.access') ->group(function () {
@@ -430,6 +433,19 @@ Route::middleware(['authcheck'])->group(function () {
         ->name('laporan-bendahara.reject-ketua');
     Route::post('/laporan-bendahara/reopen', [LaporanBendaharaController::class, 'reopen'])
     ->name('laporan-bendahara.reopen');
+
+    Route::get('/pengaturan/insentif',  [InsentifController::class, 'index'])->name('insentif.index');
+    Route::post('/pengaturan/insentif', [InsentifController::class, 'sync'])->name('insentif.sync');
+    Route::get('/laporan-bendahara/insentif-master', [LaporanBendaharaController::class, 'insentifMaster'])
+    ->name('laporan-bendahara.insentif-master');
+    Route::get('/pengaturan/kas',[KasSettingController::class, 'index'])->name('kas.index');
+    Route::post('/pengaturan/kas',[KasSettingController::class, 'sync'])->name('kas.sync');
+    Route::post('/pengaturan/kas/validasi',[KasSettingController::class, 'validasi'])->name('kas.validasi');
+    Route::post('/pengaturan/kas/simulasi',[KasSettingController::class, 'simulasi'])->name('kas.simulasi');
+    Route::post('/laporan-bendahara/hitung', [LaporanBendaharaController::class, 'hitung'])
+    ->name('laporan-bendahara.hitung');
+    Route::post('/laporan-bendahara/muat-konfigurasi', [LaporanBendaharaController::class, 'muatKonfigurasi'])
+    ->name('laporan-bendahara.muat-konfigurasi');
 
     /*
     |---------------------------------------------------------------

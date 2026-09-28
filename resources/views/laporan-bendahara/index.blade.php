@@ -56,7 +56,10 @@ $userRole    = session('user')['role'] ?? null;
 $canApprove  = ($userRole === 'Sekretaris' && $currentStatus === 'menunggu_sekretaris')
             || ($userRole === 'Ketua' && $currentStatus === 'menunggu_ketua');
 $approveLabel = $userRole === 'Sekretaris' ? 'Setujui' : 'Approve';
-$canReopen = strtolower($userRole) === 'ketua' && strtolower($currentStatus) === 'selesai';
+$canReopen    = $userRole === 'Ketua' && $currentStatus === 'selesai';
+
+$rincian        = $laporan['rincian'] ?? [];
+$opsiSumbangan  = $laporan['opsi_sumbangan'] ?? [];
 @endphp
 
 <div class="flex items-center justify-between mb-3">
@@ -216,6 +219,31 @@ $canReopen = strtolower($userRole) === 'ketua' && strtolower($currentStatus) ===
 </div>
 @endif
 
+@if(!$readOnly && $isEdit)
+<div class="mb-4 p-3 rounded border flex items-center justify-between gap-4"
+     style="max-width:900px;margin:0 auto 16px;
+            {{ !empty($meta['konfigurasi_berbeda']) ? 'border-color:#fbbf24;background:#fffbeb;' : 'border-color:#e5e7eb;background:#f9fafb;' }}">
+    <div class="text-sm">
+        @if(!empty($meta['konfigurasi_berbeda']))
+            <div class="font-semibold text-amber-800">Pengaturan kas sudah berubah sejak laporan ini disimpan</div>
+            <div class="text-xs text-amber-700 mt-1">
+                Laporan ini masih memakai item dan rumus lama
+                @if(!empty($meta['konfigurasi_disimpan_at']))
+                    (per {{ \Carbon\Carbon::parse($meta['konfigurasi_disimpan_at'])->translatedFormat('d M Y, H:i') }})
+                @endif
+                . Muat konfigurasi terbaru jika bulan ini harus mengikuti aturan baru.
+            </div>
+        @else
+            <div class="text-gray-600">Konfigurasi kas laporan ini sama dengan pengaturan terbaru.</div>
+        @endif
+    </div>
+    <button type="button" id="btnMuatKonfigurasi" onclick="muatKonfigurasiTerbaru()"
+            class="px-3 py-1 text-xs border rounded bg-white whitespace-nowrap disabled:opacity-60">
+        ↻ Muat konfigurasi terbaru
+    </button>
+</div>
+@endif
+
 <!-- =======================
   JUDUL
 ======================= -->
@@ -239,6 +267,7 @@ $canReopen = strtolower($userRole) === 'ketua' && strtolower($currentStatus) ===
         ,0,',','.') }}"
        inputmode="numeric"
        class="border px-2 py-1 text-right w-48">
+       <span id="statusHitung" class="text-xs font-normal text-gray-500 ms-3"></span>
 </div>
 <!-- =======================
   RINGKASAN KAS
@@ -255,107 +284,55 @@ $canReopen = strtolower($userRole) === 'ketua' && strtolower($currentStatus) ===
 </tr>
 </thead>
 <tbody>
-
+@php $gS = $gD = $gK = $gT = 0; @endphp
 @foreach($ringkasanKas as $r)
-<tr>
+@php
+    $kode = $r['kode'];
+    $gS += $r['saldo_awal']; $gD += $r['debit']; $gK += $r['kredit']; $gT += $r['total'];
+@endphp
+<tr data-kode="{{ $kode }}">
     <td class="text-center">{{ $r['no'] }}</td>
     <td>{{ strtoupper($r['jenis']) }}</td>
 
-    <!-- SALDO AWAL -->
     <td>
-        @php
-            $disableSaldoAwal = in_array($r['jenis'], [
-                'COS DPP',
-                'Biaya Transfer'
-            ]);
-        @endphp
-
-        @if($disableSaldoAwal)
+        @if($r['saldo_awal_mode'] === 'nol')
             <span class="block text-right">0</span>
         @else
-          <input class="saldo-awal w-full text-right" 
-          data-key="{{ $r['jenis'] }}" 
-          value="{{ number_format($saldoAwalRaw[$r['jenis']] ?? 0,0,',','.') }}">
-           @endif
-
-    </td>
-
-    <!-- DEBIT -->
-    <td>
-      @php
-          $autoDebit = in_array($r['jenis'], [
-              'Dana Operasional',
-              'Dana Perjuangan',
-              'Dana Sosial',
-              'Dana Permusyawaratan',
-              'Dana Sosial Politik'
-          ]);
-
-      @endphp
-
-      @if($autoDebit)
-          <span class="debit block text-right"
-                data-key="{{ $r['jenis'] }}">0</span>
-
-      @else
-          <input class="debit-manual w-full text-right"
-            data-key="{{ $r['jenis'] }}"
-            value="{{ number_format($debitManualRaw[$r['jenis']] ?? 0,0,',','.') }}"> 
-      @endif
-
-  </td>
-
-
-    <!-- KREDIT -->
-    <td>
-        @php
-            $autoKredit = in_array($r['jenis'], [
-                'Dana Operasional',
-                'Dana Perjuangan',
-                'Dana Sosial',
-                'Dana Permusyawaratan',
-                'Dana Sosial Politik',
-                'Bunga Giro',
-                'Bunga Deposito',
-
-            ]);
-
-            $manualKredit = in_array($r['jenis'], [
-                'COS DPP',
-                'Biaya Transfer'
-            ]);
-        @endphp
-
-        @if($autoKredit)
-           <span class="kredit-auto block text-right"
-                  data-key="{{ $r['jenis'] }}"
-                  data-base="{{ $r['kredit'] ?? 0 }}">
-                {{ number_format($r['kredit'] ?? 0,0,',','.') }}
-           </span>
-
-
-        @elseif($manualKredit)
-            <input class="kredit-manual w-full text-right"
-            data-key="{{ $r['jenis'] }}"
-            value="{{ number_format($kreditManualRaw[$r['jenis']] ?? 0,0,',','.') }}">
+            <input class="saldo-awal w-full text-right" data-key="{{ $kode }}"
+                   value="{{ number_format($saldoAwalRaw[$kode] ?? 0,0,',','.') }}">
         @endif
-
-
     </td>
 
-    <!-- TOTAL -->
+    <td>
+        @if($r['debit_mode'] === 'rumus')
+            <span class="debit block text-right" data-key="{{ $kode }}">{{ number_format($r['debit'],0,',','.') }}</span>
+        @else
+            <input class="debit-manual w-full text-right" data-key="{{ $kode }}"
+                   value="{{ number_format($debitManualRaw[$kode] ?? 0,0,',','.') }}">
+        @endif
+    </td>
+
+    <td>
+        @if($r['kredit_mode'] === 'rumus')
+            <span class="kredit-auto block text-right" data-key="{{ $kode }}">{{ number_format($r['kredit'],0,',','.') }}</span>
+        @else
+            <input class="kredit-manual w-full text-right" data-key="{{ $kode }}"
+                   value="{{ number_format($kreditManualRaw[$kode] ?? 0,0,',','.') }}">
+        @endif
+    </td>
+
     <td class="text-right font-semibold">
-        <span class="total" data-key="{{ $r['jenis'] }}">0</span>
+        <span class="total" data-key="{{ $kode }}">{{ number_format($r['total'],0,',','.') }}</span>
     </td>
 </tr>
 @endforeach
 
 <tr class="font-bold bg-green-100">
     <td colspan="2" class="text-center">TOTAL</td>
-    <td class="text-right" id="grandSaldo">0</td>
-    <td class="text-right" id="grandDebit">0</td>
-    <td class="text-right" id="grandKredit">0</td>
-    <td class="text-right" id="grandTotal">0</td>
+    <td class="text-right" id="grandSaldo">{{ number_format($gS,0,',','.') }}</td>
+    <td class="text-right" id="grandDebit">{{ number_format($gD,0,',','.') }}</td>
+    <td class="text-right" id="grandKredit">{{ number_format($gK,0,',','.') }}</td>
+    <td class="text-right" id="grandTotal">{{ number_format($gT,0,',','.') }}</td>
 </tr>
 
 </tbody>
@@ -368,127 +345,72 @@ $canReopen = strtolower($userRole) === 'ketua' && strtolower($currentStatus) ===
 <div class="text-center mb-6">
     <h2 class= "font-bold uppercase">rincian pengeluaran</h2>
         </div>
+@foreach($rincian as $sec)
 @php
-$urutanBidang = [
-    'Sekretaris',
-    'Bidang 1',
-    'Bidang 2',
-    'Bidang 3',
-    'Bidang 4',
-    'Bidang 5',
-    'Bidang 6',
-    'GM',
-    'KorLap',
-    'Dana Sosial',
-    'Dana Permusyawaratan',
-    'Dana Sosial Politik',
-    'Dana Perjuangan',
-    'Bunga Giro',
-    'Bunga Deposito'
-];
-
-/* NORMALISASI DATA BACKEND */
-$perBidangNormalized = [];
-foreach($perBidang as $k => $v){
-    $perBidangNormalized[strtoupper(trim($k))] = $v;
-}
-@endphp
-@php
-$insentifSekretaris = $laporan['insentif_sekretaris'] ?? [];
+    $items       = $sec['items'];
+    $totalBidang = collect($items)->sum('aktual');
+    $tampil      = !empty($items) || !empty($sec['insentif']) || !empty($sec['punya_pajak']);
+    $awalTotal   = $totalBidang
+                 + (!empty($sec['insentif']) ? collect($insentifSekretaris)->sum('nominal') : 0)
+                 + (int) $sec['pajak'];
 @endphp
 
-@foreach($urutanBidang as $bidang)
-    @php
-        $key = strtoupper(trim($bidang));
-    @endphp
+@if($tampil)
+<h3 class="font-bold uppercase mt-6 mb-2">{{ $sec['label'] }}</h3>
 
-    @if(isset($perBidangNormalized[$key]) || $key === 'SEKRETARIS' || $key === 'BUNGA GIRO')
-    @php
-        $items = $perBidangNormalized[$key] ?? [];
-        if($key === 'BUNGA GIRO' && empty($items)){
-            $items = [];
-        }
-        $totalBidang = 0;
-    @endphp
-
-    <h3 class="font-bold uppercase mt-6 mb-2">{{ $bidang }}</h3>
-
-    <table class="w-full border mb-4">
-        <thead>
+<table class="w-full border mb-4">
+    <thead>
+        <tr>
+            <th style="width:15%">Tanggal</th>
+            <th style="width:25%">Tujuan</th>
+            <th style="width:43%">Keperluan</th>
+            <th style="width:17%">Realisasi</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($items as $row)
             <tr>
-                <th style="width:15%">Tanggal</th>
-                <th style="width:25%">Tujuan</th>
-                <th style="width:43%">Keperluan</th>
-                <th style="width:17%">Realisasi</th>
+                <td>{{ $row['tanggal'] }}</td>
+                <td>{{ $row['tujuan'] }}</td>
+                <td>{{ $row['keperluan'] ?? '-' }}</td>
+                <td class="text-right">{{ number_format($row['aktual'],0,',','.') }}</td>
             </tr>
-        </thead>
-        <tbody>
-            @forelse($items as $row)
-                @php $totalBidang += $row['aktual']; @endphp
-                <tr>
-                    <td>{{ $row['tanggal'] }}</td>
-                    <td>{{ $row['tujuan'] }}</td>
-                    <td>{{ $row['keperluan'] ?? '-' }}</td>
-                    <td class="text-right">
-                        {{ number_format($row['aktual'],0,',','.') }}
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="4" class="text-center italic text-gray-400">
-                        Tidak ada pengeluaran
-                    </td>
-                </tr>
-            @endforelse
-            @if($key === 'BUNGA GIRO')
-            <tr class="pajak-row">
-                <td>
-                    {{ \Carbon\Carbon::create()->month($meta['bulan'])->translatedFormat('M') }} {{ $meta['tahun'] }}
-                </td>
-                <td>Bank</td>
-                <td>Pajak Bank</td>
-                <td class="text-right">
-                    <input type="text"
-                    name="pajak_bank" class="pajak-giro text-right w-full"
-                    inputmode="numeric"
-                    value="{{ number_format($laporan['pajak_bank'] ?? 0,0,',','.') }}">
-                </td>
+        @empty
+            <tr>
+                <td colspan="4" class="text-center italic text-gray-400">Tidak ada pengeluaran</td>
             </tr>
-            @endif
-            
-                @if($key === 'SEKRETARIS')
-                    <tr class="bg-gray-100 font-semibold">
-                        <td colspan="4">INSENTIF SEKRETARIAT</td>
-                    </tr>
+        @endforelse
 
-                    @foreach($insentifSekretaris as $i => $ins)
-                    <tr class="insentif-row">
-                        <td>-</td>
-                        <td>{{ $ins['tujuan'] }}</td>
-                        <td>{{ $ins['keperluan'] }}</td>
-                        <td class="text-right">
-                            <input type="text"
-                                class="insentif-nominal text-right w-full"
-                                data-bidang="SEKRETARIS"
-                                data-index="{{ $i }}"
-                                value="{{ number_format($ins['nominal'],0,',','.') }}">
-                        </td>
-                    </tr>
-                    @endforeach
-                @endif
+        @if(!empty($sec['punya_pajak']))
+        <tr class="pajak-row">
+            <td>{{ \Carbon\Carbon::create()->month($meta['bulan'])->translatedFormat('M') }} {{ $meta['tahun'] }}</td>
+            <td>{{ $sec['tujuan_pajak'] }}</td>
+            <td>{{ $sec['label_pajak'] }}</td>
+            <td class="text-right">
+                <input type="text" class="pajak-input text-right w-full" inputmode="numeric"
+                       data-kode="{{ $sec['kode'] }}"
+                       value="{{ number_format($sec['pajak'],0,',','.') }}">
+            </td>
+        </tr>
+        @endif
 
-                <tr class="font-bold">
-                    <td colspan="3" class="text-right">TOTAL</td>
-                    <td class="text-right total-bidang"
-                        data-bidang="{{ $key }}"
-                        data-base="{{ $totalBidang }}">
-                        {{ number_format($totalBidang,0,',','.') }}
-                    </td>
+        @if(!empty($sec['insentif']))
+            {{-- TEMPEL DI SINI: blok INSENTIF SEKRETARIAT yang sudah ada
+                 (baris .insentif-header + @foreach($insentifSekretaris ...)) tanpa perubahan --}}
+        @endif
 
-                </tr>
-            </tbody>
-        </table>
-    @endif
+        <tr class="font-bold">
+            <td colspan="3" class="text-right">TOTAL</td>
+            <td class="text-right total-bidang"
+                data-base="{{ $totalBidang }}"
+                data-insentif="{{ !empty($sec['insentif']) ? 1 : 0 }}"
+                data-pajak="{{ !empty($sec['punya_pajak']) ? $sec['kode'] : '' }}">
+                {{ number_format($awalTotal,0,',','.') }}
+            </td>
+        </tr>
+    </tbody>
+</table>
+@endif
 @endforeach
 
 <!-- =======================
@@ -614,25 +536,15 @@ $insentifSekretaris = $laporan['insentif_sekretaris'] ?? [];
 
         <td>
             <select
-                name="dana_sumbangan[{{ $i }}][bidang]"
-                class="sumbangan-bidang w-full">
-
-                @php
-                    $opsiBidang = [
-                        'Dana Operasional',
-                        'Dana Perjuangan',
-                        'Dana Sosial',
-                        'Dana Permusyawaratan',
-                        'Dana Sosial Politik'
-                    ];
+               @php
+                    $dipilih = $d['bidang'] ?? '';
+                    $opsi    = $opsiSumbangan;
+                    if ($dipilih !== '' && !in_array($dipilih, $opsi)) $opsi[] = $dipilih;
                 @endphp
-
                 <option value="">-- Pilih --</option>
-
-                @foreach($opsiBidang as $opsi)
-                    <option value="{{ $opsi }}"
-                        {{ ($d['bidang'] ?? '') === $opsi ? 'selected' : '' }}>
-                        {{ $opsi }}
+                @foreach($opsi as $o)
+                    <option value="{{ $o }}" {{ $dipilih === $o ? 'selected' : '' }}>
+                        {{ $o }}{{ in_array($o, $opsiSumbangan) ? '' : ' (tidak aktif)' }}
                     </option>
                 @endforeach
             </select>
@@ -682,16 +594,10 @@ $insentifSekretaris = $laporan['insentif_sekretaris'] ?? [];
 
         <td>
             <select
-                name="dana_sumbangan[0][bidang]"
-                class="sumbangan-bidang w-full">
-
                 <option value="">-- Pilih --</option>
-                <option value="Dana Operasional">Dana Operasional</option>
-                <option value="Dana Perjuangan">Dana Perjuangan</option>
-                <option value="Dana Sosial">Dana Sosial</option>
-                <option value="Dana Permusyawaratan">Dana Permusyawaratan</option>
-                <option value="Dana Sosial Politik">Dana Sosial Politik</option>
-
+                @foreach($opsiSumbangan as $o)
+                    <option value="{{ $o }}">{{ $o }}</option>
+                @endforeach
             </select>
         </td>
 
@@ -1024,319 +930,122 @@ const isReadOnly = @json($readOnly);
 </script>
 
 <script>
-
-let kasRows = [];
 let danaLainInputs = [];
-let insentifInputs = [];
-
+let insentifInputs = [];   // tetap ada: dipakai tombol "Muat ulang dari master"
 let recalcTimer = null;
+let calcSeq = 0;
 
-const PER_BIDANG_TOTALS = @json(
-    collect($perBidangNormalized)->map(fn($rows)=>collect($rows)->sum('aktual'))
-);
+const URL_HITUNG      = "{{ route('laporan-bendahara.hitung') }}";
+const CSRF            = "{{ csrf_token() }}";
+const OPSI_SUMBANGAN  = @json($opsiSumbangan);
 
 function parseID(val){
     if(val == null) return 0;
-
-    return Number(
-        val.toString()
-            .replace(/[^\d\-]/g,'')
-    ) || 0;
+    return Number(val.toString().replace(/[^\d\-]/g,'')) || 0;
 }
-
 function formatID(val){
-    const floored = Math.floor(val || 0);
-    return floored.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    return Math.floor(val || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 }
+function formatInput(el){ el.value = formatID(parseID(el.value)); }
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-function formatInput(el){
-    const raw = parseID(el.value);
-    el.value = formatID(raw);
+function sumInputs(sel){
+    let t = 0;
+    document.querySelectorAll(sel).forEach(el => t += parseID(el.value));
+    return t;
 }
+function hitungDanaLain(){ const t = sumInputs('.dana-lain-nominal'); document.getElementById('totalDanaLain').innerText = formatID(t); return t; }
+function hitungDanaSumbangan(){ const t = sumInputs('.sumbangan-nominal'); document.getElementById('totalDanaSumbangan').innerText = formatID(t); return t; }
+function hitungInsentifSekretaris(){ return sumInputs('.insentif-nominal'); }
 
-function hitungDanaLain(){
-    let total = 0;
-    document.querySelectorAll('.dana-lain-nominal').forEach(el => {
-        total += parseID(el.value);
-    });
-    document.getElementById('totalDanaLain').innerText = formatID(total);
-    return total;
-}
-
-function hitungInsentifSekretaris(){
-
-    let total = 0;
-
-    insentifInputs.forEach(el=>{
-        total += parseID(el.value);
-    });
-
-    return total;
-}
-
-let FINAL_DEBIT  = {};
-let FINAL_KREDIT = {};
-let FINAL_TOTAL  = {};
-
-function hitungDanaSumbangan(){
-
-    let total = 0;
-
-    document.querySelectorAll('.sumbangan-nominal')
-        .forEach(el => {
-            total += parseID(el.value);
-        });
-
-    document.getElementById('totalDanaSumbangan').innerText = formatID(total);
-
-    return total;
-}
-
-function recalc(){
-
-    const pajakGiro =
-    parseID(document.querySelector('.pajak-giro')?.value);
-
-    const cos = parseID(document.getElementById('cos')?.value);
-
-    const debitCosDpp = parseID(
-        document.querySelector('.debit-manual[data-key="COS DPP"]')?.value
-    );
-
-    const debitTransfer = parseID(
-        document.querySelector('.debit-manual[data-key="Biaya Transfer"]')?.value
-    );
-
-    const totalDanaLain = hitungDanaLain();
-    const totalInsentif = hitungInsentifSekretaris();
-
-    const perBidangTotals = {...PER_BIDANG_TOTALS};
-    perBidangTotals['BUNGA GIRO'] =
-        (perBidangTotals['BUNGA GIRO'] || 0) + pajakGiro;
-
-    const danaSumbanganMap = {
-        'DANA OPERASIONAL': 0,
-        'DANA PERJUANGAN': 0,
-        'DANA SOSIAL': 0,
-        'DANA PERMUSYAWARATAN': 0,
-        'DANA SOSIAL POLITIK': 0,
-    };
-
-    document.querySelectorAll('#tblDanaSumbangan tbody tr')
-    .forEach(tr => {
-
-        const bidang = tr.querySelector('.sumbangan-bidang')
-            ?.value
-            ?.trim()
-            ?.replace(/\s+/g,' ')
-            ?.toUpperCase();
-
-        const nominal =
-            parseID(tr.querySelector('.sumbangan-nominal')?.value);
-
-        if(danaSumbanganMap[bidang] !== undefined){
-            danaSumbanganMap[bidang] += nominal;
-        }
-
-    });
-
+/* total bagian rincian & tabel kecil: instan di browser (hanya penjumlahan tampilan) */
+function hitungLokal(){
+    hitungDanaLain();
     hitungDanaSumbangan();
+    const ins = hitungInsentifSekretaris();
 
-    const autoDebit = {
-
-        'Dana Operasional':
-            Math.floor((cos / 1.5) - (debitCosDpp + debitTransfer))
-            + danaSumbanganMap['DANA OPERASIONAL'],
-
-        'Dana Perjuangan':
-            Math.floor(cos * 0.5 / 1.5 * 0.2 / 0.5)
-            + danaSumbanganMap['DANA PERJUANGAN'],
-
-        'Dana Sosial':
-            Math.floor(cos * 0.5 / 1.5 * 0.05 / 0.5)
-            + danaSumbanganMap['DANA SOSIAL'],
-
-        'Dana Permusyawaratan':
-            Math.floor(cos * 0.5 / 1.5 * 0.2 / 0.5)
-            + danaSumbanganMap['DANA PERMUSYAWARATAN'],
-
-        'Dana Sosial Politik':
-            Math.floor(cos * 0.5 / 1.5 * 0.05 / 0.5)
-            + danaSumbanganMap['DANA SOSIAL POLITIK'],
-    };
-
-    let gs=0, gd=0, gk=0, gt=0;
-
-    kasRows.forEach(row=>{
-
-        const keyEl = row.querySelector('[data-key]');
-        if(!keyEl) return;
-
-        const key = keyEl.dataset.key;
-
-        const saldoAwal =
-            parseID(row.querySelector('.saldo-awal')?.value);
-
-        let debit = 0;
-
-        if(autoDebit[key] !== undefined){
-
-            debit = autoDebit[key];
-
-            const debitEl = row.querySelector('.debit');
-            if(debitEl) debitEl.innerText = formatID(debit);
-
-        }else{
-
-            debit =
-                parseID(row.querySelector('.debit-manual')?.value);
-
+    document.querySelectorAll('.total-bidang').forEach(el => {
+        let t = Number(el.dataset.base) || 0;
+        if(el.dataset.insentif === '1') t += ins;
+        if(el.dataset.pajak){
+            t += parseID(document.querySelector(`.pajak-input[data-kode="${el.dataset.pajak}"]`)?.value);
         }
-
-        let kredit = 0;
-
-        const otherDanaKeys = [
-            'DANA PERJUANGAN',
-            'DANA SOSIAL',
-            'DANA PERMUSYAWARATAN',
-            'DANA SOSIAL POLITIK',
-            'BUNGA GIRO',
-            'BUNGA DEPOSITO',
-        ];
-
-        if(key === 'Dana Operasional'){
-
-            kredit =
-                ((perBidangTotals['SEKRETARIS'] || 0) + totalInsentif) +
-                (perBidangTotals['BIDANG 1'] || 0) +
-                (perBidangTotals['BIDANG 2'] || 0) +
-                (perBidangTotals['BIDANG 3'] || 0) +
-                (perBidangTotals['BIDANG 4'] || 0) +
-                (perBidangTotals['BIDANG 5'] || 0) +
-                (perBidangTotals['BIDANG 6'] || 0) +
-                (perBidangTotals['GM'] || 0) +
-                (perBidangTotals['KORLAP'] || 0) +
-                totalDanaLain;
-
-            const kreditEl = row.querySelector('.kredit-auto');
-            if(kreditEl) kreditEl.innerText = formatID(kredit);
-
-        }
-        else if(otherDanaKeys.includes(key.toUpperCase())){
-
-            kredit = perBidangTotals[key.toUpperCase()] || 0;
-
-            const kreditEl = row.querySelector('.kredit-auto');
-            if(kreditEl) kreditEl.innerText = formatID(kredit);
-
-        }
-        else{
-
-            kredit =
-                parseID(row.querySelector('.kredit-auto')?.innerText) ||
-                parseID(row.querySelector('.kredit-manual')?.value);
-
-        }
-
-        const total = saldoAwal + debit - kredit;
-
-        const totalEl = row.querySelector('.total');
-        if(totalEl) totalEl.innerText = formatID(total);
-
-        FINAL_DEBIT[key]  = Math.floor(debit);
-        FINAL_KREDIT[key] = Math.floor(kredit);
-        FINAL_TOTAL[key]  = Math.floor(total);
-
-        gs += saldoAwal;
-        gd += debit;
-        gk += kredit;
-        gt += total;
-
+        el.innerText = formatID(t);
     });
+}
 
-    document.getElementById('grandSaldo').innerText  = formatID(gs);
-    document.getElementById('grandDebit').innerText  = formatID(gd);
-    document.getElementById('grandKredit').innerText = formatID(gk);
-    document.getElementById('grandTotal').innerText  = formatID(gt);
+function setStatusHitung(msg, error = false){
+    const el = document.getElementById('statusHitung');
+    if(!el) return;
+    el.innerText = msg;
+    el.style.color = error ? '#dc2626' : '#6b7280';
+}
 
-    const totalBidangSekEl =
-        document.querySelector('.total-bidang[data-bidang="SEKRETARIS"]');
+/* hasil hitung dari server -> tabel ringkasan */
+function terapkanHasil(h){
+    h.rows.forEach(r => {
+        const tr = document.querySelector(`#tblRingkasanKas tr[data-kode="${r.kode}"]`);
+        if(!tr) return;
+        const d = tr.querySelector('.debit');       if(d) d.innerText = formatID(r.debit);
+        const k = tr.querySelector('.kredit-auto'); if(k) k.innerText = formatID(r.kredit);
+        const t = tr.querySelector('.total');       if(t) t.innerText = formatID(r.total);
+    });
+    document.getElementById('grandSaldo').innerText  = formatID(h.grand.saldo_awal);
+    document.getElementById('grandDebit').innerText  = formatID(h.grand.debit);
+    document.getElementById('grandKredit').innerText = formatID(h.grand.kredit);
+    document.getElementById('grandTotal').innerText  = formatID(h.grand.total);
+}
 
-    if(totalBidangSekEl){
+async function recalc(){
+    hitungLokal();
 
-        totalBidangSekEl.innerText =
-            formatID((perBidangTotals['SEKRETARIS']||0) + totalInsentif);
+    // laporan yang terkunci menampilkan angka tersimpan, tidak dihitung ulang
+    if(isReadOnly) return;
 
+    const seq = ++calcSeq;
+    setStatusHitung('Menghitung…');
+
+    try{
+        const res = await fetch(URL_HITUNG, {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify(collectRawData())
+        });
+        const j = await res.json();
+        if(seq !== calcSeq) return;               // ada isian yang lebih baru, abaikan
+        if(!res.ok || !j.success) throw new Error(j.message || 'Gagal menghitung');
+
+        terapkanHasil(j.hasil);
+        setStatusHitung('');
+    }catch(err){
+        if(seq !== calcSeq) return;
+        setStatusHitung('⚠ ' + err.message, true);
     }
-    const totalBidangGiroEl =
-        document.querySelector('.total-bidang[data-bidang="BUNGA GIRO"]');
-
-    if(totalBidangGiroEl){
-        totalBidangGiroEl.innerText =
-            formatID(perBidangTotals['BUNGA GIRO'] || 0);
-    }
-
 }
 
 function recalcDebounced(){
-
     clearTimeout(recalcTimer);
-
-    recalcTimer = setTimeout(()=>{
-
-        recalc();
-
-    },120);
+    recalcTimer = setTimeout(recalc, 250);
 }
 
-
+/* ---------- baris dinamis ---------- */
 let danaLainIndex = document.querySelectorAll('#tblDanaLain tbody tr').length;
 
 function addDanaLain(){
     if(isReadOnly) return;
-    const tbody = document.querySelector('#tblDanaLain tbody');
     const tr = document.createElement('tr');
-
     tr.innerHTML = `
-        <td>
-            <input type="text"
-                name="dana_lain[${danaLainIndex}][bidang]"
-                class="dana-bidang w-full">
-        </td>
-        <td>
-            <input type="text"
-                name="dana_lain[${danaLainIndex}][tujuan]"
-                class="dana-tujuan w-full">
-        </td>
-        <td>
-            <input type="text"
-                name="dana_lain[${danaLainIndex}][keperluan]"
-                class="dana-keperluan w-full">
-        </td>
-        <td>
-            <input type="text"
-                inputmode="numeric"
-                name="dana_lain[${danaLainIndex}][nominal]"
-                class="dana-lain-nominal w-full text-right"
-                value="0">
-        </td>
+        <td><input type="text" name="dana_lain[${danaLainIndex}][bidang]" class="dana-bidang w-full"></td>
+        <td><input type="text" name="dana_lain[${danaLainIndex}][tujuan]" class="dana-tujuan w-full"></td>
+        <td><input type="text" name="dana_lain[${danaLainIndex}][keperluan]" class="dana-keperluan w-full"></td>
+        <td><input type="text" inputmode="numeric" name="dana_lain[${danaLainIndex}][nominal]"
+                   class="dana-lain-nominal w-full text-right" value="0"></td>
         <td class="text-center">
-            <button type="button"
-                class="inline-flex items-center justify-center w-6 h-6
-                       bg-red-600 text-white rounded-md font-bold text-sm"
-                onclick="removeDanaLain(this)">✕</button>
-        </td>
-    `;
-
-    tbody.appendChild(tr);
+            <button type="button" class="inline-flex items-center justify-center w-6 h-6
+                bg-red-600 text-white rounded-md font-bold text-sm" onclick="removeDanaLain(this)">✕</button>
+        </td>`;
+    document.querySelector('#tblDanaLain tbody').appendChild(tr);
     danaLainIndex++;
-
-    tr.querySelector('.dana-lain-nominal')
-        .addEventListener('input', e => {
-            formatInput(e.target);
-            recalc();
-        });
-
     recalc();
     IS_DIRTY = true;
 }
@@ -1348,6 +1057,32 @@ function removeDanaLain(btn){
     IS_DIRTY = true;
 }
 
+let danaSumbanganIndex = document.querySelectorAll('#tblDanaSumbangan tbody tr').length;
+
+function addDanaSumbangan(){
+    if(isReadOnly) return;
+    const opsi = OPSI_SUMBANGAN.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    const i = danaSumbanganIndex;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" name="dana_sumbangan[${i}][donatur]" class="sumbangan-donatur w-full"></td>
+        <td><select name="dana_sumbangan[${i}][bidang]" class="sumbangan-bidang w-full">
+                <option value="">-- Pilih --</option>${opsi}</select></td>
+        <td><input type="text" name="dana_sumbangan[${i}][tujuan]" class="sumbangan-tujuan w-full"></td>
+        <td><input type="text" name="dana_sumbangan[${i}][keperluan]" class="sumbangan-keperluan w-full"></td>
+        <td><input type="text" inputmode="numeric" name="dana_sumbangan[${i}][nominal]"
+                   class="sumbangan-nominal w-full text-right" value="0"></td>
+        <td class="text-center">
+            <button type="button" onclick="removeDanaSumbangan(this)"
+                class="inline-flex items-center justify-center w-6 h-6 bg-red-600 text-white
+                       rounded-md font-bold text-sm leading-none">✕</button>
+        </td>`;
+    document.querySelector('#tblDanaSumbangan tbody').appendChild(tr);
+    danaSumbanganIndex++;
+    recalc();
+    IS_DIRTY = true;
+}
+
 function removeDanaSumbangan(btn){
     if(isReadOnly) return;
     btn.closest('tr').remove();
@@ -1355,232 +1090,86 @@ function removeDanaSumbangan(btn){
     IS_DIRTY = true;
 }
 
-let danaSumbanganIndex =
-    document.querySelectorAll('#tblDanaSumbangan tbody tr').length;
-
-function addDanaSumbangan(){
-    if(isReadOnly) return;
-
-    const tbody = document.querySelector('#tblDanaSumbangan tbody');
-
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-        <td>
-            <input type="text"
-                   name="dana_sumbangan[${danaSumbanganIndex}][donatur]"
-                   class="sumbangan-donatur w-full">
-        </td>
-
-        <td>
-            <select
-                name="dana_sumbangan[${danaSumbanganIndex}][bidang]"
-                class="sumbangan-bidang w-full">
-
-                <option value="">-- Pilih --</option>
-                <option value="Dana Operasional">Dana Operasional</option>
-                <option value="Dana Perjuangan">Dana Perjuangan</option>
-                <option value="Dana Sosial">Dana Sosial</option>
-                <option value="Dana Permusyawaratan">Dana Permusyawaratan</option>
-                <option value="Dana Sosial Politik">Dana Sosial Politik</option>
-
-            </select>
-        </td>
-
-        <td>
-            <input type="text"
-                   name="dana_sumbangan[${danaSumbanganIndex}][tujuan]"
-                   class="sumbangan-tujuan w-full">
-        </td>
-
-        <td>
-            <input type="text"
-                   name="dana_sumbangan[${danaSumbanganIndex}][keperluan]"
-                   class="sumbangan-keperluan w-full">
-        </td>
-
-        <td>
-            <input type="text"
-                   inputmode="numeric"
-                   name="dana_sumbangan[${danaSumbanganIndex}][nominal]"
-                   class="sumbangan-nominal w-full text-right"
-                   value="0">
-        </td>
-
-        <td class="text-center">
-            <button
-                type="button"
-                onclick="removeDanaSumbangan(this)"
-                class="inline-flex items-center justify-center
-                       w-6 h-6 bg-red-600 text-white
-                       rounded-md font-bold text-sm leading-none">
-                ✕
-            </button>
-        </td>
-    `;
-
-    tbody.appendChild(tr);
-
-    danaSumbanganIndex++;
-
-    tr.querySelector('.sumbangan-nominal')
-        .addEventListener('input', e => {
-            formatInput(e.target);
-            recalc();
-        });
-
-    recalc();
-    IS_DIRTY = true;
-
-    }
-
-
+/* ---------- payload: sama untuk pratinjau dan simpan ---------- */
 function collectRawData(){
+    const saldoAwal = {}, debitManual = {}, kreditManual = {}, pajak = {};
+    const danaLain = [], danaSumbangan = [], insentif = [];
 
-    const danaSumbangan = [];
-    const saldoAwal={}, debitManual={}, kreditManual={}, danaLain=[], insentif = [];
-
-    document.querySelectorAll('.insentif-row')
-    .forEach((row, i) => {
-
+    document.querySelectorAll('.insentif-row').forEach(row => {
         const tds = row.querySelectorAll('td');
-
         insentif.push({
-            tujuan: tds[1]?.innerText || '',
+            tujuan:    tds[1]?.innerText || '',
             keperluan: tds[2]?.innerText || '',
-            nominal: parseID(
-                row.querySelector('.insentif-nominal')?.value
-            )
+            nominal:   parseID(row.querySelector('.insentif-nominal')?.value)
         });
-
     });
 
-    
+    document.querySelectorAll('.saldo-awal').forEach(e => saldoAwal[e.dataset.key] = parseID(e.value));
+    document.querySelectorAll('.debit-manual').forEach(e => debitManual[e.dataset.key] = parseID(e.value));
+    document.querySelectorAll('.kredit-manual').forEach(e => kreditManual[e.dataset.key] = parseID(e.value));
+    document.querySelectorAll('.pajak-input').forEach(e => pajak[e.dataset.kode] = parseID(e.value));
 
-    document.querySelectorAll('.saldo-awal')
-        .forEach(e => saldoAwal[e.dataset.key] = parseID(e.value));
-
-    document.querySelectorAll('.debit-manual')
-        .forEach(e => debitManual[e.dataset.key] = parseID(e.value));
-
-    document.querySelectorAll('.kredit-manual')
-        .forEach(e => kreditManual[e.dataset.key] = parseID(e.value));
-
-    document.querySelectorAll('#tblDanaLain tbody tr').forEach(tr=>{
-        const bidang = tr.querySelector('.dana-bidang')?.value || '';
-        const tujuan = tr.querySelector('.dana-tujuan')?.value || '';
+    document.querySelectorAll('#tblDanaLain tbody tr').forEach(tr => {
+        const bidang    = tr.querySelector('.dana-bidang')?.value || '';
+        const tujuan    = tr.querySelector('.dana-tujuan')?.value || '';
         const keperluan = tr.querySelector('.dana-keperluan')?.value || '';
-        const nominal = parseID(tr.querySelector('.dana-lain-nominal')?.value);
-
-        if(bidang || tujuan || keperluan || nominal){
-            danaLain.push({ bidang, tujuan, keperluan, nominal });
-        }
+        const nominal   = parseID(tr.querySelector('.dana-lain-nominal')?.value);
+        if(bidang || tujuan || keperluan || nominal) danaLain.push({ bidang, tujuan, keperluan, nominal });
     });
 
-    const pajakBank =
-        parseID(document.querySelector('.pajak-giro')?.value);
-
-    document.querySelectorAll('#tblDanaSumbangan tbody tr')
-    .forEach(tr => {
-
-        const donatur = tr.querySelector('.sumbangan-donatur')?.value || '';
-        const bidang = tr.querySelector('.sumbangan-bidang')?.value || '';
-        const tujuan = tr.querySelector('.sumbangan-tujuan')?.value || '';
+    document.querySelectorAll('#tblDanaSumbangan tbody tr').forEach(tr => {
+        const donatur   = tr.querySelector('.sumbangan-donatur')?.value || '';
+        const bidang    = tr.querySelector('.sumbangan-bidang')?.value || '';
+        const tujuan    = tr.querySelector('.sumbangan-tujuan')?.value || '';
         const keperluan = tr.querySelector('.sumbangan-keperluan')?.value || '';
-
-        const nominal = parseID(
-            tr.querySelector('.sumbangan-nominal')?.value
-        );
-
+        const nominal   = parseID(tr.querySelector('.sumbangan-nominal')?.value);
         if(donatur || bidang || tujuan || keperluan || nominal){
-            danaSumbangan.push({
-                donatur,
-                bidang,
-                tujuan,
-                keperluan,
-                nominal
-            });
+            danaSumbangan.push({ donatur, bidang, tujuan, keperluan, nominal });
         }
-
-    });    
+    });
 
     return {
-        bulan: {{ $meta['bulan'] }},
-        tahun: {{ $meta['tahun'] }},
+        bulan, tahun,
         cos: parseID(document.getElementById('cos').value),
-        pajak_bank: pajakBank,
         is_edit: isEdit ? 1 : 0,
         saldo_awal_json: saldoAwal,
         debit_manual_json: debitManual,
         kredit_manual_json: kreditManual,
+        pajak_json: pajak,
         dana_lain_json: danaLain,
         dana_sumbangan_json: danaSumbangan,
-        insentif: insentif,
-        debit_json: FINAL_DEBIT,
-        kredit_json: FINAL_KREDIT,
-        total_json: FINAL_TOTAL
+        insentif: insentif
     };
 }
 
-
+const SEL_ANGKA = '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-input,.sumbangan-nominal';
+const SEL_HITUNG = SEL_ANGKA + ',.sumbangan-donatur,.sumbangan-bidang,.sumbangan-tujuan,.sumbangan-keperluan';
 
 document.addEventListener('input', e => {
-
-    if(e.target.matches(
-        '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-giro,.sumbangan-nominal'
-    )){
-        formatInput(e.target);
+    if(e.target.matches(SEL_ANGKA)) formatInput(e.target);
+    if(e.target.matches(SEL_HITUNG)){
+        hitungLokal();          // total tabel kecil langsung berubah
+        recalcDebounced();      // ringkasan kas menunggu server
     }
-
-    if(e.target.matches(
-        '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-giro,.sumbangan-nominal,.sumbangan-donatur,.sumbangan-bidang,.sumbangan-tujuan,.sumbangan-keperluan'
-    )){
-        recalcDebounced();
-    }
-
 });
 
-document.addEventListener('change', e=>{
-
-    if(
-        e.target.matches(
-            '.sumbangan-bidang'
-        )
-    ){
+document.addEventListener('change', e => {
+    if(e.target.matches('.sumbangan-bidang')){
         IS_DIRTY = true;
         recalcDebounced();
     }
-
-});    
-
-document.addEventListener('DOMContentLoaded', ()=>{
-
-    kasRows = Array.from(
-        document.querySelectorAll('#tblRingkasanKas tbody tr')
-    ).filter(tr => tr.querySelector('[data-key]'));
-
-    danaLainInputs = Array.from(
-        document.querySelectorAll('.dana-lain-nominal')
-    );
-
-    insentifInputs = Array.from(
-        document.querySelectorAll('.insentif-nominal')
-    );
-
-    document.querySelectorAll(
-        '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-giro,.sumbangan-nominal'
-    ).forEach(el=>{
-
-        formatInput(el);
-
-    });
-
-    recalc();
-
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+    danaLainInputs = Array.from(document.querySelectorAll('.dana-lain-nominal'));
+    insentifInputs = Array.from(document.querySelectorAll('.insentif-nominal'));
 
+    document.querySelectorAll(SEL_ANGKA).forEach(formatInput);
+
+    recalc();
+});
 </script>
+
 <script>
 
 let IS_SAVING = false;
@@ -1923,7 +1512,7 @@ document.addEventListener('input', e=>{
 
     if(
         e.target.matches(
-            '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-giro,.dana-bidang,.dana-tujuan,.dana-keperluan,.sumbangan-donatur,.sumbangan-bidang,.sumbangan-tujuan,.sumbangan-keperluan,.sumbangan-nominal'
+            '#cos,.saldo-awal,.debit-manual,.kredit-manual,.dana-lain-nominal,.insentif-nominal,.pajak-input,.dana-bidang,.dana-tujuan,.dana-keperluan,.sumbangan-donatur,.sumbangan-bidang,.sumbangan-tujuan,.sumbangan-keperluan,.sumbangan-nominal'
         )
     ){
         IS_DIRTY = true;
@@ -2141,6 +1730,117 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) document.body.appendChild(el);
     });
 });
+
+</script>
+<script>
+async function muatUlangInsentifDariMaster(){
+    if(isReadOnly) return;
+
+    const ok = await showConfirmLaporan(
+        'Daftar dan nominal insentif di laporan ini akan diganti dengan data terbaru dari master. ' +
+        'Perubahan nominal manual pada bulan ini akan hilang. Perubahan baru tersimpan setelah Anda klik Update Laporan.',
+        { title: 'Muat ulang dari master?', okText: 'Ya, Muat Ulang' }
+    );
+    if(!ok) return;
+
+    const btn = document.getElementById('btnMuatMaster');
+    btn.disabled = true;
+
+    try{
+        const res = await fetch("{{ route('laporan-bendahara.insentif-master') }}", {
+            headers: { 'Accept': 'application/json' }
+        });
+        const json = await res.json();
+
+        if(!res.ok || !json.success){
+            throw new Error(json.message || 'Gagal memuat data master');
+        }
+
+        if(!json.items.length){
+            showToast('Master insentif kosong atau semua item nonaktif. Laporan tidak diubah.', 'warning');
+            return;
+        }
+
+        const header = document.querySelector('.insentif-header');
+        if(!header) throw new Error('Baris header insentif tidak ditemukan');
+
+        // hapus baris lama
+        document.querySelectorAll('.insentif-row').forEach(r => r.remove());
+
+        // sisipkan baris baru tepat di bawah header
+        let anchor = header;
+        json.items.forEach((it, i) => {
+            const tr = document.createElement('tr');
+            tr.className = 'insentif-row';
+            tr.innerHTML = `
+                <td>-</td>
+                <td></td>
+                <td></td>
+                <td class="text-right">
+                    <input type="text"
+                           class="insentif-nominal text-right w-full"
+                           data-bidang="SEKRETARIS"
+                           data-index="${i}"
+                           inputmode="numeric">
+                </td>`;
+
+            const tds = tr.querySelectorAll('td');
+            tds[1].textContent = it.tujuan ?? '';
+            tds[2].textContent = it.keperluan ?? '';
+            tr.querySelector('.insentif-nominal').value = formatID(it.nominal ?? 0);
+
+            anchor.after(tr);
+            anchor = tr;
+        });
+
+        // cache input harus diperbarui, kalau tidak total memakai elemen lama
+        insentifInputs = Array.from(document.querySelectorAll('.insentif-nominal'));
+
+        recalc();
+        IS_DIRTY = true;
+
+        showToast('Insentif dimuat ulang dari master. Klik Update Laporan untuk menyimpan.', 'success');
+
+    }catch(err){
+        console.error(err);
+        showToast(err.message || 'Terjadi kesalahan', 'error');
+    }finally{
+        btn.disabled = false;
+    }
+}
+</script>
+<script>
+async function muatKonfigurasiTerbaru(){
+    if(isReadOnly) return;
+
+    const peringatan = IS_DIRTY ? 'Perubahan yang belum disimpan akan hilang. ' : '';
+    const ok = await showConfirmLaporan(
+        peringatan +
+        'Item ringkasan kas, rumus, dan parameter laporan ini diganti dengan pengaturan terbaru. ' +
+        'Isian yang sudah tersimpan tetap ada. Halaman dimuat ulang, lalu klik Update Laporan untuk menyimpan hasil hitungnya.',
+        { title: 'Muat konfigurasi terbaru?', okText: 'Ya, Muat Ulang' }
+    );
+    if(!ok) return;
+
+    const btn = document.getElementById('btnMuatKonfigurasi');
+    btn.disabled = true;
+
+    try{
+        const res = await fetch("{{ route('laporan-bendahara.muat-konfigurasi') }}", {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+            body: JSON.stringify({ bulan, tahun })
+        });
+        const json = await res.json();
+        if(!res.ok || !json.success) throw new Error(json.message || 'Gagal memuat konfigurasi');
+
+        IS_DIRTY = false;      // supaya tidak muncul peringatan saat reload
+        location.reload();
+    }catch(err){
+        showToast(err.message || 'Terjadi kesalahan', 'error');
+        btn.disabled = false;
+    }
+}
 </script>
 </div>
 

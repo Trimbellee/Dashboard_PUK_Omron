@@ -14,6 +14,7 @@ class SesiAbsensi extends Model
 
     protected $fillable = [
         'judul',
+        'lokasi',
         'kolom_ditampilkan',
         'status',
         'dibuat_oleh',

@@ -11,6 +11,7 @@
         'setujui_ketua'         => ['icon' => 'circle-check',   'color' => '#7c3aed', 'bg' => '#f5f3ff', 'label' => 'Menyetujui (Ketua)'],
         'tolak'                 => ['icon' => 'x',               'color' => '#dc2626', 'bg' => '#fef2f2', 'label' => 'Menolak & Meminta Revisi'],
         'buka_kembali'          => ['icon' => 'lock-open',       'color' => '#d97706', 'bg' => '#fffbeb', 'label' => 'Membuka Kembali Laporan'],
+        'muat_konfigurasi'      => ['icon' => 'refresh', 'color' => '#0891b2', 'bg' => '#ecfeff', 'label' => 'Memuat Konfigurasi Kas Terbaru'],
     ];
     $riwayatList  = array_reverse($meta['riwayat']);
     $riwayatLimit = 5;

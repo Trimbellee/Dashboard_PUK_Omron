@@ -238,10 +238,8 @@ body {
     }
 
     .ttd-img {
-        max-height: 35px;
-        max-width: 65px;
+        height: 35px;
         width: auto;
-        height: auto;
         display: block;
         margin: 0 auto;
     }
@@ -362,59 +360,37 @@ $sumTotal = 0;
 <div class="judul-section">RINCIAN PENGELUARAN</div>
 
 @php
-$urutan = [
-    'SEKRETARIS','BIDANG 1','BIDANG 2','BIDANG 3','BIDANG 4',
-    'BIDANG 5','BIDANG 6','GM','KORLAP',
-    'DANA SOSIAL','DANA PERMUSYAWARATAN','DANA GASPOL',
-    'DANA PERJUANGAN','BUNGA GIRO','BUNGA DEPOSITO','DANA LAIN-LAIN',
-];
 $grandTotal = 0;
 
-/* =========================
-   TANGGAL LAPORAN
-========================= */
 $tanggalLaporan = \Carbon\Carbon::create(
-    $laporan['meta']['tahun'],
-    $laporan['meta']['bulan'],
-    1
+    $laporan['meta']['tahun'], $laporan['meta']['bulan'], 1
 )->translatedFormat('F Y');
 
+$bagian = [];
+foreach ($laporan['rincian'] as $sec) {
+    $rows = $sec['items'];
+    if (!empty($sec['insentif'])) {
+        $rows = array_merge($rows, $laporan['insentif_sekretaris'] ?? []);
+    }
+    if (!empty($sec['punya_pajak'])) {
+        $rows[] = [
+            'tanggal'   => $tanggalLaporan,
+            'tujuan'    => strtoupper($sec['tujuan_pajak'] ?? ''),
+            'keperluan' => strtoupper($sec['label_pajak'] ?? ''),
+            'nominal'   => $sec['pajak'],
+        ];
+    }
+    $bagian[] = ['nama' => strtoupper($sec['label']), 'lain' => false, 'data' => $rows];
+}
+$bagian[] = ['nama' => 'DANA LAIN-LAIN', 'lain' => true, 'data' => $laporan['dana_lain'] ?? []];
 @endphp
 
-@foreach ($urutan as $nama)
-
+@foreach ($bagian as $b)
     @php
-
-    if ($nama === 'SEKRETARIS') {
-
-        $data = array_merge(
-            $laporan['per_bidang']['SEKRETARIS'] ?? [],
-            $laporan['insentif_sekretaris'] ?? $laporan['insentif'] ?? []
-        );
-
-    } elseif ($nama === 'BUNGA GIRO') {
-
-        $data = $laporan['per_bidang']['BUNGA GIRO'] ?? [];
-
-        $data[] = [
-            'tanggal'   => $tanggalLaporan,
-            'tujuan'    => 'BANK',
-            'keperluan' => 'PAJAK BANK',
-            'nominal'   => $laporan['saved_raw']['pajak_bank'] ?? 0
-        ];
-
-    } elseif ($nama === 'DANA LAIN-LAIN') {
-
-        $data = $laporan['dana_lain'] ?? [];
-
-    } else {
-
-        $data = $laporan['per_bidang'][$nama] ?? [];
-
-    }
-
-    $totalBidang = 0;
-
+        $nama = $b['nama'];
+        $lain = $b['lain'];
+        $data = $b['data'];
+        $totalBidang = 0;
     @endphp
 
 

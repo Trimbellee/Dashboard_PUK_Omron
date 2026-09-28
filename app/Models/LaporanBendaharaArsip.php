@@ -10,7 +10,7 @@ class LaporanBendaharaArsip extends Model
 
     protected $fillable = [
         'laporan_bendahara_id', 'bulan', 'tahun', 'versi_ke',
-        'cos', 'pajak_bank',
+        'cos', 'pajak_bank','pajak_json',
         'saldo_awal_json', 'debit_manual_json', 'kredit_manual_json',
         'dana_lain_json', 'dana_sumbangan_json', 'insentif_json',
         'debit_json', 'kredit_json', 'total_json', 'riwayat_json',
@@ -18,7 +18,7 @@ class LaporanBendaharaArsip extends Model
         'bendahara_nama', 'bendahara_ttd_at',
         'sekretaris_nama', 'sekretaris_ttd_at',
         'ketua_nama', 'ketua_ttd_at',
-        'dibuka_oleh', 'alasan_buka_kembali', 'dibuka_at',
+        'dibuka_oleh', 'alasan_buka_kembali', 'dibuka_at','konfigurasi_kas_json',
     ];
 
     protected $casts = [
@@ -36,5 +36,7 @@ class LaporanBendaharaArsip extends Model
         'sekretaris_ttd_at'   => 'datetime',
         'ketua_ttd_at'        => 'datetime',
         'dibuka_at'           => 'datetime',
+        'pajak_json'          => 'array',
+        'konfigurasi_kas_json' => 'array',
     ];
 }

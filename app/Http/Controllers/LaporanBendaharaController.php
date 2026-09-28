@@ -6,8 +6,12 @@ use App\Models\Pengajuan;
 use App\Models\BelanjaKoperasi;
 use App\Models\LaporanBendahara;
 use App\Models\LaporanBendaharaArsip;
+use App\Models\InsentifMaster;
 use App\Models\User;
-use App\Services\BrevoMailService; 
+use App\Services\Kas\KasKonfigurasi;
+use App\Services\Kas\FormulaException;
+use App\Services\Kas\KasCalculator;
+use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -23,19 +27,30 @@ class LaporanBendaharaController extends Controller
         (dengan catatan revisi) untuk diperbaiki Bendahara.
     ============================================================ */
     private const STATUS_DRAFT               = 'draft';
-    private const STATUS_MENUNGGU_SEKRETARIS  = 'menunggu_sekretaris';
-    private const STATUS_MENUNGGU_KETUA       = 'menunggu_ketua';
-    private const STATUS_SELESAI              = 'selesai';
+    private const STATUS_MENUNGGU_SEKRETARIS = 'menunggu_sekretaris';
+    private const STATUS_MENUNGGU_KETUA      = 'menunggu_ketua';
+    private const STATUS_SELESAI             = 'selesai';
 
+    /** Bagian rincian yang selalu ada (belum dikonfigurasi lewat master). */
+    private const BIDANG_TETAP = [
+        ['SEKRETARIS', 'Sekretaris'], ['BIDANG 1', 'Bidang 1'], ['BIDANG 2', 'Bidang 2'],
+        ['BIDANG 3', 'Bidang 3'], ['BIDANG 4', 'Bidang 4'], ['BIDANG 5', 'Bidang 5'],
+        ['BIDANG 6', 'Bidang 6'], ['GM', 'GM'], ['KORLAP', 'KorLap'],
+    ];
+
+    /* ============================================================
+        INDEX
+    ============================================================ */
     public function index(Request $request)
-    {   
+    {
         $role = session('user')['role'] ?? null;
 
         if (!in_array($role, ['Bendahara', 'Sekretaris', 'Ketua'])) {
             abort(403, 'Tidak diizinkan mengakses halaman ini');
         }
-        $bulan = (int)($request->bulan ?? now()->month);
-        $tahun = (int)($request->tahun ?? now()->year);
+
+        $bulan = (int) ($request->bulan ?? now()->month);
+        $tahun = (int) ($request->tahun ?? now()->year);
 
         $laporan = $this->getLaporanData($bulan, $tahun);
 
@@ -43,11 +58,73 @@ class LaporanBendaharaController extends Controller
     }
 
     /* ============================================================
-            STORE
-            Menyimpan draft laporan & generate PDF pratinjau
+        HITUNG (pratinjau) — tidak menyimpan apa pun
+    ============================================================ */
+    public function hitung(Request $request)
+    {
+        if (!in_array(session('user')['role'] ?? null, ['Bendahara', 'Sekretaris', 'Ketua'])) {
+            return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
+        }
+
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
+
+        try {
+            $saved = LaporanBendahara::where('bulan', $bulan)->where('tahun', $tahun)->first();
+            $hasil = $this->hitungLaporan($bulan, $tahun, $request->all(), $this->konfigurasiUntuk($saved));
+
+            return response()->json(['success' => true, 'hasil' => $hasil]);
+        } catch (FormulaException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /* ============================================================
+        MUAT KONFIGURASI TERBARU (khusus draft)
+        Mengganti snapshot konfigurasi dengan master saat ini.
+        Isian tersimpan tidak disentuh.
+    ============================================================ */
+    public function muatKonfigurasi(Request $request)
+    {
+        if (!in_array(session('user')['role'] ?? null, ['Bendahara', 'Sekretaris'])) {
+            return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
+        }
+
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
+
+        try {
+            DB::transaction(function () use ($bulan, $tahun) {
+                $laporan = LaporanBendahara::where('bulan', $bulan)
+                    ->where('tahun', $tahun)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$laporan) {
+                    abort(404, 'Laporan belum pernah disimpan');
+                }
+                if ($laporan->status !== self::STATUS_DRAFT) {
+                    abort(422, 'Konfigurasi hanya bisa dimuat ulang saat laporan berstatus draft');
+                }
+
+                $laporan->konfigurasi_kas_json = KasKonfigurasi::master();
+                $this->catatRiwayat($laporan, 'muat_konfigurasi');
+                $laporan->save();
+            });
+
+            return response()->json(['success' => true, 'message' => 'Konfigurasi kas diperbarui']);
+        } catch (\Throwable $e) {
+            return $this->respondError($e);
+        }
+    }
+
+    /* ============================================================
+        STORE
+        Menyimpan draft laporan & generate PDF pratinjau.
+        Angka debit/kredit/total dihitung ulang di server.
     ============================================================ */
     public function store(Request $request)
-    {   
+    {
         if (!in_array(session('user')['role'] ?? null, ['Bendahara', 'Sekretaris'])) {
             return response()->json([
                 'success' => false,
@@ -56,8 +133,8 @@ class LaporanBendaharaController extends Controller
         }
 
         try {
-            $bulan = (int)$request->bulan;
-            $tahun = (int)$request->tahun;
+            $bulan = (int) $request->bulan;
+            $tahun = (int) $request->tahun;
 
             if (!$bulan || !$tahun) {
                 return response()->json([
@@ -68,46 +145,59 @@ class LaporanBendaharaController extends Controller
 
             $existing = LaporanBendahara::where('bulan', $bulan)->where('tahun', $tahun)->first();
 
-            if ($existing && !in_array($existing->status, [self::STATUS_DRAFT])) {
+            if ($existing && $existing->status !== self::STATUS_DRAFT) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Laporan sudah diajukan, tidak bisa diubah lagi.'
                 ], 422);
             }
 
-            DB::transaction(function () use ($request, $bulan, $tahun) {
+            // snapshot milik laporan; laporan baru mengambil dari master
+            $konf  = $this->konfigurasiUntuk($existing);
+            $hasil = $this->hitungLaporan($bulan, $tahun, $request->all(), $konf);
+
+            $debit = $kredit = $total = [];
+            foreach ($hasil['rows'] as $r) {
+                $debit[$r['kode']]  = $r['debit'];
+                $kredit[$r['kode']] = $r['kredit'];
+                $total[$r['kode']]  = $r['total'];
+            }
+
+            $pajak = collect($request->pajak_json ?? [])->map(fn ($v) => (int) $v)->all();
+
+            DB::transaction(function () use ($request, $bulan, $tahun, $debit, $kredit, $total, $pajak, $konf) {
                 $laporan = LaporanBendahara::updateOrCreate(
                     ['bulan' => $bulan, 'tahun' => $tahun],
                     [
-                        'cos'                 => (int)$request->cos,
-                        'pajak_bank'          => (int)$request->pajak_bank,
-                        'saldo_awal_json'     => $request->saldo_awal_json ?? [],
-                        'debit_manual_json'   => $request->debit_manual_json ?? [],
-                        'kredit_manual_json'  => $request->kredit_manual_json ?? [],
-                        'dana_lain_json'      => $request->dana_lain_json ?? [],
-                        'dana_sumbangan_json' => $request->dana_sumbangan_json ?? [],
-                        'insentif_json'       => $request->insentif ?? $this->defaultInsentif(),
-                        'debit_json'          => $request->debit_json ?? [],
-                        'kredit_json'         => $request->kredit_json ?? [],
-                        'total_json'          => $request->total_json ?? [],
-                        'status'              => self::STATUS_DRAFT,
+                        'cos'                  => (int) $request->cos,
+                        'pajak_bank'           => (int) ($pajak['bunga_giro'] ?? 0), // kolom lama NOT NULL
+                        'pajak_json'           => $pajak,
+                        'saldo_awal_json'      => $request->saldo_awal_json ?? [],
+                        'debit_manual_json'    => $request->debit_manual_json ?? [],
+                        'kredit_manual_json'   => $request->kredit_manual_json ?? [],
+                        'dana_lain_json'       => $request->dana_lain_json ?? [],
+                        'dana_sumbangan_json'  => $request->dana_sumbangan_json ?? [],
+                        'insentif'             => $request->insentif ?? $this->defaultInsentif(),
+                        'debit_json'           => $debit,
+                        'kredit_json'          => $kredit,
+                        'total_json'           => $total,
+                        'konfigurasi_kas_json' => $konf,
+                        'status'               => self::STATUS_DRAFT,
 
                         // laporan sudah diperbaiki -> bersihkan flag "perlu revisi"
-                        'catatan_revisi'      => null,
-                        'ditolak_oleh'        => null,
-                        'ditolak_role'        => null,
-                        'ditolak_at'          => null,
-                        
+                        'catatan_revisi'       => null,
+                        'ditolak_oleh'         => null,
+                        'ditolak_role'         => null,
+                        'ditolak_at'           => null,
                     ]
-                    
                 );
 
-                $laporan->bendahara_nama    = null;
-                $laporan->bendahara_ttd_at  = null;
-                $laporan->sekretaris_nama   = null;
-                $laporan->sekretaris_ttd_at = null;
-                $laporan->ketua_nama        = null;
-                $laporan->ketua_ttd_at      = null;
+                $laporan->bendahara_nama        = null;
+                $laporan->bendahara_ttd_at      = null;
+                $laporan->sekretaris_nama       = null;
+                $laporan->sekretaris_ttd_at     = null;
+                $laporan->ketua_nama            = null;
+                $laporan->ketua_ttd_at          = null;
                 $laporan->dibuka_kembali_oleh   = null;
                 $laporan->dibuka_kembali_alasan = null;
                 $laporan->dibuka_kembali_at     = null;
@@ -123,6 +213,11 @@ class LaporanBendaharaController extends Controller
                 'message' => 'Laporan berhasil disimpan'
             ]);
 
+        } catch (FormulaException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perhitungan gagal: ' . $e->getMessage(),
+            ], 422);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -142,8 +237,8 @@ class LaporanBendaharaController extends Controller
             return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
         }
 
-        $bulan = (int)$request->bulan;
-        $tahun = (int)$request->tahun;
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
 
         try {
             DB::transaction(function () use ($bulan, $tahun) {
@@ -164,7 +259,6 @@ class LaporanBendaharaController extends Controller
                 $laporan->bendahara_nama   = session('user')['username'] ?? 'Bendahara';
                 $laporan->bendahara_ttd_at = now();
 
-                
                 $laporan->catatan_revisi = null;
                 $laporan->ditolak_oleh   = null;
                 $laporan->ditolak_role   = null;
@@ -199,8 +293,8 @@ class LaporanBendaharaController extends Controller
             return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
         }
 
-        $bulan = (int)$request->bulan;
-        $tahun = (int)$request->tahun;
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
 
         try {
             DB::transaction(function () use ($bulan, $tahun) {
@@ -250,8 +344,8 @@ class LaporanBendaharaController extends Controller
             return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
         }
 
-        $bulan = (int)$request->bulan;
-        $tahun = (int)$request->tahun;
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
 
         try {
             DB::transaction(function () use ($bulan, $tahun) {
@@ -297,8 +391,7 @@ class LaporanBendaharaController extends Controller
     }
 
     /* ============================================================
-        TOLAK — SEKRETARIS
-        menunggu_sekretaris -> draft (dengan catatan revisi)
+        TOLAK — SEKRETARIS (menunggu_sekretaris -> draft)
     ============================================================ */
     public function rejectSekretaris(Request $request)
     {
@@ -306,8 +399,7 @@ class LaporanBendaharaController extends Controller
     }
 
     /* ============================================================
-        TOLAK — KETUA
-        menunggu_ketua -> draft (dengan catatan revisi)
+        TOLAK — KETUA (menunggu_ketua -> draft)
     ============================================================ */
     public function rejectKetua(Request $request)
     {
@@ -329,10 +421,10 @@ class LaporanBendaharaController extends Controller
             'catatan.required' => 'Catatan alasan penolakan wajib diisi.',
         ]);
 
-        $bulan = (int)$request->bulan;
-        $tahun = (int)$request->tahun;
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
 
-        // simpan email bendahara SEBELUM field bendahara_nama di-null-kan
+        // simpan username bendahara SEBELUM field bendahara_nama di-null-kan
         $usernameBendaharaLama = null;
 
         try {
@@ -405,8 +497,8 @@ class LaporanBendaharaController extends Controller
             'alasan.required' => 'Alasan membuka kembali laporan wajib diisi.',
         ]);
 
-        $bulan = (int)$request->bulan;
-        $tahun = (int)$request->tahun;
+        $bulan = (int) $request->bulan;
+        $tahun = (int) $request->tahun;
 
         try {
             DB::transaction(function () use ($bulan, $tahun, $request) {
@@ -432,18 +524,20 @@ class LaporanBendaharaController extends Controller
                     'tahun'    => $laporan->tahun,
                     'versi_ke' => $versiKe,
 
-                    'cos'                 => $laporan->cos,
-                    'pajak_bank'          => $laporan->pajak_bank,
-                    'saldo_awal_json'     => $laporan->saldo_awal_json,
-                    'debit_manual_json'   => $laporan->debit_manual_json,
-                    'kredit_manual_json'  => $laporan->kredit_manual_json,
-                    'dana_lain_json'      => $laporan->dana_lain_json,
-                    'dana_sumbangan_json' => $laporan->dana_sumbangan_json,
-                    'insentif_json'       => $laporan->insentif_json,
-                    'debit_json'          => $laporan->debit_json,
-                    'kredit_json'         => $laporan->kredit_json,
-                    'total_json'          => $laporan->total_json,
-                    'riwayat_json'        => $laporan->riwayat_json,
+                    'cos'                  => $laporan->cos,
+                    'pajak_bank'           => $laporan->pajak_bank,
+                    'pajak_json'           => $laporan->pajak_json,
+                    'saldo_awal_json'      => $laporan->saldo_awal_json,
+                    'debit_manual_json'    => $laporan->debit_manual_json,
+                    'kredit_manual_json'   => $laporan->kredit_manual_json,
+                    'dana_lain_json'       => $laporan->dana_lain_json,
+                    'dana_sumbangan_json'  => $laporan->dana_sumbangan_json,
+                    'insentif_json'        => $laporan->insentif,
+                    'debit_json'           => $laporan->debit_json,
+                    'kredit_json'          => $laporan->kredit_json,
+                    'total_json'           => $laporan->total_json,
+                    'riwayat_json'         => $laporan->riwayat_json,
+                    'konfigurasi_kas_json' => $laporan->konfigurasi_kas_json,
 
                     'pdf_url' => $laporan->pdf_url,
 
@@ -493,10 +587,148 @@ class LaporanBendaharaController extends Controller
     }
 
     /* ============================================================
-        HELPER — catat satu entri riwayat audit
-        Dipanggil SEBELUM save(), jadi controller lain yang
-        memanggil harus tetap memanggil $laporan->save() sendiri.
+        INSENTIF MASTER — dipakai tombol "Muat ulang dari master"
+        Hanya mengembalikan data, tidak menyimpan apa pun.
     ============================================================ */
+    public function insentifMaster()
+    {
+        if (!in_array(session('user')['role'] ?? null, ['Bendahara', 'Sekretaris'])) {
+            return response()->json(['success' => false, 'message' => 'Tidak diizinkan'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'items'   => $this->defaultInsentif(),
+        ]);
+    }
+
+    /* ============================================================
+        PERHITUNGAN
+    ============================================================ */
+
+    /** Snapshot milik laporan; laporan yang belum punya memakai master. */
+    private function konfigurasiUntuk(?LaporanBendahara $laporan): array
+    {
+        $konf = $laporan?->konfigurasi_kas_json;
+
+        return KasKonfigurasi::valid($konf) ? $konf : KasKonfigurasi::master();
+    }
+
+    /** Satu-satunya jalur hitung: dipakai pratinjau dan store(). */
+    private function hitungLaporan(int $bulan, int $tahun, array $p, array $konf): array
+    {
+        $kas = collect($konf['kas'])->map(fn ($r) => (object) $r);
+
+        $kodeByNama = [];
+        $terima     = [];
+        foreach ($kas as $k) {
+            $kodeByNama[KasCalculator::norm($k->nama)] = $k->kode;
+            $terima[$k->kode] = (bool) $k->menerima_sumbangan;
+        }
+
+        // sumbangan dipetakan ke kas lewat nama yang dipilih di dropdown
+        $sumbangan = [];
+        foreach ($p['dana_sumbangan_json'] ?? [] as $r) {
+            $kode = $kodeByNama[KasCalculator::norm($r['bidang'] ?? '')] ?? null;
+            if ($kode && $terima[$kode]) {
+                $sumbangan[$kode] = ($sumbangan[$kode] ?? 0) + (int) ($r['nominal'] ?? 0);
+            }
+        }
+
+        // total realisasi per bidang dihitung server dari database, bukan dari browser
+        $bidang = [];
+        foreach ($this->ambilPerBidang($bulan, $tahun) as $nama => $rows) {
+            $n = KasCalculator::norm($nama);
+            $bidang[$n] = ($bidang[$n] ?? 0) + array_sum(array_column($rows, 'aktual'));
+        }
+
+        return KasCalculator::dariKonfigurasi($konf)->hitung([
+            'cos'           => (int) ($p['cos'] ?? 0),
+            'saldo_awal'    => $p['saldo_awal_json'] ?? [],
+            'debit_manual'  => $p['debit_manual_json'] ?? [],
+            'kredit_manual' => $p['kredit_manual_json'] ?? [],
+            'pajak'         => $p['pajak_json'] ?? [],
+            'sumbangan'     => $sumbangan,
+            'bidang'        => $bidang,
+            'insentif'      => $this->jumlahNominal($p['insentif'] ?? $this->defaultInsentif()),
+            'dana_lain'     => $this->jumlahNominal($p['dana_lain_json'] ?? []),
+        ]);
+    }
+
+    /** Rincian per bidang dari Pengajuan + Belanja Koperasi. */
+    private function ambilPerBidang(int $bulan, int $tahun): array
+    {
+        $pengajuan = Pengajuan::query()
+            ->where('status', 'Disetujui')
+            ->whereMonth('tanggal', $bulan)
+            ->whereYear('tanggal', $tahun)
+            ->get()
+            ->map(fn ($r) => [
+                'Bidang'    => strtoupper(trim($r->bidang)),
+                'Tujuan'    => $r->tujuan,
+                'Keperluan' => $r->keperluan,
+                'Aktual'    => (int) ($r->aktual_biaya ?? 0),
+                'Tanggal'   => optional($r->tanggal)->format('d M Y'),
+            ]);
+
+        $koperasi = BelanjaKoperasi::query()
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->get()
+            ->map(fn ($r) => [
+                'Bidang'    => strtoupper(trim($r->bidang)),
+                'Tujuan'    => $r->tujuan,
+                'Keperluan' => $r->keperluan,
+                'Aktual'    => (int) $r->biaya,
+                'Tanggal'   => $r->tanggal ? Carbon::parse($r->tanggal)->format('d M Y') : '-',
+            ]);
+
+        $perBidang = [];
+        foreach ($pengajuan->merge($koperasi) as $row) {
+            $bidang = $row['Bidang'] ?: 'LAINNYA';
+            $perBidang[$bidang][] = [
+                'tanggal'   => $row['Tanggal'],
+                'tujuan'    => $row['Tujuan'],
+                'keperluan' => $row['Keperluan'],
+                'aktual'    => $row['Aktual'],
+            ];
+        }
+
+        return $perBidang;
+    }
+
+    /** Ambil nilai per kas: kunci kode dulu, lalu nama (data lama). */
+    private function nilaiKas($json, string $kode, string $nama)
+    {
+        return is_array($json) ? ($json[$kode] ?? $json[$nama] ?? 0) : 0;
+    }
+
+    private function jumlahNominal($rows): int
+    {
+        return (int) array_sum(array_map(fn ($r) => (int) ($r['nominal'] ?? 0), (array) $rows));
+    }
+
+    /* ============================================================
+        DEFAULT INSENTIF (dari master)
+    ============================================================ */
+    private function defaultInsentif(): array
+    {
+        return InsentifMaster::where('aktif', true)
+            ->orderBy('urutan')
+            ->get(['tujuan', 'keperluan', 'nominal'])
+            ->map(fn ($r) => [
+                'tujuan'    => $r->tujuan,
+                'keperluan' => $r->keperluan,
+                'nominal'   => (int) $r->nominal,
+            ])
+            ->all();
+    }
+
+    /* ============================================================
+        HELPER — riwayat, error, email, TTD, PDF
+    ============================================================ */
+
+    /** Catat satu entri riwayat. Dipanggil SEBELUM save(). */
     private function catatRiwayat(LaporanBendahara $laporan, string $aksi, ?string $catatan = null): void
     {
         $riwayat = $laporan->riwayat_json ?? [];
@@ -512,14 +744,16 @@ class LaporanBendaharaController extends Controller
         $laporan->riwayat_json = $riwayat;
     }
 
-    /* ============================================================
-        HELPER — respon error konsisten untuk semua endpoint status
-    ============================================================ */
     private function respondError(\Throwable $e)
     {
         $status = $e instanceof \Illuminate\Validation\ValidationException
             ? 422
             : ($e->getCode() >= 400 && $e->getCode() < 500 ? $e->getCode() : 500);
+
+        // abort() melempar HttpException; ambil status dari sana
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+            $status = $e->getStatusCode();
+        }
 
         return response()->json([
             'success' => false,
@@ -527,9 +761,6 @@ class LaporanBendaharaController extends Controller
         ], $status ?: 500);
     }
 
-    /* ============================================================
-        HELPER — email berdasarkan role (sama seperti PengajuanController)
-    ============================================================ */
     private function emailsByRole(array $roles): array
     {
         return User::whereIn('role', $roles)
@@ -540,9 +771,6 @@ class LaporanBendaharaController extends Controller
             ->toArray();
     }
 
-    /* ============================================================
-        HELPER — cari email berdasarkan username (untuk notif ke Bendahara)
-    ============================================================ */
     private function emailByUsername(?string $username): ?string
     {
         if (!$username) return null;
@@ -550,9 +778,7 @@ class LaporanBendaharaController extends Controller
         return User::where('username', $username)->value('email');
     }
 
-    /* ============================================================
-        HELPER — render mailable sekali, kirim ke banyak penerima
-    ============================================================ */
+    /** Render mailable sekali, kirim ke banyak penerima. */
     protected function sendEmails(array $emails, $mailable, array $attachments = [])
     {
         $emails = array_values(array_unique(array_filter($emails)));
@@ -567,9 +793,7 @@ class LaporanBendaharaController extends Controller
             return;
         }
 
-        // ambil mapping email -> username sekali query, bukan per-email
-        $namaByEmail = User::whereIn('email', $emails)
-            ->pluck('username', 'email');
+        $namaByEmail = User::whereIn('email', $emails)->pluck('username', 'email');
 
         foreach ($emails as $email) {
             $toName = $namaByEmail[$email] ?? $email;
@@ -585,38 +809,40 @@ class LaporanBendaharaController extends Controller
         }
     }
 
-    /* ============================================================
-        HELPER — ambil TTD user sebagai base64 data URI untuk PDF
-        (DomPDF sering gagal load gambar dari URL asset(), jadi
-        dikonversi ke base64 langsung dari file lokal)
-    ============================================================ */
+    /** TTD user sebagai base64 data URI (DomPDF sering gagal load dari URL). */
     private function getTtdBase64(?string $username): ?string
     {
         if (!$username) {
+            \Log::debug('TTD: username kosong');
             return null;
         }
 
         $user = User::where('username', $username)->first();
 
-        if (!$user || !$user->ttd) {
+        if (!$user) {
+            \Log::warning("TTD: user '{$username}' tidak ditemukan");
+            return null;
+        }
+
+        if (!$user->ttd) {
+            \Log::warning("TTD: user '{$username}' belum upload TTD");
             return null;
         }
 
         $path = storage_path('app/public/' . $user->ttd);
 
         if (!file_exists($path)) {
+            \Log::warning("TTD: file tidak ada di {$path}");
             return null;
         }
 
-        $type = pathinfo($path, PATHINFO_EXTENSION);
         $data = file_get_contents($path);
+        $mime = mime_content_type($path) ?: 'image/png';
 
-        return 'data:image/' . $type . ';base64,' . base64_encode($data);
+        return 'data:' . $mime . ';base64,' . base64_encode($data);
     }
 
-    /* ============================================================
-        GENERATE PDF (reusable — dipanggil store() & approval)
-    ============================================================ */
+    /** Generate PDF (dipakai store() & approval). */
     private function generatePdfLaporan(int $bulan, int $tahun): string
     {
         $laporan = $this->getLaporanData($bulan, $tahun);
@@ -630,7 +856,7 @@ class LaporanBendaharaController extends Controller
 
         Storage::disk('public')->put($path, $pdf->output());
 
-        // tambahkan versi (timestamp) supaya browser tidak pakai cache lama
+        // versi (timestamp) supaya browser tidak memakai cache lama
         $pdfUrl = asset('storage/' . $path) . '?v=' . now()->timestamp;
 
         LaporanBendahara::where('bulan', $bulan)
@@ -641,148 +867,108 @@ class LaporanBendaharaController extends Controller
     }
 
     /* ============================================================
-        DEFAULT INSENTIF
-        PADANAN: getDefaultInsentifSekretariat
-    ============================================================ */
-    private function defaultInsentif()
-    {
-        return [
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Ketua','nominal'=>1150000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Sekretaris','nominal'=>950000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Bendahara','nominal'=>750000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 1','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 2','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 3','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 4','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 5','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Ketua Bidang 6','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 1','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 2','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 3','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 4','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 5','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Wakil Sekretaris Bidang 6','nominal'=>650000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif PANGKORMI','nominal'=>400000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif PANGKORLAP','nominal'=>400000],
-            ['tujuan'=>'Sekretariat','keperluan'=>'Insentif Pengurus Struktural Organisasi di atas PUK','nominal'=>500000],
-        ];
-    }
-
-    /* ============================================================
-            GET LAPORAN DATA
-            Menyusun semua data untuk halaman & PDF
+        GET LAPORAN DATA
+        Menyusun semua data untuk halaman & PDF
     ============================================================ */
     private function getLaporanData(int $bulan, int $tahun): array
     {
-        /* =========================
-        DATA PENGAJUAN
-        ========================= */
-        $pengajuan = Pengajuan::query()
-            ->where('status', 'Disetujui')
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun)
-            ->get()
-            ->map(function ($r) {
-                return [
-                    'Bidang'     => strtoupper(trim($r->bidang)),
-                    'Tujuan'     => $r->tujuan,
-                    'Keperluan'  => $r->keperluan,
-                    'Aktual'     => (int)($r->aktual_biaya ?? 0),
-                    'Tanggal'    => optional($r->tanggal)->format('d M Y'),
-                ];
-            });
+        $perBidang = $this->ambilPerBidang($bulan, $tahun);
 
-        /* =========================
-        BELANJA KOPERASI
-        ========================= */
-        $koperasi = BelanjaKoperasi::query()
-            ->where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->get()
-            ->map(fn($r) => [
-                'Bidang'    => strtoupper(trim($r->bidang)),
-                'Tujuan'    => $r->tujuan,
-                'Keperluan' => $r->keperluan,
-                'Aktual'    => (int)$r->biaya,
-                'Tanggal'   => $r->tanggal
-                                ? Carbon::parse($r->tanggal)->format('d M Y')
-                                : '-',
-            ]);
+        $saved = LaporanBendahara::where('bulan', $bulan)->where('tahun', $tahun)->first();
 
-        /* =========================
-        GROUP PER BIDANG
-        ========================= */
-        $perBidang = [];
-        foreach ($pengajuan->merge($koperasi) as $row) {
-            $bidang = $row['Bidang'] ?: 'LAINNYA';
-            $perBidang[$bidang][] = [
-                'tanggal'   => $row['Tanggal'],
-                'tujuan'    => $row['Tujuan'],
-                'keperluan' => $row['Keperluan'],
-                'aktual'    => $row['Aktual'],
-            ];
-        }
-
-        /* =========================
-        DATA LAPORAN TERSIMPAN & RINGKASAN KAS
-        ========================= */
-        $saved = LaporanBendahara::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->first();
-
-        /* =========================
-        SALDO AWAL PRIORITY
-            1. total_json bulan sebelumnya
-            2. saldo_awal bulan ini
-            3. default 0
-        ========================= */
-        $prevDate = Carbon::create($tahun, $bulan, 1)->subMonth();
+        $prevDate    = Carbon::create($tahun, $bulan, 1)->subMonth();
         $prevLaporan = LaporanBendahara::where('bulan', $prevDate->month)
             ->where('tahun', $prevDate->year)
             ->first();
 
-        $saldoAwalFinal = [];
+        // konfigurasi: snapshot laporan, atau master untuk laporan baru
+        $konf    = $this->konfigurasiUntuk($saved);
+        $kasList = collect($konf['kas'])->map(fn ($r) => (object) $r);
 
-        $jenisKas = [
-            'Dana Operasional','Dana Perjuangan','Dana Sosial','Dana Permusyawaratan',
-            'Dana Sosial Politik','Bunga Giro','Bunga Deposito','COS DPP',
-            'Biaya Transfer',
-        ];
+        $konfigurasiBerbeda = $saved
+            && KasKonfigurasi::valid($saved->konfigurasi_kas_json)
+            && KasKonfigurasi::sidik($saved->konfigurasi_kas_json) !== KasKonfigurasi::sidik(KasKonfigurasi::master());
 
-        foreach ($jenisKas as $j) {
-            if ($prevLaporan && !empty($prevLaporan->total_json[$j])) {
-                $saldoAwalFinal[$j] = $prevLaporan->total_json[$j];
-            } elseif ($saved && !empty($saved->saldo_awal_json[$j])) {
-                $saldoAwalFinal[$j] = $saved->saldo_awal_json[$j];
-            } else {
-                $saldoAwalFinal[$j] = 0;
-            }
+        // pajak: pajak_json, atau kolom lama pajak_bank untuk laporan yang belum termigrasi
+        $pajakSaved = $saved?->pajak_json ?? [];
+        if ($saved && $saved->pajak_json === null) {
+            $pajakSaved['bunga_giro'] = (int) $saved->pajak_bank;
         }
 
         /* =========================
-        RINGKASAN KAS (DARI DATA TERSIMPAN)
+           RINGKASAN KAS
+           Saldo awal: total bulan lalu -> saldo tersimpan -> 0
         ========================= */
-        $ringkasanKasPdf = [];
+        $saldoAwalFinal = $debitManual = $kreditManual = [];
+        $ringkasanKas = [];
         $no = 1;
 
-        foreach ($jenisKas as $j) {
-            $ringkasanKasPdf[] = [
-                'no'         => $no++,
-                'jenis'      => $j,
-                'saldo_awal' => $saved?->saldo_awal_json[$j] ?? 0,
-                'debit'      => $saved?->debit_json[$j] ?? 0,
-                'kredit'     => $saved?->kredit_json[$j] ?? 0,
-                'total'      => $saved?->total_json[$j] ?? 0,
+        foreach ($kasList as $k) {
+            $kode = $k->kode;
+            $nama = $k->nama;
+
+            if ($k->saldo_awal_mode === 'carry_over') {
+                $v = $prevLaporan ? $this->nilaiKas($prevLaporan->total_json, $kode, $nama) : 0;
+                if (empty($v)) {
+                    $v = $this->nilaiKas($saved?->saldo_awal_json, $kode, $nama);
+                }
+                $saldoAwalFinal[$kode] = $v;
+            } else {
+                $saldoAwalFinal[$kode] = 0;
+            }
+
+            $debitManual[$kode]  = $this->nilaiKas($saved?->debit_manual_json, $kode, $nama);
+            $kreditManual[$kode] = $this->nilaiKas($saved?->kredit_manual_json, $kode, $nama);
+
+            $ringkasanKas[] = [
+                'no'              => $no++,
+                'kode'            => $kode,
+                'jenis'           => $nama,
+                'saldo_awal'      => $this->nilaiKas($saved?->saldo_awal_json, $kode, $nama),
+                'debit'           => $this->nilaiKas($saved?->debit_json, $kode, $nama),
+                'kredit'          => $this->nilaiKas($saved?->kredit_json, $kode, $nama),
+                'total'           => $this->nilaiKas($saved?->total_json, $kode, $nama),
+                'saldo_awal_mode' => $k->saldo_awal_mode,
+                'debit_mode'      => $k->debit_mode,
+                'kredit_mode'     => $k->kredit_mode,
             ];
         }
-        
-        $arsipVersi = $saved
-        ? LaporanBendaharaArsip::where('laporan_bendahara_id', $saved->id)
-            ->orderByDesc('versi_ke')
-            ->get(['versi_ke', 'pdf_url', 'dibuka_oleh', 'alasan_buka_kembali', 'dibuka_at'])
-        : collect();
 
-        // TTD user (base64) untuk ditampilkan di PDF
+        /* =========================
+           BAGIAN RINCIAN: bidang tetap + kas yang punya rincian/pajak
+        ========================= */
+        $rincian = [];
+        foreach (self::BIDANG_TETAP as [$key, $label]) {
+            $rincian[] = [
+                'key' => $key, 'label' => $label, 'kode' => null,
+                'insentif'     => $key === 'SEKRETARIS',
+                'punya_pajak'  => false, 'label_pajak' => null, 'tujuan_pajak' => null, 'pajak' => 0,
+                'items'        => $perBidang[$key] ?? [],
+            ];
+        }
+        foreach ($kasList as $k) {
+            if (!$k->tampil_rincian && !$k->punya_pajak) continue;
+
+            $label = $k->nama_bidang ?: $k->nama;
+            $key   = strtoupper(trim($label));
+
+            $rincian[] = [
+                'key' => $key, 'label' => $label, 'kode' => $k->kode, 'insentif' => false,
+                'punya_pajak'  => (bool) $k->punya_pajak,
+                'label_pajak'  => $k->label_pajak,
+                'tujuan_pajak' => $k->tujuan_pajak,
+                'pajak'        => (int) ($pajakSaved[$k->kode] ?? 0),
+                'items'        => $perBidang[$key] ?? [],
+            ];
+        }
+
+        $arsipVersi = $saved
+            ? LaporanBendaharaArsip::where('laporan_bendahara_id', $saved->id)
+                ->orderByDesc('versi_ke')
+                ->get(['versi_ke', 'pdf_url', 'dibuka_oleh', 'alasan_buka_kembali', 'dibuka_at'])
+            : collect();
+
+        // TTD user (base64) untuk PDF
         $bendaharaTtd  = $this->getTtdBase64($saved?->bendahara_nama);
         $sekretarisTtd = $this->getTtdBase64($saved?->sekretaris_nama);
         $ketuaTtd      = $this->getTtdBase64($saved?->ketua_nama);
@@ -791,9 +977,11 @@ class LaporanBendaharaController extends Controller
             'meta' => [
                 'bulan'   => $bulan,
                 'tahun'   => $tahun,
-                'is_edit' => (bool)$saved,
+                'is_edit' => (bool) $saved,
+                'status'  => $saved?->status ?? 'draft',
 
-                'status'             => $saved?->status ?? 'draft',
+                'konfigurasi_berbeda'     => (bool) $konfigurasiBerbeda,
+                'konfigurasi_disimpan_at' => $konf['disimpan_at'] ?? null,
 
                 'bendahara_nama'     => $saved?->bendahara_nama,
                 'bendahara_ttd_at'   => $saved?->bendahara_ttd_at,
@@ -807,7 +995,7 @@ class LaporanBendaharaController extends Controller
                 'sekretaris_ttd_img' => $sekretarisTtd,
                 'ketua_ttd_img'      => $ketuaTtd,
 
-                // info penolakan / revisi terakhir (hanya terisi selama status draft hasil tolak)
+                // info penolakan / revisi terakhir
                 'catatan_revisi'     => $saved?->catatan_revisi,
                 'ditolak_oleh'       => $saved?->ditolak_oleh,
                 'ditolak_role'       => $saved?->ditolak_role,
@@ -820,20 +1008,19 @@ class LaporanBendaharaController extends Controller
                 'dibuka_kembali_alasan' => $saved?->dibuka_kembali_alasan,
                 'dibuka_kembali_at'     => $saved?->dibuka_kembali_at,
                 'arsip_versi'           => $arsipVersi,
-
             ],
-            'pajak_bank' => $saved?->pajak_bank ?? 0,
-            'ringkasan_kas'       => $ringkasanKasPdf,
+            'ringkasan_kas'       => $ringkasanKas,
             'per_bidang'          => $perBidang,
+            'rincian'             => $rincian,
+            'opsi_sumbangan'      => $kasList->where('menerima_sumbangan', true)->pluck('nama')->values()->all(),
             'dana_lain'           => $saved?->dana_lain_json ?? [],
             'dana_sumbangan'      => $saved?->dana_sumbangan_json ?? [],
-            'insentif_sekretaris' => $saved?->insentif_json ?? $this->defaultInsentif(),
+            'insentif_sekretaris' => !empty($saved?->insentif) ? $saved->insentif : $this->defaultInsentif(),
             'saved_raw' => [
                 'saldo_awal'    => $saldoAwalFinal,
-                'debit_manual'  => $saved?->debit_manual_json ?? [],
-                'kredit_manual' => $saved?->kredit_manual_json ?? [],
+                'debit_manual'  => $debitManual,
+                'kredit_manual' => $kreditManual,
                 'cos'           => $saved?->cos ?? 0,
-                'pajak_bank'    => $saved?->pajak_bank ?? 0,
             ],
         ];
     }
