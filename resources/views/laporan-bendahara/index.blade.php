@@ -395,8 +395,38 @@ $opsiSumbangan  = $laporan['opsi_sumbangan'] ?? [];
         @endif
 
         @if(!empty($sec['insentif']))
-            {{-- TEMPEL DI SINI: blok INSENTIF SEKRETARIAT yang sudah ada
-                 (baris .insentif-header + @foreach($insentifSekretaris ...)) tanpa perubahan --}}
+        <tr class="bg-gray-100 font-semibold insentif-header">
+            <td colspan="4">
+                <div class="flex items-center justify-between">
+                    <span>INSENTIF SEKRETARIAT</span>
+
+                    @if(!$readOnly)
+                    <button type="button"
+                            id="btnMuatMaster"
+                            onclick="muatUlangInsentifDariMaster()"
+                            class="px-3 py-1 text-xs font-normal border rounded bg-white
+                                disabled:opacity-60 disabled:cursor-not-allowed">
+                        ↻ Muat ulang dari master
+                    </button>
+                    @endif
+                </div>
+            </td>
+        </tr>
+
+        @foreach($insentifSekretaris as $i => $ins)
+        <tr class="insentif-row">
+            <td>-</td>
+            <td>{{ $ins['tujuan'] }}</td>
+            <td>{{ $ins['keperluan'] }}</td>
+            <td class="text-right">
+                <input type="text"
+                    class="insentif-nominal text-right w-full"
+                    data-bidang="SEKRETARIS"
+                    data-index="{{ $i }}"
+                    value="{{ number_format($ins['nominal'],0,',','.') }}">
+            </td>
+        </tr>
+        @endforeach
         @endif
 
         <tr class="font-bold">
@@ -535,12 +565,12 @@ $opsiSumbangan  = $laporan['opsi_sumbangan'] ?? [];
         </td>
 
         <td>
-            <select
-               @php
-                    $dipilih = $d['bidang'] ?? '';
-                    $opsi    = $opsiSumbangan;
-                    if ($dipilih !== '' && !in_array($dipilih, $opsi)) $opsi[] = $dipilih;
-                @endphp
+            @php
+                $dipilih = $d['bidang'] ?? '';
+                $opsi    = $opsiSumbangan;
+                if ($dipilih !== '' && !in_array($dipilih, $opsi)) $opsi[] = $dipilih;
+            @endphp
+            <select name="dana_sumbangan[{{ $i }}][bidang]" class="sumbangan-bidang w-full">
                 <option value="">-- Pilih --</option>
                 @foreach($opsi as $o)
                     <option value="{{ $o }}" {{ $dipilih === $o ? 'selected' : '' }}>
@@ -593,7 +623,7 @@ $opsiSumbangan  = $laporan['opsi_sumbangan'] ?? [];
         </td>
 
         <td>
-            <select
+            <select name="dana_sumbangan[0][bidang]" class="sumbangan-bidang w-full">
                 <option value="">-- Pilih --</option>
                 @foreach($opsiSumbangan as $o)
                     <option value="{{ $o }}">{{ $o }}</option>
