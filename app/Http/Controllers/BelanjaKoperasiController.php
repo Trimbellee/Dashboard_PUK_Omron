@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BelanjaKoperasi;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\BidangMaster;
 
 class BelanjaKoperasiController extends Controller
 {
@@ -20,11 +21,14 @@ class BelanjaKoperasiController extends Controller
 
         $isEdit = $dataBelanja->count() > 0;
 
+        $bidangList = BidangMaster::namaAktif();
+
         return view('belanja-koperasi.index', compact(
             'bulan',
             'tahun',
             'dataBelanja',
-            'isEdit'
+            'isEdit',
+            'bidangList'
         ));
     }
 

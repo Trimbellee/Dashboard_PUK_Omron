@@ -165,7 +165,7 @@
                     <label class="form-label">Alokasi Dana</label>
                     <select id="addBidang" name="Bidang" class="form-input" style="cursor:pointer;" required>
                         <option value="">-- Pilih --</option>
-                        @foreach(['Ketua','Sekretaris','Bendahara','Bidang 1','Bidang 2','Bidang 3','Bidang 4','Bidang 5','Bidang 6','GM','KorLap','Dana Sosial','Dana Perjuangan','Dana Permusyawaratan','Dana Sosial Politik','Bunga Giro','Bunga Deposito'] as $opt)
+                        @foreach($bidangList as $opt)
                             <option value="{{ $opt }}">{{ $opt }}</option>
                         @endforeach
                     </select>
@@ -272,7 +272,7 @@
             <div class="form-group">
                 <label class="form-label">Alokasi Dana</label>
                 <select id="editBidang" class="form-input" style="cursor:pointer;" required>
-                    @foreach(['Ketua','Sekretaris','Bendahara','Bidang 1','Bidang 2','Bidang 3','Bidang 4','Bidang 5','Bidang 6','GM','KorLap','Dana Sosial','Dana Perjuangan','Dana Permusyawaratan','Dana Sosial Politik','Bunga Giro','Bunga Deposito'] as $opt)
+                    @foreach($bidangList as $opt)
                         <option value="{{ $opt }}">{{ $opt }}</option>
                     @endforeach
                 </select>

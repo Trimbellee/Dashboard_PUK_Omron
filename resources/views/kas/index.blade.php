@@ -2,99 +2,127 @@
 @section('title','Pengaturan Ringkasan Kas')
 
 @section('content')
-<div class="max-w-6xl mx-auto p-4 text-black">
+@include('pengaturan._ui')
 
-    <div class="flex items-center justify-between mb-3">
+<style>
+    .tabs{display:flex;gap:4px;padding:4px;margin-bottom:16px;background:var(--ui-seg);border-radius:12px;overflow-x:auto}
+    .tab-btn{flex:1;white-space:nowrap;padding:8px 16px;border-radius:9px;border:0;background:transparent;font-size:.875rem;font-weight:600;color:var(--ui-mute);cursor:pointer;transition:all .15s}
+    .tab-btn:hover{color:var(--ui-ink)}
+    .tab-btn.active{background:var(--ui-surface);color:var(--ui-accent);box-shadow:0 1px 3px var(--ui-shadow)}
+
+    .kas-card{background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px var(--ui-shadow)}
+    .kas-card.invalid{border-color:var(--ui-bad);background:var(--ui-bad-soft)}
+    .kas-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+    .kas-head .f-nama{flex:1 1 200px;font-weight:600}
+    .kas-head .f-kode{flex:1 1 160px;max-width:240px}
+    .kas-opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--ui-line)}
+    .kas-opts .sub{display:inline-flex;align-items:center;gap:8px}
+    .kas-opts .sub .inp{width:150px}
+    .err-box{font-size:.75rem;color:var(--ui-bad);margin-top:8px}
+    .err-box:empty{display:none}
+
+    details.vars{margin-bottom:14px;border:1px solid var(--ui-line);border-radius:12px;background:var(--ui-surface);padding:10px 14px}
+    details.vars summary{cursor:pointer;font-weight:600;font-size:.875rem}
+    .chip{display:inline-block;margin:3px 2px;padding:2px 9px;border:1px solid var(--ui-line);border-radius:999px;background:var(--ui-surface);color:var(--ui-ink);cursor:pointer;
+        font:.72rem ui-monospace,SFMono-Regular,Menlo,monospace;transition:all .15s}
+    .chip:hover{background:var(--ui-accent-soft);border-color:var(--ui-accent);color:var(--ui-accent)}
+
+    .par-grid{grid-template-columns:200px 1fr 160px 40px}
+    .sim-grid-in{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+    .sim-bidang{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px}
+    .sim-in{width:100%;padding:7px 10px;border:1px solid var(--ui-line);border-radius:9px;text-align:right;font-variant-numeric:tabular-nums;background:var(--ui-surface);color:var(--ui-ink)}
+    .sim-in:focus{border-color:var(--ui-accent);box-shadow:0 0 0 3px var(--ui-accent-soft);outline:none}
+    .sim-sec{font-weight:700;margin:16px 0 8px}
+    .sim-sum{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--ui-bg);border:1px solid var(--ui-line);font-size:.85rem}
+
+    @media (max-width:767px){
+        .par-grid{grid-template-columns:1fr 1fr;padding:14px}
+        .par-grid .c-kode,.par-grid .c-nama{grid-column:1/-1}
+        .par-grid .c-del{justify-self:end}
+        .sim-grid-in{grid-template-columns:1fr}
+        .kas-head .f-kode{max-width:none}
+        .kas-opts{flex-direction:column;align-items:flex-start}
+        .kas-opts .sub{flex-wrap:wrap}
+    }
+</style>
+
+<div class="ui-page">
+
+    <div class="ui-bar">
         <div>
-            <h1 class="text-lg font-bold">Pengaturan Ringkasan Kas</h1>
-            <p class="text-sm text-gray-500">
-                Mengatur item kas, rumus, dan parameter. Simulator memakai isian di layar (belum disimpan).
-            </p>
+            @include('pengaturan._back')
+            <h1>Pengaturan Ringkasan Kas</h1>
+            <p>Mengatur item ringkasan kas, rumus pembagian COS dan parameter. Simulator memakai isian di layar (belum disimpan).</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span id="statusValidasi" class="text-sm text-gray-500"></span>
-            @if($bolehUbah)
-            <button id="btnSimpan" type="button" onclick="simpan()"
-                class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60">Simpan Pengaturan</button>
-            @endif
+        <div class="ui-act float">
+            <span id="statusValidasi" class="ui-status"></span>
+            <button id="btnSimpan" type="button" onclick="simpan()" class="btn btn-primary">
+                Simpan pengaturan <kbd>Ctrl+S</kbd>
+            </button>
         </div>
     </div>
 
-    <div id="errGlobal" class="hidden mb-3 p-3 rounded border border-red-300 bg-red-50 text-red-700 text-sm"></div>
+    <div id="errGlobal" class="ui-alert hidden"></div>
 
-    <div class="flex gap-1 mb-3 border-b">
-        <button type="button" class="tab-btn px-4 py-2 font-semibold border-b-2 border-blue-600" data-tab="kas">Item Kas</button>
-        <button type="button" class="tab-btn px-4 py-2" data-tab="param">Parameter</button>
-        <button type="button" class="tab-btn px-4 py-2" data-tab="sim">Simulator</button>
+    <div class="tabs" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="kas">Item kas</button>
+        <button type="button" class="tab-btn" data-tab="param">Parameter</button>
+        <button type="button" class="tab-btn" data-tab="sim">Simulator</button>
     </div>
 
-    <fieldset {{ $bolehUbah ? '' : 'disabled' }} style="border:none;padding:0;margin:0;">
+    <fieldset {{ $bolehUbah ? '' : 'disabled' }} style="border:none;padding:0;margin:0;min-width:0">
 
-    {{-- TAB ITEM KAS --}}
-    <div id="tab-kas">
-        <details class="mb-3 border rounded p-2 bg-gray-50">
-            <summary class="cursor-pointer text-sm font-semibold">Variabel yang bisa dipakai di rumus (klik untuk menyisipkan)</summary>
-            <div id="chipWrap" class="mt-2 text-xs max-h-48 overflow-auto"></div>
-            <p class="text-xs text-gray-500 mt-2">
-                Operator: + - * / ( ) &nbsp;|&nbsp; Fungsi: floor, ceil, round, abs, min, max.
-                Sumbangan otomatis menambah debit kas yang <em>menerima sumbangan</em>, tidak perlu ditulis di rumus.
-            </p>
-        </details>
+        {{-- TAB ITEM KAS --}}
+        <div id="tab-kas">
+            <details class="vars">
+                <summary>Variabel yang bisa dipakai di rumus (klik untuk menyisipkan)</summary>
+                <div id="chipWrap" style="margin-top:10px;max-height:200px;overflow:auto"></div>
+                <p class="ui-note" style="margin-top:8px">
+                    Operator: + - * / ( ) &nbsp;|&nbsp; Fungsi: floor, ceil, round, abs, min, max.
+                    Sumbangan otomatis menambah debit kas yang <em>menerima sumbangan</em>, tidak perlu ditulis di rumus.
+                </p>
+            </details>
 
-        <div id="listKas"></div>
-        <button type="button" onclick="tambahKas()" class="px-3 py-1 border rounded">+ Tambah Item Kas</button>
-    </div>
+            <div id="listKas"></div>
+            <button type="button" onclick="tambahKas()" class="btn btn-ghost">+ Tambah item kas</button>
+        </div>
 
-    {{-- TAB PARAMETER --}}
-    <div id="tab-param" class="hidden">
-        <table class="w-full border text-sm" id="tblParam">
-            <thead class="bg-gray-200">
-                <tr>
-                    <th style="width:22%">Kode</th><th>Nama</th>
-                    <th style="width:18%">Nilai</th><th style="width:7%">Hapus</th>
-                </tr>
-            </thead>
-            <tbody id="tbodyParam"></tbody>
-        </table>
-        <p class="text-xs text-gray-500 mt-1">Pecahan ditulis dengan titik, mis. 0.2 untuk 20%.</p>
-        <button type="button" onclick="tambahParam()" class="mt-2 px-3 py-1 border rounded">+ Tambah Parameter</button>
-    </div>
+        {{-- TAB PARAMETER --}}
+        <div id="tab-param" class="hidden">
+            <div class="card">
+                <div class="grid-head par-grid">
+                    <div>Kode</div><div>Nama</div><div style="text-align:right">Nilai</div><div></div>
+                </div>
+                <div id="tbodyParam"></div>
+            </div>
+            <p class="ui-note" style="margin-top:8px">Pecahan ditulis dengan titik, mis. 0.2 untuk 20%.</p>
+            <button type="button" onclick="tambahParam()" class="btn btn-ghost" style="margin-top:8px">+ Tambah parameter</button>
+        </div>
 
     </fieldset>
 
     {{-- TAB SIMULATOR --}}
     <div id="tab-sim" class="hidden">
-        <div class="grid grid-cols-3 gap-3 mb-3 text-sm">
-            <label>COS <input class="sim-in border px-2 py-1 w-full text-right" data-g="umum" data-k="cos"></label>
-            <label>Total insentif <input class="sim-in border px-2 py-1 w-full text-right" data-g="umum" data-k="insentif"></label>
-            <label>Total dana lain-lain <input class="sim-in border px-2 py-1 w-full text-right" data-g="umum" data-k="dana_lain"></label>
+        <div class="sim-grid-in">
+            <label><div class="lbl2">COS</div><input class="sim-in" data-g="umum" data-k="cos"></label>
+            <label><div class="lbl2">Total insentif</div><input class="sim-in" data-g="umum" data-k="insentif"></label>
+            <label><div class="lbl2">Total dana lain-lain</div><input class="sim-in" data-g="umum" data-k="dana_lain"></label>
         </div>
 
-        <div id="simKas" class="mb-3"></div>
+        <div id="simKas"></div>
 
-        <div class="font-semibold text-sm mb-1">Total realisasi per bidang</div>
-        <div id="simBidang" class="grid grid-cols-3 gap-2 mb-3 text-sm"></div>
+        <div class="sim-sec">Total realisasi per bidang</div>
+        <div id="simBidang" class="sim-bidang"></div>
 
-        <button type="button" onclick="hitungSimulasi()" class="px-4 py-2 bg-green-600 text-white rounded">Hitung</button>
-        <div id="simHasil" class="mt-4"></div>
+        <button type="button" onclick="hitungSimulasi()" class="btn btn-ok">Hitung</button>
+        <div id="simHasil" style="margin-top:16px"></div>
     </div>
 </div>
-
-<style>
-    .kas-card.invalid { border-color:#ef4444; }
-    .chip { display:inline-block; margin:2px; padding:1px 6px; border:1px solid #d1d5db; border-radius:9999px;
-            background:#fff; cursor:pointer; font-family:monospace; }
-    .chip:hover { background:#dbeafe; }
-    .sim-tbl th, .sim-tbl td { border:1px solid #d1d5db; padding:4px; }
-    #tblParam th, #tblParam td { border:1px solid #d1d5db; padding:4px; }
-    .kas-card input[type=text], .kas-card select, #tblParam input { border:1px solid #d1d5db; padding:2px 6px; border-radius:4px; }
-    fieldset:disabled { opacity:.7; }
-</style>
 
 <script>
 const KAS_AWAL     = @json($kas);
 const PARAM_AWAL   = @json($params);
-const BIDANG_TETAP = @json($bidangTetap);
+const BIDANG_TETAP = @json($bidang->pluck('nama'));
 const BOLEH_UBAH   = @json($bolehUbah);
 
 const URL_VALIDASI = "{{ route('kas.validasi') }}";
@@ -106,21 +134,13 @@ const H = {
     'X-CSRF-TOKEN': "{{ csrf_token() }}"
 };
 
-const q = (el, s) => el.querySelector(s);
-const parseID  = v => Number(String(v ?? '').replace(/[^\d\-]/g, '')) || 0;
-const formatID = v => Math.floor(v || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-const esc  = s => String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-const norm = s => String(s).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-const opt  = (list, sel) => list.map(([v, l]) => `<option value="${v}" ${v === sel ? 'selected' : ''}>${l}</option>`).join('');
-
+const opt = (list, sel) => list.map(([v, l]) => `<option value="${v}" ${v === sel ? 'selected' : ''}>${l}</option>`).join('');
 const M_SALDO = [['carry_over', 'Bawa dari total bulan lalu'], ['nol', 'Selalu 0']];
 const M_ISI   = [['manual', 'Diinput manual'], ['rumus', 'Pakai rumus']];
 
 /* ---------------- tab ---------------- */
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('font-semibold', 'border-b-2', 'border-blue-600'));
-    b.classList.add('font-semibold', 'border-b-2', 'border-blue-600');
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === b));
     ['kas', 'param', 'sim'].forEach(t => document.getElementById('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
     if (b.dataset.tab === 'sim') bangunSimulator();
 }));
@@ -128,36 +148,40 @@ document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', (
 /* ---------------- kartu item kas ---------------- */
 function kartuKas(k = {}, baru = false) {
     const c = document.createElement('div');
-    c.className = 'kas-card border rounded p-3 mb-3 bg-white';
+    c.className = 'kas-card';
+    c.dataset.row = '1';
     c.innerHTML = `
-      <div class="flex items-center gap-2 mb-2">
-        <span class="whitespace-nowrap">
-          <button type="button" onclick="geser(this,-1)">▲</button>
-          <button type="button" onclick="geser(this,1)">▼</button>
+      <div class="kas-head">
+        <span class="mv">
+          <button type="button" class="btn-icon" onclick="geser(this,-1)" aria-label="Naikkan">▲</button>
+          <button type="button" class="btn-icon" onclick="geser(this,1)" aria-label="Turunkan">▼</button>
         </span>
-        <input type="text" class="f-nama flex-1 font-semibold" placeholder="Nama item kas">
-        <input type="text" class="f-kode w-52 text-xs ${baru ? '' : 'bg-gray-100'}" placeholder="kode_unik" ${baru ? '' : 'readonly'}>
-        <label class="text-sm whitespace-nowrap"><input type="checkbox" class="f-aktif"> Aktif</label>
-        ${baru ? '<button type="button" onclick="this.closest(\'.kas-card\').remove();jadwalValidasi()" class="w-6 h-6 bg-red-600 text-white rounded">✕</button>' : ''}
+        <input type="text" class="inp f-nama" placeholder="Nama item kas">
+        <input type="text" class="inp mono f-kode" placeholder="kode_unik" ${baru ? '' : 'readonly'}>
+        <label class="sw"><input type="checkbox" class="f-aktif"><i></i><span>Aktif</span></label>
+        ${baru ? '<button type="button" class="btn-icon btn-del" aria-label="Hapus" onclick="this.closest(\'.kas-card\').remove();jadwalValidasi();segarkanChip()">✕</button>' : ''}
       </div>
-      <div class="grid grid-cols-3 gap-3 text-sm">
-        <div><div class="text-xs text-gray-500">Saldo awal</div>
-          <select class="f-saldo w-full">${opt(M_SALDO, k.saldo_awal_mode || 'carry_over')}</select></div>
-        <div><div class="text-xs text-gray-500">Debit</div>
-          <select class="f-debit-mode w-full">${opt(M_ISI, k.debit_mode || 'manual')}</select>
-          <input type="text" class="f-debit-rumus rumus w-full mt-1 font-mono text-xs" placeholder="rumus debit"></div>
-        <div><div class="text-xs text-gray-500">Kredit</div>
-          <select class="f-kredit-mode w-full">${opt(M_ISI, k.kredit_mode || 'manual')}</select>
-          <input type="text" class="f-kredit-rumus rumus w-full mt-1 font-mono text-xs" placeholder="rumus kredit"></div>
+      <div class="g3">
+        <div><div class="lbl2">Saldo awal</div>
+          <select class="sel f-saldo">${opt(M_SALDO, k.saldo_awal_mode || 'carry_over')}</select></div>
+        <div><div class="lbl2">Debit</div>
+          <select class="sel f-debit-mode">${opt(M_ISI, k.debit_mode || 'manual')}</select>
+          <input type="text" class="inp mono rumus f-debit-rumus" style="margin-top:6px" placeholder="rumus debit"></div>
+        <div><div class="lbl2">Kredit</div>
+          <select class="sel f-kredit-mode">${opt(M_ISI, k.kredit_mode || 'manual')}</select>
+          <input type="text" class="inp mono rumus f-kredit-rumus" style="margin-top:6px" placeholder="rumus kredit"></div>
       </div>
-      <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm mt-2">
-        <label><input type="checkbox" class="f-sumbangan"> Menerima sumbangan</label>
-        <label><input type="checkbox" class="f-rincian"> Punya rincian pengeluaran</label>
-        <label>Nama bidang di pengajuan <input type="text" class="f-bidang w-40"></label>
-        <label><input type="checkbox" class="f-pajak"> Punya pajak</label>
-        <span class="pajak-opsi">Label <input type="text" class="f-label-pajak w-28"> Tujuan <input type="text" class="f-tujuan-pajak w-24"></span>
+      <div class="kas-opts">
+        <label class="chk"><input type="checkbox" class="f-sumbangan"> Menerima sumbangan</label>
+        <label class="chk"><input type="checkbox" class="f-rincian"> Punya rincian pengeluaran</label>
+        <label class="sub">Nama bidang di pengajuan <input type="text" class="inp f-bidang"></label>
+        <label class="chk"><input type="checkbox" class="f-pajak"> Punya pajak</label>
+        <span class="sub pajak-opsi">
+          <label class="sub">Label <input type="text" class="inp f-label-pajak" style="width:120px"></label>
+          <label class="sub">Tujuan <input type="text" class="inp f-tujuan-pajak" style="width:110px"></label>
+        </span>
       </div>
-      <div class="err-box text-xs text-red-600 mt-2"></div>`;
+      <div class="err-box"></div>`;
 
     q(c, '.f-nama').value = k.nama ?? '';
     q(c, '.f-kode').value = k.kode ?? '';
@@ -189,13 +213,11 @@ function sinkronKartu(c) {
     if (q(c, '.f-pajak').checked) q(c, '.f-rincian').checked = true;
 }
 
-function tambahKas(k) { document.getElementById('listKas').appendChild(kartuKas(k || { aktif: true }, true)); jadwalValidasi(); }
-
-function geser(btn, arah) {
-    const c = btn.closest('.kas-card');
-    const t = arah < 0 ? c.previousElementSibling : c.nextElementSibling;
-    if (!t) return;
-    arah < 0 ? t.before(c) : t.after(c);
+function tambahKas(k) {
+    const c = kartuKas(k || { aktif: true }, true);
+    document.getElementById('listKas').appendChild(c);
+    q(c, '.f-nama').focus();
+    jadwalValidasi();
 }
 
 function kumpulKas() {
@@ -212,25 +234,27 @@ function kumpulKas() {
 
 /* ---------------- parameter ---------------- */
 function tambahParam(p = {}, baru = true) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-        <td><input type="text" class="p-kode w-full font-mono"></td>
-        <td><input type="text" class="p-nama w-full"></td>
-        <td><input type="text" class="p-nilai w-full text-right"></td>
-        <td class="text-center"><button type="button" onclick="this.closest('tr').remove();jadwalValidasi()"
-             class="w-6 h-6 bg-red-600 text-white rounded">✕</button></td>`;
-    q(tr, '.p-kode').value = p.kode ?? '';
-    q(tr, '.p-nama').value = p.nama ?? '';
-    q(tr, '.p-nilai').value = p.nilai ?? '';
-    document.getElementById('tbodyParam').appendChild(tr);
-    if (baru) jadwalValidasi();
+    const r = document.createElement('div');
+    r.className = 'row par-grid prow';
+    r.innerHTML = `
+        <div class="c-kode"><div class="lbl">Kode</div><input type="text" class="inp mono p-kode"></div>
+        <div class="c-nama"><div class="lbl">Nama</div><input type="text" class="inp p-nama"></div>
+        <div class="c-nilai"><div class="lbl">Nilai</div><input type="text" class="inp num p-nilai"></div>
+        <div class="c-del"><button type="button" class="btn-icon btn-del" aria-label="Hapus"
+            onclick="this.closest('.prow').remove();jadwalValidasi();segarkanChip()">✕</button></div>
+        <div class="err-txt"></div>`;
+    q(r, '.p-kode').value = p.kode ?? '';
+    q(r, '.p-nama').value = p.nama ?? '';
+    q(r, '.p-nilai').value = p.nilai ?? '';
+    document.getElementById('tbodyParam').appendChild(r);
+    if (baru) { q(r, '.p-kode').focus(); jadwalValidasi(); }
 }
 
 function kumpulParam() {
-    return [...document.querySelectorAll('#tbodyParam tr')].map(tr => ({
-        kode: q(tr, '.p-kode').value,
-        nama: q(tr, '.p-nama').value,
-        nilai: q(tr, '.p-nilai').value.replace(',', '.'),
+    return [...document.querySelectorAll('#tbodyParam .prow')].map(r => ({
+        kode: q(r, '.p-kode').value,
+        nama: q(r, '.p-nama').value,
+        nilai: q(r, '.p-nilai').value.replace(',', '.'),
     }));
 }
 
@@ -243,7 +267,7 @@ document.addEventListener('focusin', e => { if (e.target.matches('.rumus')) last
 function segarkanChip() {
     const kas = kumpulKas().filter(k => k.aktif && k.kode);
     const params = kumpulParam().filter(p => p.kode);
-    const bidang = new Set(BIDANG_TETAP);
+    const bidang = new Set(BIDANG_TETAP.map(norm));
     kumpulKas().forEach(k => { if (k.nama_bidang) bidang.add(norm(k.nama_bidang)); });
 
     const grup = [
@@ -252,19 +276,20 @@ function segarkanChip() {
         ['Saldo awal', kas.map(k => 'SALDO.' + norm(k.kode))],
         ['Debit', kas.map(k => 'DEBIT.' + norm(k.kode))],
         ['Kredit', kas.map(k => 'KREDIT.' + norm(k.kode))],
+        ['Kredit per bidang', kas.map(k => 'KREDIT_BIDANG.' + norm(k.kode))],
         ['Pajak', kas.filter(k => k.punya_pajak).map(k => 'PAJAK.' + norm(k.kode))],
         ['Sumbangan', kas.filter(k => k.menerima_sumbangan).map(k => 'SUMBANGAN.' + norm(k.kode))],
         ['Total per bidang', [...bidang].map(b => 'BIDANG.' + b)],
     ];
 
     document.getElementById('chipWrap').innerHTML = grup.filter(g => g[1].length).map(([judul, arr]) =>
-        `<div class="mb-1"><span class="font-semibold">${judul}:</span> ` +
+        `<div style="margin-bottom:6px"><span style="font-weight:600;font-size:.78rem">${judul}:</span> ` +
         arr.map(v => `<span class="chip" onclick="sisipChip('${v}')">${v}</span>`).join('') + '</div>'
     ).join('');
 }
 
 function sisipChip(v) {
-    if (!lastRumus) { alert('Klik dulu kolom rumus yang ingin diisi.'); return; }
+    if (!lastRumus) { showToast('Klik dulu kolom rumus yang ingin diisi.', 'info'); return; }
     const el = lastRumus, s = el.selectionStart ?? el.value.length, e = el.selectionEnd ?? s;
     el.value = el.value.slice(0, s) + v + el.value.slice(e);
     el.focus();
@@ -278,14 +303,13 @@ function jadwalValidasi() { clearTimeout(tv); tv = setTimeout(validasi, 500); }
 
 function tampilError(errors) {
     document.querySelectorAll('.kas-card').forEach(c => { c.classList.remove('invalid'); q(c, '.err-box').innerHTML = ''; });
-    document.querySelectorAll('#tbodyParam tr').forEach(tr => tr.style.background = '');
-    document.querySelectorAll('#tbodyParam .err-p').forEach(x => x.remove());
+    document.querySelectorAll('#tbodyParam .prow').forEach(r => { r.classList.remove('invalid'); q(r, '.err-txt').textContent = ''; });
     const g = document.getElementById('errGlobal');
     g.classList.add('hidden'); g.innerHTML = '';
 
     const label = { kode: 'Kode', nama: 'Nama', debit_rumus: 'Rumus debit', kredit_rumus: 'Rumus kredit', nilai: 'Nilai' };
     const kartu = [...document.querySelectorAll('.kas-card')];
-    const baris = [...document.querySelectorAll('#tbodyParam tr')];
+    const baris = [...document.querySelectorAll('#tbodyParam .prow')];
 
     errors.forEach(er => {
         const teks = (label[er.field] ? label[er.field] + ': ' : '') + er.message;
@@ -293,8 +317,9 @@ function tampilError(errors) {
             kartu[er.index].classList.add('invalid');
             q(kartu[er.index], '.err-box').insertAdjacentHTML('beforeend', `<div>• ${esc(teks)}</div>`);
         } else if (er.scope === 'param' && baris[er.index]) {
-            baris[er.index].style.background = '#fef2f2';
-            baris[er.index].lastElementChild.insertAdjacentHTML('beforeend', `<span class="err-p text-xs text-red-600" title="${esc(teks)}">⚠</span>`);
+            baris[er.index].classList.add('invalid');
+            const c = q(baris[er.index], '.err-txt');
+            c.textContent += (c.textContent ? ' | ' : '') + teks;
         } else {
             g.classList.remove('hidden');
             g.insertAdjacentHTML('beforeend', `<div>• ${esc(teks)}</div>`);
@@ -303,7 +328,7 @@ function tampilError(errors) {
 
     const st = document.getElementById('statusValidasi');
     st.textContent = errors.length ? `✗ ${errors.length} masalah` : '✓ Semua rumus valid';
-    st.className = 'text-sm ' + (errors.length ? 'text-red-600' : 'text-green-600');
+    st.style.color = errors.length ? 'var(--ui-bad)' : 'var(--ui-ok)';
 }
 
 async function validasi() {
@@ -314,13 +339,24 @@ async function validasi() {
     } catch (e) { console.error(e); }
 }
 
-document.addEventListener('input', e => { if (e.target.closest('#tab-kas, #tab-param')) { sinkronSemua(); jadwalValidasi(); } });
-document.addEventListener('change', e => { if (e.target.closest('#tab-kas, #tab-param')) { sinkronSemua(); jadwalValidasi(); } });
 function sinkronSemua() { document.querySelectorAll('.kas-card').forEach(sinkronKartu); }
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+    if (e.target.closest('#tab-kas, #tab-param')) { sinkronSemua(); jadwalValidasi(); }
+}));
 
 /* ---------------- simpan ---------------- */
 async function simpan(konfirmasi = false) {
     const btn = document.getElementById('btnSimpan');
+
+    if (!konfirmasi) {
+        const ok = await showConfirm({
+            title: 'Simpan pengaturan?',
+            message: 'Perubahan akan disimpan dan laporan bulan baru akan memakai konfigurasi ini.',
+            okText: 'Ya, simpan',
+        });
+        if (!ok) return;
+    }
+
     btn.disabled = true;
     try {
         const res = await fetch(URL_SIMPAN, { method: 'POST', headers: H, body: JSON.stringify({ ...payload(), konfirmasi }) });
@@ -328,16 +364,26 @@ async function simpan(konfirmasi = false) {
 
         if (res.status === 409 && j.needs_confirm) {
             btn.disabled = false;
-            if (confirm(j.warnings.join('\n\n') + '\n\nTetap simpan?')) return simpan(true);
+            const ok = await showConfirm({
+                title: 'Simpan dengan peringatan?',
+                message: (j.warnings || []).join('\n\n'),
+                okText: 'Tetap simpan',
+                danger: true,
+            });
+            if (ok) return simpan(true);
             return;
         }
-        if (res.status === 422) { tampilError(j.errors || []); alert('Masih ada isian atau rumus yang tidak valid. Perbaiki yang bertanda merah.'); return; }
+        if (res.status === 422) {
+            tampilError(j.errors || []);
+            showToast('Masih ada isian atau rumus yang tidak valid.', 'error', 4000);
+            return;
+        }
         if (!res.ok || !j.success) throw new Error(j.message || 'Gagal menyimpan');
 
-        alert(j.message);
-        location.reload();
+        showToast(j.message || 'Pengaturan berhasil disimpan.');
+        setTimeout(() => location.reload(), 900);
     } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'error', 4000);
     } finally {
         btn.disabled = false;
     }
@@ -348,7 +394,7 @@ const SIM = {};   // nilai isian, tetap ada saat form dibangun ulang
 const simKey = (g, k) => g + '|' + k;
 
 function inputSim(g, k) {
-    return `<input class="sim-in border px-2 py-1 w-full text-right" data-g="${g}" data-k="${esc(k)}" value="${formatID(SIM[simKey(g, k)] || 0)}">`;
+    return `<input class="sim-in" data-g="${g}" data-k="${esc(k)}" value="${formatID(SIM[simKey(g, k)] || 0)}">`;
 }
 
 function bangunSimulator() {
@@ -356,21 +402,22 @@ function bangunSimulator() {
     const bidang = new Set(BIDANG_TETAP);
     kumpulKas().forEach(k => { if (k.nama_bidang) bidang.add(norm(k.nama_bidang)); });
 
-    let html = '<table class="sim-tbl w-full text-sm"><thead class="bg-gray-200"><tr>' +
+    const mute = t => `<span style="color:var(--ui-faint)">${t}</span>`;
+    let html = '<div class="tbl-wrap"><table class="sim-tbl"><thead><tr>' +
         '<th>Kas</th><th>Saldo awal</th><th>Debit manual</th><th>Kredit manual</th><th>Pajak</th><th>Sumbangan</th></tr></thead><tbody>';
     kas.forEach(k => {
         const kode = norm(k.kode);
         html += `<tr><td>${esc(k.nama)}</td>
-            <td>${k.saldo_awal_mode === 'carry_over' ? inputSim('saldo_awal', kode) : '<span class="text-gray-400">0</span>'}</td>
-            <td>${k.debit_mode === 'manual' ? inputSim('debit_manual', kode) : '<span class="text-gray-400">rumus</span>'}</td>
-            <td>${k.kredit_mode === 'manual' ? inputSim('kredit_manual', kode) : '<span class="text-gray-400">rumus</span>'}</td>
+            <td>${k.saldo_awal_mode === 'carry_over' ? inputSim('saldo_awal', kode) : mute('0')}</td>
+            <td>${k.debit_mode === 'manual' ? inputSim('debit_manual', kode) : mute('rumus')}</td>
+            <td>${k.kredit_mode === 'manual' ? inputSim('kredit_manual', kode) : mute('rumus')}</td>
             <td>${k.punya_pajak ? inputSim('pajak', kode) : ''}</td>
             <td>${k.menerima_sumbangan ? inputSim('sumbangan', kode) : ''}</td></tr>`;
     });
-    document.getElementById('simKas').innerHTML = html + '</tbody></table>';
+    document.getElementById('simKas').innerHTML = html + '</tbody></table></div>';
 
     document.getElementById('simBidang').innerHTML = [...bidang].map(b =>
-        `<label>${b}${inputSim('bidang', b)}</label>`).join('');
+        `<label><div class="lbl2">${esc(b)}</div>${inputSim('bidang', b)}</label>`).join('');
 
     document.querySelectorAll('#tab-sim .sim-in[data-g="umum"]').forEach(el => el.value = formatID(SIM[simKey('umum', el.dataset.k)] || 0));
 }
@@ -390,7 +437,7 @@ async function hitungSimulasi() {
     });
 
     const out = document.getElementById('simHasil');
-    out.innerHTML = '<span class="text-gray-500">Menghitung…</span>';
+    out.innerHTML = '<span class="ui-note">Menghitung…</span>';
 
     try {
         const res = await fetch(URL_SIMULASI, { method: 'POST', headers: H, body: JSON.stringify({ ...payload(), input }) });
@@ -398,33 +445,34 @@ async function hitungSimulasi() {
 
         if (!res.ok || !j.success) {
             const msg = (j.errors || []).map(e => '• ' + esc(e.message)).join('<br>') || esc(j.message || 'Gagal menghitung');
-            out.innerHTML = `<div class="p-3 rounded border border-red-300 bg-red-50 text-red-700 text-sm">${msg}</div>`;
+            out.innerHTML = `<div class="ui-alert">${msg}</div>`;
             return;
         }
 
         const { rows, grand } = j.hasil;
         out.innerHTML = `
-          <table class="sim-tbl w-full text-sm">
-            <thead class="bg-gray-200"><tr><th>Kas</th><th>Saldo awal</th><th>Debit</th><th>Kredit</th><th>Total</th></tr></thead>
+          <div class="tbl-wrap"><table class="sim-tbl">
+            <thead><tr><th>Kas</th><th class="r">Saldo awal</th><th class="r">Debit</th><th class="r">Kredit</th><th class="r">Total</th></tr></thead>
             <tbody>
               ${rows.map(r => `<tr><td>${esc(r.nama)}</td>
-                <td class="text-right">${formatID(r.saldo_awal)}</td><td class="text-right">${formatID(r.debit)}</td>
-                <td class="text-right">${formatID(r.kredit)}</td><td class="text-right font-semibold">${formatID(r.total)}</td></tr>`).join('')}
-              <tr class="font-bold bg-green-100"><td>TOTAL</td>
-                <td class="text-right">${formatID(grand.saldo_awal)}</td><td class="text-right">${formatID(grand.debit)}</td>
-                <td class="text-right">${formatID(grand.kredit)}</td><td class="text-right">${formatID(grand.total)}</td></tr>
+                <td class="r">${formatID(r.saldo_awal)}</td><td class="r">${formatID(r.debit)}</td>
+                <td class="r">${formatID(r.kredit)}</td><td class="r" style="font-weight:600">${formatID(r.total)}</td></tr>`).join('')}
+              <tr style="font-weight:700;background:var(--ui-ok-soft)"><td>TOTAL</td>
+                <td class="r">${formatID(grand.saldo_awal)}</td><td class="r">${formatID(grand.debit)}</td>
+                <td class="r">${formatID(grand.kredit)}</td><td class="r">${formatID(grand.total)}</td></tr>
             </tbody>
-          </table>
-          <div class="mt-2 text-sm p-2 rounded bg-gray-50 border">
+          </table></div>
+          <div class="sim-sum">
             Total debit dibanding COS: <strong>${formatID(grand.debit - j.cos)}</strong>
-            <span class="text-gray-500">(dengan rumus sekarang, jika sumbangan dan debit manual bunga = 0, selisih ini seharusnya 0 atau beberapa rupiah pembulatan)</span>
+            <span class="ui-note">(dengan rumus sekarang, jika sumbangan dan debit manual bunga = 0, selisih ini seharusnya 0 atau beberapa rupiah pembulatan)</span>
           </div>`;
     } catch (err) {
-        out.innerHTML = `<div class="text-red-600 text-sm">${esc(err.message)}</div>`;
+        out.innerHTML = `<div class="ui-alert">${esc(err.message)}</div>`;
     }
 }
 
 /* ---------------- init ---------------- */
+bindSave(() => simpan(), BOLEH_UBAH);
 KAS_AWAL.forEach(k => document.getElementById('listKas').appendChild(kartuKas(k, false)));
 PARAM_AWAL.forEach(p => tambahParam(p, false));
 segarkanChip();

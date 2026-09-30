@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 /* ── CONFIG (diambil dari data-attributes di Blade) ─────────── */
 const root = document.getElementById('belanjaKoperasiApp');
 
-const LIST_BIDANG = ["Sekretaris","Bendahara","Bidang 1","Bidang 2","Bidang 3","Bidang 4","Bidang 5","Bidang 6","GM","KorLap","Dana Musyawarah","Dana Sosial Politik"];
+const LIST_BIDANG = JSON.parse(root.dataset.bidangList || '[]');
 
 const IS_EDITOR     = root.dataset.isEditor === '1';
 const DATA_EXISTING = JSON.parse(root.dataset.existing || '[]');

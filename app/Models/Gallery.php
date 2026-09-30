@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+ use Illuminate\Support\Facades\Storage;
 
 class Gallery extends Model
 {
@@ -24,7 +25,6 @@ class Gallery extends Model
         'pelatihan'  => 'Pelatihan',
         'sosial'     => 'Kegiatan Sosial',
         'perayaan'   => 'Perayaan',
-	'aksi'	     => 'Aksi',
         'olahraga'   => 'Olahraga',
         'pendidikan' => 'Pendidikan', 
         'seminar'    => 'Seminar',
@@ -57,5 +57,16 @@ class Gallery extends Model
     public function isImage(): bool
     {
         return $this->type === 'image';
+    }
+
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Gallery $g) {
+            // Thumbnail TikTok disimpan di storage/app/public/gallery-thumbs
+            if (preg_match('#/storage/(gallery-thumbs/[\w.\-]+)$#', (string) $g->thumbnail_url, $m)) {
+                Storage::disk('public')->delete($m[1]);
+            }
+        });
     }
 }

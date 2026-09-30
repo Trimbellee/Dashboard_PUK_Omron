@@ -66,8 +66,19 @@
         <a href="{{ route('inventaris.peminjaman') }}"
             class="nav-item {{ request()->routeIs('inventaris.peminjaman*') ? 'active' : '' }}">
             <span class="nav-icon">📋</span>
-            <span>Peminjaman Barang</span>
+            <span>Peminjaman</span>
         </a>
+
+        @if(in_array(session('user')['role'], ['Ketua','Sekretaris']))
+        <div class="nav-section-label" style="margin-top:8px;">Pengaturan</div>
+        <a href="{{ route('pengaturan.index') }}"
+            class="nav-item {{ request()->routeIs('pengaturan.*') || request()->routeIs('insentif.*') || request()->routeIs('kas.*') || request()->routeIs('bidang.*') ? 'active' : ''  }}">
+            <span class="nav-icon">⚙️</span>
+            <span>Pengaturan</span>
+        </a>
+        @endif
+        <!-- END PENGATURAN -->
+
         <!-- END INVENTARIS -->
 
         @if(in_array(session('user')['role'], ['Ketua','Sekretaris']))

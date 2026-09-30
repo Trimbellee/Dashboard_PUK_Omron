@@ -18,7 +18,7 @@
         <div class="lp-editor__main">
             <div class="lp-form__group">
                 <label for="judul">Judul (opsional)</label>
-                <input type="text" id="judul" name="judul" value="{{ old('judul') }}" placeholder="Judul media">
+                <input type="text" id="judul" name="judul" value="{{ old('judul') }}" placeholder="Judul media" maxlength="55">
                 @error('judul') <span class="lp-form__error">{{ $message }}</span> @enderror
             </div>
 
@@ -30,49 +30,64 @@
                         <option value="{{ $value }}" @selected(old('kategori') === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
+                @error('kategori') <span class="lp-form__error">{{ $message }}</span> @enderror
             </div>
 
             <div class="lp-form__group">
                 <label for="kegiatan">Deskripsi / Kegiatan (opsional)</label>
-                <input type="text" id="kegiatan" name="kegiatan" value="{{ old('kegiatan') }}" placeholder="Contoh: Rapat Anggota Tahunan 2026">
+                <input type="text" id="kegiatan" name="kegiatan" value="{{ old('kegiatan') }}" placeholder="Contoh: Rapat Anggota Tahunan 2026" list="kegiatan-list" autocomplete="off">
+                <datalist id="kegiatan-list">
+                    @foreach (($kegiatanList ?? []) as $namaKegiatan)
+                        <option value="{{ $namaKegiatan }}"></option>
+                    @endforeach
+                </datalist>
+                <p class="lp-editor-hint">Gunakan nama yang sama persis untuk mengelompokkan media dalam satu album di galeri publik.</p>
                 @error('kegiatan') <span class="lp-form__error">{{ $message }}</span> @enderror
             </div>
 
             <div class="lp-form__group">
-                <label for="url">Link YouTube atau Google Drive</label>
-                <input type="url" id="url" name="url" x-model="url" @input="processUrl()" placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/file/d/..." required>
+                <label for="url">Link YouTube, Google Drive, atau TikTok</label>
+                <input type="url" id="url" name="url" x-model="url" @input="processUrl()"
+                       placeholder="https://www.youtube.com/watch?v=... / https://drive.google.com/file/d/... / https://www.tiktok.com/@akun/video/..." required>
                 @error('url') <span class="lp-form__error">{{ $message }}</span> @enderror
-                <p class="lp-editor-hint">Masukkan link video YouTube atau link share Google Drive (file/folder).</p>
+                <p class="lp-editor-hint">Masukkan link video YouTube, link share Google Drive (file), atau link video TikTok (link pendek vm.tiktok.com juga bisa).</p>
             </div>
 
             <div class="lp-form__group" x-show="url && !error">
                 <label>Tipe Media</label>
                 <div style="display:flex; gap:16px; margin-top:4px;">
                     <label style="display:flex; align-items:center; gap:6px;">
-                        <input type="radio" name="type" value="image" x-model="mediaType" :checked="mediaType === 'image'"> Gambar
+                        <input type="radio" name="type" value="image" x-model="mediaType" :disabled="source === 'tiktok'"> Gambar
                     </label>
                     <label style="display:flex; align-items:center; gap:6px;">
-                        <input type="radio" name="type" value="video" x-model="mediaType" :checked="mediaType === 'video'"> Video
+                        <input type="radio" name="type" value="video" x-model="mediaType"> Video
                     </label>
                 </div>
+                <p class="lp-editor-hint" x-show="source === 'tiktok'">Link TikTok selalu disimpan sebagai video.</p>
+                @error('type') <span class="lp-form__error">{{ $message }}</span> @enderror
             </div>
 
-            <div class="lp-form__group" x-show="url && source === 'googledrive'">
-                <label for="thumbnail">Thumbnail URL (opsional, untuk Google Drive)</label>
-                <input type="url" id="thumbnail" name="thumbnail" value="{{ old('thumbnail') }}" placeholder="https://... (jika kosong, gunakan placeholder)">
-                <p class="lp-editor-hint">Google Drive tidak menyediakan thumbnail publik, silakan upload gambar kecil dan tempel link-nya, atau biarkan placeholder.</p>
+            <div class="lp-form__group" x-show="url && (source === 'googledrive' || source === 'tiktok')">
+                <label for="thumbnail">Thumbnail URL (opsional)</label>
+                <input type="url" id="thumbnail" name="thumbnail" value="{{ old('thumbnail') }}" placeholder="https://... (jika kosong, otomatis / placeholder)">
+                <p class="lp-editor-hint" x-show="source === 'googledrive'">Thumbnail Google Drive diambil otomatis jika file dibagikan publik. Jika tampil kosong, tempel link gambar sendiri di kolom ini.</p>
+                <p class="lp-editor-hint" x-show="source === 'tiktok'">Thumbnail TikTok diambil otomatis saat disimpan. Isi kolom ini hanya jika ingin memakai gambar sendiri.</p>
+                @error('thumbnail') <span class="lp-form__error">{{ $message }}</span> @enderror
             </div>
         </div>
 
         <aside class="lp-editor__sidebar">
             <div class="lp-editor__panel">
                 <h3 class="lp-editor__panel-title">Preview</h3>
-                <div style="background: var(--bg-surface-alt); border-radius: var(--radius-sm); overflow:hidden; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center;">
+                <div style="background: var(--bg-surface-alt); border-radius: var(--radius-sm); overflow:hidden; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; text-align:center; padding:8px;">
                     <template x-if="thumbnail">
                         <img :src="thumbnail" alt="Thumbnail" style="max-width:100%; max-height:100%; object-fit:contain;">
                     </template>
                     <template x-if="!thumbnail && !error">
-                        <span style="color:var(--text-muted); font-size:14px;">Masukkan link untuk melihat preview</span>
+                        <span style="color:var(--text-muted); font-size:14px;"
+                              x-text="source === 'tiktok'
+                                  ? 'Thumbnail TikTok akan diambil otomatis saat disimpan'
+                                  : 'Masukkan link untuk melihat preview'"></span>
                     </template>
                     <template x-if="error">
                         <span style="color:#d14545; font-size:14px;" x-text="error"></span>
@@ -92,7 +107,7 @@
             source: null,
             externalId: null,
             thumbnail: null,
-            mediaType: 'image',
+            mediaType: @json(old('type', 'image')),
             error: null,
             init() {
                 // Inisialisasi dari old value jika ada (gunakan Blade escape)
@@ -103,15 +118,24 @@
                 }
             },
             processUrl() {
+                this.url = (this.url || '').trim();
+
                 if (!this.url) {
                     this.thumbnail = null;
                     this.source = null;
+                    this.externalId = null;
                     this.error = null;
                     return;
                 }
+
                 // Regex untuk YouTube
                 const ytRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([^&?]+)/;
+                // Regex untuk TikTok (link panjang dan link pendek vm/vt/t)
+                const ttRegex = /tiktok\.com\/(?:[^\/]+\/video|embed(?:\/v2)?|player\/v1)\/(\d+)/;
+                const ttShort = /^https?:\/\/(?:vm|vt)\.tiktok\.com\/|tiktok\.com\/t\//;
+                // Regex untuk Google Drive
                 const gdRegex = /\/file\/d\/([^\/]+)/;
+
                 let match = this.url.match(ytRegex);
                 if (match) {
                     const id = match[1];
@@ -122,21 +146,35 @@
                     this.error = null;
                     return;
                 }
+
+                match = this.url.match(ttRegex);
+                if (match || ttShort.test(this.url)) {
+                    this.source = 'tiktok';
+                    this.externalId = match ? match[1] : null;
+                    // Thumbnail diambil server via oEmbed saat disimpan (browser terblokir CORS)
+                    this.thumbnail = '';
+                    this.mediaType = 'video';
+                    this.error = null;
+                    return;
+                }
+
                 match = this.url.match(gdRegex);
                 if (match) {
                     const id = match[1];
                     this.source = 'googledrive';
                     this.externalId = id;
-                    // Thumbnail tidak bisa otomatis, kosongkan
-                    this.thumbnail = '';
+                    // Thumbnail Drive (endpoint tidak resmi, hanya untuk file publik)
+                    this.thumbnail = `https://drive.google.com/thumbnail?id=${id}&sz=w640`;
                     // Tipe default image, admin bisa ubah
-                    this.mediaType = 'image';
+                    if (this.mediaType !== 'video') this.mediaType = 'image';
                     this.error = null;
                     return;
                 }
+
                 this.thumbnail = null;
                 this.source = null;
-                this.error = 'URL tidak valid. Hanya YouTube dan Google Drive yang didukung.';
+                this.externalId = null;
+                this.error = 'URL tidak valid. Hanya YouTube, Google Drive, dan TikTok yang didukung.';
             }
         }
     }

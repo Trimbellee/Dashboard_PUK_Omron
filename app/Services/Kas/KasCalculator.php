@@ -2,17 +2,19 @@
 namespace App\Services\Kas;
 
 use App\Models\KasMaster;
+use App\Models\BidangMaster;
 use App\Models\LaporanParameter;
 
 class KasCalculator
 {
-    private array $kas = [];      // KODE => baris konfigurasi
-    private array $params = [];   // KODE => nilai
+    private array $kas = [];        // KODE_KAS => baris konfigurasi kas
+    private array $params = [];     // KODE_PARAM => nilai
+    private array $bidangByKas = [];// KODE_KAS_TUJUAN => [KODE_BIDANG, ...]
     private array $in = [];
     private array $memo = [];
     private array $stack = [];
 
-    public function __construct(array $kas, array $params)
+    public function __construct(array $kas, array $params, array $bidang = [])
     {
         foreach ($kas as $k) {
             $k['kode'] = self::norm($k['kode']);
@@ -21,21 +23,32 @@ class KasCalculator
         foreach ($params as $kode => $nilai) {
             $this->params[self::norm($kode)] = (float) $nilai;
         }
+        foreach ($bidang as $b) {
+            $kodeBidang = self::norm($b['kode']);
+            $kodeKas    = self::norm($b['kas_tujuan'] ?? '');
+            if ($kodeKas === '') continue;
+            $this->bidangByKas[$kodeKas][] = $kodeBidang;
+        }
     }
 
-    /** Konfigurasi terkini dari database (aktif saja, urut). */
+    /** Konfigurasi terkini dari database (kas & bidang aktif saja, urut). */
     public static function dariMaster(): self
     {
+        $bidang = BidangMaster::where('aktif', true)->orderBy('urutan')->get()
+            ->map(fn ($b) => ['kode' => $b->kode, 'nama' => $b->nama, 'kas_tujuan' => $b->kas_tujuan])
+            ->all();
+
         return new self(
             KasMaster::where('aktif', true)->orderBy('urutan')->get()->toArray(),
-            LaporanParameter::pluck('nilai', 'kode')->all()
+            LaporanParameter::pluck('nilai', 'kode')->all(),
+            $bidang
         );
     }
 
     /** Konfigurasi dari snapshot laporan. */
     public static function dariKonfigurasi(array $konf): self
     {
-        return new self($konf['kas'] ?? [], $konf['parameter'] ?? []);
+        return new self($konf['kas'] ?? [], $konf['parameter'] ?? [], $konf['bidang'] ?? []);
     }
 
     /** "Dana Sosial" -> DANA_SOSIAL, "Bidang 1" -> BIDANG_1 */
@@ -64,20 +77,21 @@ class KasCalculator
 
     /**
      * @param array $in cos, saldo_awal[kode], debit_manual[kode], kredit_manual[kode],
-     *                  bidang[NAMA], insentif, dana_lain, pajak[kode], sumbangan[kode]
+     *                  bidang[NAMA_BIDANG] (realisasi mentah per nama bidang),
+     *                  insentif, dana_lain, pajak[kode], sumbangan[kode]
      */
     public function hitung(array $in): array
     {
         $this->in = [
-            'cos'          => (float) ($in['cos'] ?? 0),
-            'saldo_awal'   => self::normKeys($in['saldo_awal'] ?? []),
-            'debit_manual' => self::normKeys($in['debit_manual'] ?? []),
-            'kredit_manual'=> self::normKeys($in['kredit_manual'] ?? []),
-            'bidang'       => self::normKeys($in['bidang'] ?? []),
-            'pajak'        => self::normKeys($in['pajak'] ?? []),
-            'sumbangan'    => self::normKeys($in['sumbangan'] ?? []),
-            'insentif'     => (int) ($in['insentif'] ?? 0),
-            'dana_lain'    => (int) ($in['dana_lain'] ?? 0),
+            'cos'           => (float) ($in['cos'] ?? 0),
+            'saldo_awal'    => self::normKeys($in['saldo_awal'] ?? []),
+            'debit_manual'  => self::normKeys($in['debit_manual'] ?? []),
+            'kredit_manual' => self::normKeys($in['kredit_manual'] ?? []),
+            'bidang'        => self::normKeys($in['bidang'] ?? []),
+            'pajak'         => self::normKeys($in['pajak'] ?? []),
+            'sumbangan'     => self::normKeys($in['sumbangan'] ?? []),
+            'insentif'      => (int) ($in['insentif'] ?? 0),
+            'dana_lain'     => (int) ($in['dana_lain'] ?? 0),
         ];
         $this->memo = [];
         $this->stack = [];
@@ -147,6 +161,23 @@ class KasCalculator
         return $d;
     }
 
+    /** Jumlah realisasi semua bidang aktif yang kas_tujuan-nya = $kodeKas. */
+    private function nilaiKreditBidang(string $kodeKas): int
+    {
+        $key = "KREDIT_BIDANG:{$kodeKas}";
+        if (isset($this->memo[$key])) return $this->memo[$key];
+
+        $total = 0;
+        foreach ($this->bidangByKas[$kodeKas] ?? [] as $kodeBidang) {
+            // $this->in['bidang'] diberi kunci NAMA bidang (dinormalisasi),
+            // bukan kode; controller yang memetakan realisasi Pengajuan/Koperasi
+            // ke sini berdasarkan nama bidang yang dipilih di form.
+            $total += $this->in['bidang'][$kodeBidang] ?? 0;
+        }
+
+        return $this->memo[$key] = $total;
+    }
+
     private function rumus(string $src, string $label): int
     {
         try {
@@ -173,10 +204,11 @@ class KasCalculator
 
         return match ($ns) {
             'SALDO', 'DEBIT', 'KREDIT' => $this->nilai($ns, $kode),
-            'PAJAK'     => $this->in['pajak'][$kode] ?? 0,
-            'SUMBANGAN' => $this->in['sumbangan'][$kode] ?? 0,
-            'BIDANG'    => $this->in['bidang'][$kode] ?? 0,
-            default     => throw new FormulaException("Awalan '{$ns}' tidak dikenal"),
+            'PAJAK'         => $this->in['pajak'][$kode] ?? 0,
+            'SUMBANGAN'     => $this->in['sumbangan'][$kode] ?? 0,
+            'BIDANG'        => $this->in['bidang'][$kode] ?? 0,
+            'KREDIT_BIDANG' => $this->nilaiKreditBidang($kode),
+            default         => throw new FormulaException("Awalan '{$ns}' tidak dikenal"),
         };
     }
 }

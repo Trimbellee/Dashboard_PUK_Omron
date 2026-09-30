@@ -18,6 +18,7 @@ use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\AnggotaDashboardController;
 use App\Http\Controllers\InventarisController;
 use App\Http\Controllers\InventarisPeminjamanController;
+use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\Public\BeritaController;
 use App\Http\Controllers\Public\KontakController;
 use App\Http\Controllers\Public\LandingPageController;
@@ -44,6 +45,8 @@ use App\Http\Controllers\AnggotaRfidPairingController;
 use App\Http\Controllers\Public\Admin\SesiAbsensiController;
 use App\Http\Controllers\InsentifController;
 use App\Http\Controllers\KasSettingController;
+use App\Http\Controllers\BidangSettingController;
+
 
 
 
@@ -434,6 +437,8 @@ Route::middleware(['authcheck'])->group(function () {
     Route::post('/laporan-bendahara/reopen', [LaporanBendaharaController::class, 'reopen'])
     ->name('laporan-bendahara.reopen');
 
+    Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+
     Route::get('/pengaturan/insentif',  [InsentifController::class, 'index'])->name('insentif.index');
     Route::post('/pengaturan/insentif', [InsentifController::class, 'sync'])->name('insentif.sync');
     Route::get('/laporan-bendahara/insentif-master', [LaporanBendaharaController::class, 'insentifMaster'])
@@ -446,6 +451,10 @@ Route::middleware(['authcheck'])->group(function () {
     ->name('laporan-bendahara.hitung');
     Route::post('/laporan-bendahara/muat-konfigurasi', [LaporanBendaharaController::class, 'muatKonfigurasi'])
     ->name('laporan-bendahara.muat-konfigurasi');
+
+    Route::get('/pengaturan/bidang',[BidangSettingController::class, 'index'])->name('bidang.index');
+    Route::post('/pengaturan/bidang',[BidangSettingController::class, 'sync'])->name('bidang.sync');
+    Route::post('/pengaturan/bidang/validasi', [BidangSettingController::class, 'validasi'])->name('bidang.validasi');
 
     /*
     |---------------------------------------------------------------

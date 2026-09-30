@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\KasMaster;
 use App\Models\LaporanBendahara;
 use App\Models\LaporanParameter;
+use App\Models\BidangMaster;
 use App\Services\Kas\Formula;
 use App\Services\Kas\FormulaException;
 use App\Services\Kas\KasCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+
 
 class KasSettingController extends Controller
 {
@@ -39,10 +41,10 @@ class KasSettingController extends Controller
         if (!$this->bolehLihat()) abort(403, 'Tidak diizinkan mengakses halaman ini');
 
         return view('kas.index', [
-            'kas'         => KasMaster::orderBy('urutan')->get(),
-            'params'      => LaporanParameter::orderBy('id')->get(['kode', 'nama', 'nilai']),
-            'bidangTetap' => self::BIDANG_TETAP,
-            'bolehUbah'   => $this->bolehUbah(),
+            'kas'       => KasMaster::orderBy('urutan')->get(),
+            'params'    => LaporanParameter::orderBy('id')->get(['kode', 'nama', 'nilai']),
+            'bidang'    => BidangMaster::orderBy('urutan')->get(['kode', 'nama', 'kas_tujuan', 'aktif']),
+            'bolehUbah' => $this->bolehUbah(),
         ]);
     }
 
@@ -152,10 +154,10 @@ class KasSettingController extends Controller
                     }
                     [$ns, $kd] = explode('.', $v, 2);
                     $ok = match ($ns) {
-                        'SALDO', 'DEBIT', 'KREDIT' => in_array($kd, $kodeAktif),
-                        'PAJAK', 'SUMBANGAN'       => in_array($kd, $kodeSemua),
-                        'BIDANG'                   => in_array($kd, $bidang),
-                        default                    => false,
+                        'SALDO', 'DEBIT', 'KREDIT', 'KREDIT_BIDANG' => in_array($kd, $kodeAktif),
+                        'PAJAK', 'SUMBANGAN'                        => in_array($kd, $kodeSemua),
+                        'BIDANG'                                    => in_array($kd, $bidang),
+                        default                                     => false,
                     };
                     if (!$ok) {
                         $e('kas', $i, $field, "'{$v}' tidak dikenal, atau merujuk kas yang tidak aktif");
@@ -176,13 +178,15 @@ class KasSettingController extends Controller
         return $err;
     }
 
-    private function kalkulator(array $kas, array $params): KasCalculator
+    private function kalkulator(array $kas, array $params, array $bidang = []): KasCalculator
     {
-        $aktif = array_values(array_filter($kas, fn ($k) => $k['aktif']));
-        $map   = [];
+        $kasAktif    = array_values(array_filter($kas, fn ($k) => $k['aktif']));
+        $bidangAktif = array_values(array_filter($bidang, fn ($b) => $b['aktif'] ?? true));
+
+        $map = [];
         foreach ($params as $p) $map[$p['kode']] = $p['nilai'];
 
-        return new KasCalculator($aktif, $map);
+        return new KasCalculator($kasAktif, $map, $bidangAktif);
     }
 
     /** Peringatan (bukan blokir) saat item aktif dinonaktifkan tapi saldonya masih ada. */
@@ -235,8 +239,9 @@ class KasSettingController extends Controller
         }
 
         try {
-            $input = (array) $request->input('input', []);
-            $hasil = $this->kalkulator($kas, $params)->hitung($input);
+            $bidang = $request->input('bidang', []); // dikirim dari form simulator jika tersedia
+            $input  = (array) $request->input('input', []);
+            $hasil  = $this->kalkulator($kas, $params, $bidang)->hitung($input);
         } catch (FormulaException $ex) {
             return response()->json([
                 'success' => false,

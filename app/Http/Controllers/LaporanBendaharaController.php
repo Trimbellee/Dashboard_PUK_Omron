@@ -635,11 +635,19 @@ class LaporanBendaharaController extends Controller
             }
         }
 
-        // total realisasi per bidang dihitung server dari database, bukan dari browser
-        $bidang = [];
+        // total realisasi per bidang (nama) dihitung server dari database
+        $realisasiPerNama = [];
         foreach ($this->ambilPerBidang($bulan, $tahun) as $nama => $rows) {
-            $n = KasCalculator::norm($nama);
-            $bidang[$n] = ($bidang[$n] ?? 0) + array_sum(array_column($rows, 'aktual'));
+            $realisasiPerNama[strtoupper(trim($nama))] = array_sum(array_column($rows, 'aktual'));
+        }
+
+        // petakan nama bidang -> KODE bidang di bidang_master, dinormalisasi
+        // (KREDIT_BIDANG.* di rumus butuh kunci berupa kode bidang, bukan nama)
+        $bidang = [];
+        foreach ($konf['bidang'] ?? [] as $b) {
+            $namaUpper = strtoupper(trim($b['nama']));
+            $kodeNorm  = KasCalculator::norm($b['kode']);
+            $bidang[$kodeNorm] = $realisasiPerNama[$namaUpper] ?? 0;
         }
 
         return KasCalculator::dariKonfigurasi($konf)->hitung([

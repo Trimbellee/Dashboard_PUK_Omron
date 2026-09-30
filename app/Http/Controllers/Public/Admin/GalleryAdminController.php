@@ -45,48 +45,68 @@ class GalleryAdminController extends Controller
     public function create(): View
     {
         abort_unless(PermissionHelper::can('create_gallery'), 403);
-        return view('landing-page.admin.galeri.form');
+
+        // Saran nama kegiatan yang sudah ada (datalist) supaya album tidak terpecah karena salah ketik
+        $kegiatanList = Gallery::query()
+            ->whereNotNull('kegiatan')
+            ->where('kegiatan', '!=', '')
+            ->distinct()
+            ->orderBy('kegiatan')
+            ->pluck('kegiatan');
+
+        return view('landing-page.admin.galeri.form', compact('kegiatanList'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         abort_unless(PermissionHelper::can('create_gallery'), 403);
 
-        // Validasi input baru
         $validated = $request->validate([
             'judul'       => ['nullable', 'string', 'max:55'],
             'kegiatan'    => ['nullable', 'string', 'max:255'],
-            'kategori'    => ['nullable', 'string', 'in:' . implode(',', array_keys(\App\Models\Gallery::KATEGORI_LIST))],
-            'url'         => ['required', 'url'],
+            'kategori'    => ['nullable', 'string', 'in:' . implode(',', array_keys(Gallery::KATEGORI_LIST))],
+            'url'         => ['required', 'url', 'max:2000'],
             'type'        => ['required', 'in:image,video'],
-            'thumbnail'   => ['nullable', 'url'],
+            'thumbnail'   => ['nullable', 'url', 'max:2000'],
         ]);
 
-        // Proses URL dengan MediaHelper
+        // Proses URL dengan MediaHelper (YouTube, Google Drive, TikTok)
         $media = MediaHelper::processUrl($validated['url']);
         if (!$media) {
             return back()
                 ->withInput()
-                ->withErrors(['url' => 'URL tidak valid. Hanya mendukung YouTube dan Google Drive.']);
+                ->withErrors(['url' => 'URL tidak valid. Hanya mendukung YouTube, Google Drive, dan TikTok.']);
         }
 
-        // Override type dari pilihan admin
-        $media['type'] = $validated['type'];
+        // Cegah media dobel (sumber + ID yang sama)
+        $duplikat = Gallery::where('source', $media['source'])
+            ->where('external_id', $media['external_id'])
+            ->exists();
+
+        if ($duplikat) {
+            return back()
+                ->withInput()
+                ->withErrors(['url' => 'Media ini sudah pernah ditambahkan.']);
+        }
+
+        // Override type dari pilihan admin; TikTok selalu video
+        $media['type'] = $media['source'] === 'tiktok'
+            ? 'video'
+            : $validated['type'];
 
         // Jika admin memberikan thumbnail manual, gunakan itu
         if (!empty($validated['thumbnail'])) {
             $media['thumbnail_url'] = $validated['thumbnail'];
         }
 
-        // Jika thumbnail_url masih kosong (Google Drive), set placeholder
+        // Jika thumbnail_url masih kosong (Google Drive / TikTok gagal ambil), set placeholder
         if (empty($media['thumbnail_url'])) {
             $media['thumbnail_url'] = asset('images/placeholder-media.png');
         }
 
-        // Simpan ke database
-        $gallery = Gallery::create([
-            'judul'         => $validated['judul'],
-            'kegiatan'      => $validated['kegiatan'],
+        Gallery::create([
+            'judul'         => $validated['judul'] ?? null,
+            'kegiatan'      => $validated['kegiatan'] ?? null,
             'kategori'      => $validated['kategori'] ?? null,
             'type'          => $media['type'],
             'source'        => $media['source'],
@@ -171,11 +191,15 @@ class GalleryAdminController extends Controller
         abort_unless($hasAccess, 403, 'Anda tidak berhak mengelola media ini.');
     }
 
-    // Opsional: endpoint untuk preview via AJAX (jika dibutuhkan)
+    // Opsional: endpoint untuk preview via AJAX (jika dibutuhkan).
+    // Thumbnail TikTok tidak diunduh di sini (false), hanya mengembalikan URL aslinya.
     public function preview(Request $request)
     {
-        $url = $request->query('url');
-        $data = MediaHelper::processUrl($url);
+        abort_unless(PermissionHelper::can('create_gallery'), 403);
+
+        $url = (string) $request->query('url', '');
+        $data = $url !== '' ? MediaHelper::processUrl($url, false) : null;
+
         return response()->json($data ?: ['error' => 'Invalid URL']);
     }
 }
