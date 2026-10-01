@@ -107,6 +107,10 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::post('/galeri/{foto}/submit', [GalleryAdminController::class, 'submit'])->name('galeri.submit');
     Route::post('/galeri/{foto}/review-bidang5', [GalleryAdminController::class, 'reviewBidang5'])->name('galeri.review-bidang5');
     Route::post('/galeri/{foto}/approve-sekretaris', [GalleryAdminController::class, 'approveSekretaris'])->name('galeri.approve-sekretaris');
+    Route::get('galeri/{foto}/edit', [GalleryAdminController::class, 'edit'])->name('galeri.edit');
+    Route::put('galeri/{foto}', [GalleryAdminController::class, 'update'])->name('galeri.update');
+    Route::get('galeri-kegiatan', [GalleryAdminController::class, 'kegiatan'])->name('galeri.kegiatan');
+    Route::post('galeri-kegiatan/rename', [GalleryAdminController::class, 'renameKegiatan'])->name('galeri.rename-kegiatan');
 
 
     Route::prefix('kegiatan')->name('kegiatan.')->group(function () { 

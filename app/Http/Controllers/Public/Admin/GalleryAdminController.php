@@ -9,6 +9,8 @@ use App\Helpers\PermissionHelper;
 use App\Models\Gallery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class GalleryAdminController extends Controller
@@ -106,7 +108,7 @@ class GalleryAdminController extends Controller
 
         Gallery::create([
             'judul'         => $validated['judul'] ?? null,
-            'kegiatan'      => $validated['kegiatan'] ?? null,
+            'kegiatan'      => self::normalizeKegiatan($validated['kegiatan'] ?? null),
             'kategori'      => $validated['kategori'] ?? null,
             'type'          => $media['type'],
             'source'        => $media['source'],
@@ -189,6 +191,154 @@ class GalleryAdminController extends Controller
             || PermissionHelper::can('approve_gallery');
 
         abort_unless($hasAccess, 403, 'Anda tidak berhak mengelola media ini.');
+    }
+
+    // ------------------------------------------------------------------
+    //  EDIT & UPDATE
+    // ------------------------------------------------------------------
+
+    public function edit(Gallery $foto): View
+    {
+        abort_unless($this->canEdit($foto), 403, 'Anda tidak berhak mengedit media ini.');
+
+        return view('landing-page.admin.galeri.edit', [
+            'foto'         => $foto,
+            'kegiatanList' => $this->daftarKegiatan(),
+        ]);
+    }
+
+    public function update(Request $request, Gallery $foto): RedirectResponse
+    {
+        abort_unless($this->canEdit($foto), 403, 'Anda tidak berhak mengedit media ini.');
+
+        $data = $request->validate([
+            'judul'           => ['nullable', 'string', 'max:55'],
+            'kegiatan'        => ['nullable', 'string', 'max:255'],
+            'kategori'        => ['nullable', 'string', 'in:' . implode(',', array_keys(Gallery::KATEGORI_LIST))],
+            'type'            => ['nullable', 'in:image,video'],
+            'thumbnail'       => ['nullable', 'url', 'max:2000'],
+            'reset_thumbnail' => ['nullable', 'boolean'],
+        ]);
+
+        // Tipe hanya bisa diubah untuk Google Drive; YouTube dan TikTok selalu video
+        $type = $foto->source === 'googledrive'
+            ? ($data['type'] ?? $foto->type)
+            : 'video';
+
+        // Thumbnail: kosong = tidak diubah; "kembalikan otomatis" hanya untuk YouTube dan Drive
+        $oldThumb = (string) $foto->thumbnail_url;
+        $newThumb = $oldThumb;
+
+        if ($request->boolean('reset_thumbnail') && $foto->source === 'youtube') {
+            $newThumb = MediaHelper::getYouTubeThumbnail($foto->external_id);
+        } elseif ($request->boolean('reset_thumbnail') && $foto->source === 'googledrive') {
+            $newThumb = MediaHelper::getGoogleDriveThumbnail($foto->external_id);
+        } elseif (!empty($data['thumbnail'])) {
+            $newThumb = $data['thumbnail'];
+        }
+
+        if ($newThumb !== $oldThumb) {
+            $this->deleteLocalThumbnail($oldThumb);
+        }
+
+        $foto->update([
+            'judul'         => $data['judul'] ?? null,
+            'kegiatan'      => self::normalizeKegiatan($data['kegiatan'] ?? null),
+            'kategori'      => $data['kategori'] ?? null,
+            'type'          => $type,
+            'thumbnail_url' => $newThumb,
+        ]);
+
+        return redirect()
+            ->route('admin.galeri.index')
+            ->with('success', 'Perubahan media berhasil disimpan.');
+    }
+
+    // ------------------------------------------------------------------
+    //  KELOLA KEGIATAN (ALBUM): ganti nama / gabungkan massal
+    // ------------------------------------------------------------------
+
+    public function kegiatan(): View
+    {
+        abort_unless(PermissionHelper::can('approve_gallery'), 403);
+
+        $daftar = Gallery::query()
+            ->whereNotNull('kegiatan')
+            ->where('kegiatan', '!=', '')
+            ->select(
+                'kegiatan',
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(status = 'published') as published")
+            )
+            ->groupBy('kegiatan')
+            ->orderBy('kegiatan')
+            ->get();
+
+        return view('landing-page.admin.galeri.kegiatan', compact('daftar'));
+    }
+
+    public function renameKegiatan(Request $request): RedirectResponse
+    {
+        abort_unless(PermissionHelper::can('approve_gallery'), 403);
+
+        $data = $request->validate([
+            'dari' => ['required', 'string', 'max:255'],
+            'ke'   => ['required', 'string', 'max:255'],
+        ]);
+
+        $ke = self::normalizeKegiatan($data['ke']);
+        if ($ke === null) {
+            return back()->withErrors(['ke' => 'Nama kegiatan baru tidak boleh kosong.']);
+        }
+
+        // Pencocokan mengikuti collation database (umumnya tidak peka huruf besar/kecil),
+        // jadi varian ejaan seperti "Rapat Anggota" dan "rapat anggota" ikut tergabung.
+        $jumlah = Gallery::where('kegiatan', $data['dari'])->update(['kegiatan' => $ke]);
+
+        return back()->with('success', "{$jumlah} media dipindahkan ke album \"{$ke}\".");
+    }
+
+    // ------------------------------------------------------------------
+    //  HELPER
+    // ------------------------------------------------------------------
+
+    /** Pembuat media boleh mengedit draft/revisi miliknya; approver boleh mengedit semuanya. */
+    private function canEdit(Gallery $foto): bool
+    {
+        if (PermissionHelper::can('approve_gallery')) {
+            return true;
+        }
+
+        return $foto->created_by === session('anggota.id')
+            && in_array($foto->status, ['draft', 'revisi'], true);
+    }
+
+    private function daftarKegiatan()
+    {
+        return Gallery::query()
+            ->whereNotNull('kegiatan')
+            ->where('kegiatan', '!=', '')
+            ->distinct()
+            ->orderBy('kegiatan')
+            ->pluck('kegiatan');
+    }
+
+    /** Rapikan spasi ganda dan spasi di tepi; string kosong menjadi null. */
+    private static function normalizeKegiatan(?string $nama): ?string
+    {
+        if ($nama === null) {
+            return null;
+        }
+        $nama = trim(preg_replace('/\s+/u', ' ', $nama));
+
+        return $nama === '' ? null : $nama;
+    }
+
+    private function deleteLocalThumbnail(?string $url): void
+    {
+        if ($url && preg_match('#/storage/(gallery-thumbs/[\w.\-]+)$#', $url, $m)) {
+            Storage::disk('public')->delete($m[1]);
+        }
     }
 
     // Opsional: endpoint untuk preview via AJAX (jika dibutuhkan).

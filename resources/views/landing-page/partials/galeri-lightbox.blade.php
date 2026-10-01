@@ -148,6 +148,9 @@
         transition: background 0.2s ease;
     }
     .lp-lb__link:hover { background: rgba(255, 255, 255, 0.28); }
+    .lp-lb__link--wa { background: #25d366; color: #06280f; }
+    .lp-lb__link--wa:hover { background: #3be07b; }
+    .lp-lb__link svg { flex-shrink: 0; }
 
     @media (max-width: 640px) {
         .lp-lb { padding: 56px 8px 120px; }
@@ -203,6 +206,16 @@
                    x-text="current ? [current.kegiatan, current.kategori, current.tanggal].filter(Boolean).join(' · ') : ''"></p>
             </div>
             <div class="lp-lb__actions">
+                {{-- HP/browser yang mendukung Web Share API: buka menu bagikan bawaan (WhatsApp, Telegram, dll.) --}}
+                <button type="button" class="lp-lb__link lp-lb__link--wa" x-show="canShare" @click="nativeShare()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+                    Bagikan
+                </button>
+                {{-- Desktop: langsung ke WhatsApp --}}
+                <a class="lp-lb__link lp-lb__link--wa" x-show="!canShare" :href="whatsappUrl" target="_blank" rel="noopener">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+                    WhatsApp
+                </a>
                 <button type="button" class="lp-lb__link" @click="copyLink()">
                     <span x-text="copied ? 'Tersalin ✓' : 'Salin link'"></span>
                 </button>
@@ -244,8 +257,11 @@
             syncUrl: !!opts.syncUrl,
             shareBase: opts.shareBase,
             copied: false,
+            canShare: false,
 
             init() {
+                this.canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
                 this.$watch('openId', (v) => {
                     document.body.style.overflow = v ? 'hidden' : '';
 
@@ -300,6 +316,31 @@
             close() { this.openId = null; },
             prev() { if (this.hasPrev) this.openId = this.items[this.index - 1].id; },
             next() { if (this.hasNext) this.openId = this.items[this.index + 1].id; },
+
+            get shareText() {
+                const c = this.current;
+                if (!c) return '';
+                const nama = c.judul || c.kegiatan || 'Media galeri';
+                return `${nama} — Galeri PUK OMRON`;
+            },
+
+            get whatsappUrl() {
+                return `https://wa.me/?text=${encodeURIComponent(this.shareText + '\n' + this.shareUrl)}`;
+            },
+
+            async nativeShare() {
+                if (!this.current) return;
+                try {
+                    await navigator.share({
+                        title: this.shareText,
+                        text: this.shareText,
+                        url: this.shareUrl,
+                    });
+                } catch (e) {
+                    // AbortError = pengguna menutup menu bagikan; selain itu pakai salin link
+                    if (!e || e.name !== 'AbortError') this.copyLink();
+                }
+            },
 
             async copyLink() {
                 const url = this.shareUrl;

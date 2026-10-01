@@ -16,9 +16,14 @@
 
     <div class="lp-admin-head">
         <h1 class="lp-admin-head__title">Kelola Galeri</h1>
-        @if (PermissionHelper::can('create_gallery'))
-            <a href="{{ route('admin.galeri.create') }}" class="lp-btn lp-btn--primary">+ Tambah Media</a>
-        @endif
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            @if (PermissionHelper::can('approve_gallery'))
+                <a href="{{ route('admin.galeri.kegiatan') }}" class="lp-btn lp-btn--ghost">Kelola Kegiatan</a>
+            @endif
+            @if (PermissionHelper::can('create_gallery'))
+                <a href="{{ route('admin.galeri.create') }}" class="lp-btn lp-btn--primary">+ Tambah Media</a>
+            @endif
+        </div>
     </div>
 
     <div class="lp-stat-row">
@@ -179,6 +184,10 @@
 
                     <div class="lp-admin-galeri-card__actions">
                         {{-- Creator: submit/hapus draft & revisi miliknya sendiri --}}
+
+                        @if (PermissionHelper::can('approve_gallery') || ($foto->created_by === $userId && in_array($foto->status, ['draft', 'revisi'], true)))
+                            <a href="{{ route('admin.galeri.edit', $foto) }}" class="lp-pill-btn">Edit</a>
+                        @endif  
                         @if (PermissionHelper::can('create_gallery') && $foto->created_by === $userId && in_array($foto->status, ['draft', 'revisi']))
                             <form action="{{ route('admin.galeri.submit', $foto) }}" method="POST">
                                 @csrf

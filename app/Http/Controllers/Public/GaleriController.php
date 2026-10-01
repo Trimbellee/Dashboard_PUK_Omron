@@ -49,8 +49,10 @@ class GaleriController extends Controller
             $query->latest('published_at')->orderByDesc('id');
         }
 
-        // "media" tidak ikut di link pagination supaya lightbox tidak terbuka ulang
-        $galeriList = $query->paginate(12)->appends($request->except(['page', 'media']));
+        // "media" tidak ikut di link pagination; fragment "#hasil" menjaga posisi scroll di area galeri
+        $galeriList = $query->paginate(12)
+            ->appends($request->except(['page', 'media']))
+            ->fragment('hasil');
 
         // Album = kegiatan yang sama dikelompokkan (15 terbaru)
         $albums = Gallery::published()
@@ -62,6 +64,23 @@ class GaleriController extends Controller
             ->limit(15)
             ->get();
 
+        // Statistik hero (tidak terpengaruh filter)
+        $typeCounts = Gallery::published()
+            ->select('type', DB::raw('COUNT(*) as total'))
+            ->groupBy('type')
+            ->pluck('total', 'type');
+
+        $stats = [
+            'total' => (int) $typeCounts->sum(),
+            'image' => (int) ($typeCounts['image'] ?? 0),
+            'video' => (int) ($typeCounts['video'] ?? 0),
+            'album' => (int) Gallery::published()
+                ->whereNotNull('kegiatan')
+                ->where('kegiatan', '!=', '')
+                ->distinct()
+                ->count('kegiatan'),
+        ];
+
         // Deep-link ?media=ID (media boleh berada di halaman lain)
         $focusId    = $request->integer('media');
         $focusMedia = $focusId ? Gallery::published()->find($focusId) : null;
@@ -69,6 +88,7 @@ class GaleriController extends Controller
         return view('landing-page.galeri.index', [
             'galeriList' => $galeriList,
             'albums'     => $albums,
+            'stats'      => $stats,
             'focusMedia' => $focusMedia,
             'filters'    => [
                 'q'        => $search,
