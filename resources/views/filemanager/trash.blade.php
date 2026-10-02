@@ -1,1004 +1,263 @@
 @extends('layouts.app')
 
-@section('title','Trash')
+@section('title', 'Trash')
 
 @section('content')
 
-<div class="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
+<div class="tr" id="tr">
 
-    {{-- HEADER --}}
-    <div class="shrink-0 flex flex-col gap-4 mb-3">
-
-        <div class="flex items-start justify-between gap-4">
-
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                    🗑 Trash
-                </h1>
-
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    File yang dihapus akan tersimpan sementara sebelum dihapus permanen
-                </p>
-            </div>
-
-            <div class="flex items-center gap-2 shrink-0">
-
-                <a href="/file-manager"
-                class="h-10 px-4 rounded-xl border
-                       border-gray-200 dark:border-gray-700
-                       bg-white dark:bg-gray-900
-                       hover:bg-gray-100 dark:hover:bg-gray-800
-                       flex items-center text-sm transition">
-
-                    ← Kembali
-
-                </a>
-
-            </div>
-
+    <div class="tr-head">
+        <div>
+            <h1 class="tr-title">Trash</h1>
+            <p class="tr-sub">Item yang dihapus disimpan 30 hari sebelum dihapus permanen.</p>
         </div>
-
-        {{-- TOP BAR --}}
-        <div class="flex items-center justify-between gap-3">
-
-            {{-- SEARCH --}}
-            <div class="relative w-[220px] sm:w-[260px] md:w-[300px]">
-
-                <input type="text"
-                id="searchInput"
-                placeholder="Cari file di trash..."
-                class="w-full h-11 rounded-2xl
-                    border border-gray-200 dark:border-gray-700
-                    bg-white dark:bg-gray-900
-                    px-4 pr-10 text-sm
-                    outline-none
-                    focus:ring-2 focus:ring-red-500/30">
-
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    🔍
-                </div>
-
-            </div>
-
-            {{-- RIGHT AREA --}}
-            <div class="relative h-11 shrink-0">
-
-                {{-- VIEW MODE --}}
-                <div id="viewModeBar"
-                class="flex items-center gap-2 transition duration-200">
-
-                    <button id="listBtn"
-                    onclick="setViewMode('list')"
-                    class="view-btn h-11 px-4 rounded-xl border
-                        border-gray-200 dark:border-gray-700
-                        bg-white dark:bg-gray-900 text-sm
-                        transition-all duration-200">
-
-                        ☰ List
-
-                    </button>
-
-                    <button id="gridBtn"
-                    onclick="setViewMode('grid')"
-                    class="view-btn h-11 px-4 rounded-xl border
-                        border-gray-200 dark:border-gray-700
-                        bg-white dark:bg-gray-900 text-sm
-                        transition-all duration-200">
-
-                        ⊞ Grid
-
-                    </button>
-
-                </div>
-
-                {{-- BULK BAR --}}
-                <div id="bulkBar"
-                class="hidden absolute inset-0 z-20
-                    items-center justify-between
-                    h-11 pl-1 pr-1.5
-                    rounded-xl
-                    border border-gray-200 dark:border-gray-700
-                    bg-white dark:bg-[#202124]
-                    shadow-sm dark:text-gray-700">
-
-                    {{-- LEFT --}}
-                    <div class="flex items-center min-w-0">
-
-                        <button onclick="clearSelection()"
-                        class="w-9 h-9 rounded-full
-                               hover:bg-gray-100 dark:hover:bg-white/10
-                               flex items-center justify-center
-                               text-lg transition">
-
-                            ✕
-
-                        </button>
-
-                        <div class="ml-1 text-sm font-medium whitespace-nowrap">
-                            <span id="selectedCount">0</span> dipilih
-                        </div>
-
-                    </div>
-
-                    {{-- RIGHT --}}
-                    <div class="relative">
-
-                        <button id="bulkMenuBtn"
-                        onclick="toggleBulkMenu()"
-                        class="w-9 h-9 rounded-full
-                               hover:bg-gray-100 dark:hover:bg-white/10
-                               flex items-center justify-center
-                               text-xl transition">
-
-                            ⋮
-
-                        </button>
-
-                        {{-- DROPDOWN --}}
-                        <div id="bulkDropdown"
-                        class="hidden absolute right-0 top-11 z-50
-                               w-52 overflow-hidden
-                               rounded-2xl
-                               border border-gray-200 dark:border-gray-700
-                               bg-white dark:bg-[#2b2c2f]
-                               shadow-xl">
-
-                            <button onclick="bulkRestore()"
-                            class="w-full px-4 py-3
-                                   flex items-center gap-3
-                                   text-sm
-                                   hover:bg-gray-100 dark:hover:bg-white/10
-                                   transition">
-
-                                <span class="text-lg">↩</span>
-                                Restore
-
-                            </button>
-
-                            <button onclick="bulkDelete()"
-                            class="w-full px-4 py-3
-                                   flex items-center gap-3
-                                   text-sm text-red-600 dark:text-red-400
-                                   hover:bg-red-50 dark:hover:bg-red-500/10
-                                   transition">
-
-                                <span class="text-lg">🗑</span>
-                                Hapus Permanen
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+        <div class="tr-actions">
+            <a href="/file-manager" class="btn btn-ghost">← Kembali</a>
+            <button type="button" class="btn tr-danger" id="emptyBtn">Kosongkan Trash</button>
         </div>
-
     </div>
 
-
-    {{-- BODY --}}
-<div class="flex-1 overflow-hidden">
-
-        {{-- EMPTY --}}
-        @if($files->count() == 0)
-
-        <div class="h-full flex flex-col items-center justify-center text-center">
-
-            <div class="text-8xl opacity-60 mb-5">
-                🗑
-            </div>
-
-            <h2 class="text-2xl font-bold mb-2">
-                Trash Kosong
-            </h2>
-
-            <p class="text-gray-500 dark:text-gray-400 max-w-md">
-                File yang dihapus akan muncul di sini sebelum dihapus permanen.
-            </p>
-
+    <div class="tr-toolbar">
+        <label class="tr-search">
+            <input type="search" id="q" placeholder="Cari di Trash…" autocomplete="off" aria-label="Cari di Trash">
+        </label>
+        <div class="tr-bulk" id="bulk">
+            <label class="tr-allwrap"><input type="checkbox" id="chkAll"> <span><b id="selCount">0</b> dipilih</span></label>
+            <span class="tr-spacer"></span>
+            <button type="button" class="btn btn-ghost" id="bulkRestore">Pulihkan</button>
+            <button type="button" class="btn tr-danger" id="bulkDelete">Hapus permanen</button>
         </div>
-
-        @else
-
-        {{-- SCROLL AREA --}}
-        <div id="trashContainer"
-        class="h-full overflow-y-auto overflow-x-hidden">
-
-            {{-- LIST VIEW --}}
-            <div id="listView"
-            class="relative">
-
-                {{-- spacer --}}
-                <div id="virtualSpacer"></div>
-
-                {{-- rendered items --}}
-                <div id="virtualItems"
-                class="absolute top-0 left-0 w-full"></div>
-
-            </div>
-
-            <script id="trashData" type="application/json">
-            [
-            @foreach($files as $f)
-            {
-                "id": {{ $f->id }},
-                "name": @json($f->name),
-                "type": @json($f->type),
-                "deleted": @json($f->deleted_at?->diffForHumans()),
-                "remaining": "{{ max(0, ceil(30 - $f->deleted_at->diffInDays(now(), false))) }}",
-                "size": "{{ $f->type === 'file'
-                    ? number_format(
-                        Storage::disk('public')->exists($f->path)
-                        ? Storage::disk('public')->size($f->path)/1024
-                        : 0,1)
-                    : '' }}"
-            }
-            @if(!$loop->last),@endif
-            @endforeach
-            ]
-            </script>
-
-            {{-- GRID VIEW --}}
-            <div id="gridView"
-            class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-0">
-
-                @foreach($files as $f)
-
-                <div class="trash-item group
-                            rounded-3xl p-4
-                            border border-gray-200 dark:border-gray-800
-                            bg-white dark:bg-gray-900
-                            hover:border-red-300 dark:hover:border-red-700
-                            hover:shadow-md transition"
-
-                    data-name="{{ strtolower($f->name) }}">
-
-                    <div class="flex items-start justify-between mb-4">
-
-                        <input type="checkbox"
-                        class="select-item w-4 h-4 rounded"
-                        value="{{ $f->id }}">
-
-                        <div class="text-4xl">
-                            @if($f->type === 'folder')
-                                📁
-                            @else
-                                📄
-                            @endif
-                        </div>
-
-                    </div>
-
-                    <div class="font-medium truncate mb-2">
-                        {{ $f->name }}
-                    </div>
-
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-
-                        Dihapus {{ $f->deleted_at?->diffForHumans() }}
-                        •
-                        Auto dihapus
-                        {{ max(0, ceil(30 - $f->deleted_at->diffInDays(now(), false))) }} hari lagi
-
-                    </div>
-
-                </div>
-
-                @endforeach
-
-            </div>
-
-        </div>
-
-        @endif
-
     </div>
 
-</div>
-
-<div id="confirmModal"
-     class="hidden fixed inset-0 z-[99999]
-            bg-black/40 backdrop-blur-sm
-            flex items-center justify-center">
-
-    <div class="w-[90%] max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-5">
-
-        <h2 class="text-lg font-semibold mb-2">
-            Konfirmasi
-        </h2>
-
-        <p id="confirmMessage"
-           class="text-sm text-gray-600 dark:text-gray-300 mb-5">
-        </p>
-
-        <div class="flex justify-end gap-2">
-
-            <button onclick="closeConfirm()"
-                    class="px-4 py-2 rounded-xl text-sm
-                           bg-gray-100 dark:bg-gray-800 hover:opacity-80">
-                Batal
-            </button>
-
-            <button id="confirmOkBtn"
-                    class="px-4 py-2 rounded-xl text-sm
-                           bg-red-600 text-white hover:bg-red-700">
-                Hapus
-            </button>
-
+    <div class="tr-panel">
+        <div class="tr-listhead" id="listHead">
+            <label class="tr-allwrap"><input type="checkbox" id="chkAllHead" aria-label="Pilih semua"></label>
+            <span></span><span>Nama</span><span class="tr-hide-sm">Sisa waktu</span><span></span>
         </div>
+        <div id="list"></div>
+        <div class="tr-empty" id="empty"></div>
     </div>
 </div>
 
-<style>
-html,
-body{
-    height:100%;
-    overflow:hidden;
-}
-
-#trashContainer{
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-}
-
-#trashContainer::-webkit-scrollbar{
-    display:none;
-}
-
-/* penting */
-#listView,
-#gridView{
-    padding-bottom:0 !important;
-    margin-bottom:0 !important;
-}
-
-</style>
+<div class="tr-modal" id="confirmModal">
+    <div class="tr-box">
+        <h2 id="cTitle">Konfirmasi</h2>
+        <p id="cMsg"></p>
+        <div class="tr-box-actions">
+            <button type="button" class="btn btn-ghost" id="cCancel">Batal</button>
+            <button type="button" class="btn tr-danger" id="cOk">Hapus</button>
+        </div>
+    </div>
+</div>
 
 <script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+let items = @json($items);
+const sel = new Set();
+let query = '';
 
-const selected = new Set();
-
-const searchInput = document.getElementById('searchInput');
-
-const bulkBar = document.getElementById('bulkBar');
-
-const selectedCount = document.getElementById('selectedCount');
-
-const listView = document.getElementById('listView');
-
-const gridView = document.getElementById('gridView');
-
-const csrf =
-document.querySelector('meta[name="csrf-token"]').content;
-
-/* =========================
-   TOAST
-========================= */
-
-function showToast(message, type='success'){
-
-    const toast = document.createElement('div');
-
-    toast.className = `
-        fixed bottom-5 right-5 z-[9999]
-        max-w-sm w-auto
-        px-4 py-3 rounded-2xl shadow-lg
-        text-white text-sm font-medium
-        transition-all duration-300
-        translate-y-3 opacity-0
-        ${type === 'success'
-            ? 'bg-green-600'
-            : 'bg-red-600'}
-    `;
-
-    toast.innerHTML = message;
-
-    document.body.appendChild(toast);
-
-    requestAnimationFrame(()=>{
-        toast.classList.remove('translate-y-3','opacity-0');
-    });
-
-    setTimeout(()=>{
-        toast.classList.add('translate-y-3','opacity-0');
-
-        setTimeout(()=>{
-            toast.remove();
-        },300);
-
-    },3000);
+function toast(m, err) { if (typeof showToast === 'function') showToast(m, !!err); }
+function esc(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+function fmtSize(b) {
+    if (b === null || b === undefined || b === '') return '';
+    b = Number(b);
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(b < 10240 ? 1 : 0) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+}
+async function api(method, url) {
+    try {
+        const res = await fetch(url, { method: method, headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+        const j = await res.json().catch(() => ({}));
+        if (j.success === undefined) j.success = res.ok;
+        return j;
+    } catch (e) { return { success: false }; }
 }
 
-/* =========================
-   VIEW MODE
-========================= */
-
-const listBtn = document.getElementById('listBtn');
-const gridBtn = document.getElementById('gridBtn');
-
-function setViewMode(mode){
-
-    localStorage.setItem('trash_view', mode);
-
-    if(!listView || !gridView){
-        return;
-    }
-
-    // RESET SEMUA TOMBOL
-    [listBtn, gridBtn].forEach(btn=>{
-
-        btn.classList.remove(
-            'bg-red-600',
-            'text-white',
-            'border-red-600',
-            'shadow-md',
-            'scale-[1.02]',
-            'dark:bg-red-600'
-        );
-
-        // mode non aktif
-        btn.classList.add(
-            'bg-white',
-            'dark:bg-gray-900',
-            'text-gray-700',
-            'dark:text-gray-200'
-        );
-    });
-
-    if(mode === 'grid'){
-
-        listView.classList.add('hidden');
-        gridView.classList.remove('hidden');
-
-        // ACTIVE GRID
-        gridBtn.classList.remove(
-            'bg-white',
-            'dark:bg-gray-900',
-            'text-gray-700',
-            'dark:text-gray-200'
-        );
-
-        gridBtn.classList.add(
-            'bg-blue-600',
-            'dark:bg-blue-600',
-            'text-white',
-            'border-blue-300',
-            'shadow-md',
-            'scale-[1.02]'
-        );
-
-        gridBtn.innerHTML = '⊞ Grid';
-
-    }else{
-
-        gridView.classList.add('hidden');
-        listView.classList.remove('hidden');
-
-        renderVirtualList();
-
-        // ACTIVE LIST
-        listBtn.classList.remove(
-            'bg-white',
-            'dark:bg-gray-900',
-            'text-gray-700',
-            'dark:text-gray-200'
-        );
-
-        listBtn.classList.add(
-            'bg-blue-600',
-            'dark:bg-blue-600',
-            'text-white',
-            'border-blue-300',
-            'shadow-md',
-            'scale-[1.02]'
-        );
-
-        listBtn.innerHTML = '☰ List';
-    }
-
-    // reset label tombol non aktif
-    if(mode !== 'list'){
-        listBtn.innerHTML = '☰ List';
-    }
-
-    if(mode !== 'grid'){
-        gridBtn.innerHTML = '⊞ Grid';
-    }
+const FOLDER = '<svg class="tr-folder" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 015.5 4h3.4c.5 0 1 .2 1.4.6L12 6.3h6.5A2.5 2.5 0 0121 8.8v8.7a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5v-11z"/></svg>';
+const KINDS = { pdf: ['PDF', 'k-pdf'], doc: ['DOC', 'k-word'], docx: ['DOC', 'k-word'], xls: ['XLS', 'k-excel'], xlsx: ['XLS', 'k-excel'] };
+function icon(it) {
+    if (it.type === 'folder') return FOLDER;
+    const k = KINDS[it.ext] || [(it.ext || 'FILE').toUpperCase().slice(0, 4), 'k-other'];
+    return '<span class="tr-badge ' + k[1] + '">' + k[0] + '</span>';
 }
 
-function updateBulkBar(){
+function visible() {
+    const q = query.toLowerCase();
+    return q ? items.filter(i => i.name.toLowerCase().includes(q)) : items;
+}
+function render() {
+    const list = visible();
+    $('list').innerHTML = list.map(it => {
+        const days = it.remaining;
+        const meta = 'Dihapus ' + esc(it.deleted) + (it.type === 'file' && it.size !== null ? ' • ' + fmtSize(it.size) : '');
+        return '<div class="tr-row' + (sel.has(it.id) ? ' sel' : '') + '" data-id="' + it.id + '">'
+            + '<label class="tr-allwrap"><input type="checkbox" data-chk ' + (sel.has(it.id) ? 'checked' : '') + ' aria-label="Pilih"></label>'
+            + '<div class="tr-ico">' + icon(it) + '</div>'
+            + '<div class="tr-meta"><div class="tr-name" title="' + esc(it.name) + '">' + esc(it.name) + '</div><div class="tr-info">' + meta + '</div></div>'
+            + '<div class="tr-left tr-hide-sm' + (days <= 3 ? ' warn' : '') + '">' + days + ' hari lagi</div>'
+            + '<div class="tr-rowact"><button type="button" class="btn btn-ghost" data-restore>Pulihkan</button><button type="button" class="tr-iconbtn" data-del title="Hapus permanen" aria-label="Hapus permanen">🗑</button></div>'
+            + '</div>';
+    }).join('');
 
-    if(selected.size){
-
-        bulkBar.classList.remove('hidden');
-        bulkBar.classList.add('flex');
-
-    }else{
-
-        bulkBar.classList.add('hidden');
-        bulkBar.classList.remove('flex');
-
-        bulkDropdown?.classList.add('hidden');
+    const e = $('empty');
+    if (!list.length) {
+        e.innerHTML = items.length
+            ? '<div class="tr-eico">🔎</div><b>Tidak ada hasil</b><span>Tidak ada item yang cocok dengan pencarian.</span>'
+            : '<div class="tr-eico">🗑️</div><b>Trash kosong</b><span>Item yang dihapus akan muncul di sini sebelum dihapus permanen.</span>';
+        e.classList.add('show');
+    } else {
+        e.classList.remove('show');
     }
-
-    selectedCount.innerHTML = selected.size;
+    $('listHead').style.display = list.length ? '' : 'none';
+    $('emptyBtn').disabled = !items.length;
+    syncBulk();
+}
+function syncBulk() {
+    const n = sel.size;
+    $('bulk').classList.toggle('show', n > 0);
+    $('selCount').textContent = n;
+    const list = visible();
+    const all = list.length > 0 && list.every(i => sel.has(i.id));
+    $('chkAll').checked = all;
+    $('chkAllHead').checked = all;
+}
+function removeLocal(ids) {
+    const s = new Set(ids);
+    items = items.filter(i => !s.has(i.id));
+    ids.forEach(id => sel.delete(id));
+    render();
 }
 
-/* =========================
-   REMOVE DOM
-========================= */
-
-function removeItem(button){
-
-    const item = button?.closest('.trash-item');
-
-    if(item){
-        item.style.opacity = '0';
-        item.style.transform = 'scale(.95)';
-
-        setTimeout(()=>{
-            item.remove();
-
-            if(!document.querySelector('.trash-item')){
-                location.reload();
-            }
-        },200);
-    }else{
-        location.reload();
-    }
+/* ---- confirm modal ---- */
+let cb = null;
+function confirmBox(title, msg, ok, fn) {
+    $('cTitle').textContent = title; $('cMsg').textContent = msg; $('cOk').textContent = ok;
+    cb = fn; $('confirmModal').classList.add('open');
 }
+function closeConfirm() { $('confirmModal').classList.remove('open'); cb = null; }
+$('cCancel').onclick = closeConfirm;
+$('cOk').onclick = () => { const f = cb; closeConfirm(); if (f) f(); };
+$('confirmModal').addEventListener('click', e => { if (e.target.id === 'confirmModal') closeConfirm(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeConfirm(); });
 
-/* =========================
-   ACTIONS
-========================= */
-
-async function restore(id, button){
-
-    const res = await fetch(`/file-manager/restore/${id}`,{
-        method:'POST',
-        headers:{
-            'X-CSRF-TOKEN': csrf
-        }
-    });
-
-    if(res.ok){
-
-        removeItem(button);
-
-        showToast('File berhasil direstore');
-    }
+/* ---- aksi ---- */
+async function restoreIds(ids) {
+    const done = [];
+    for (const id of ids) { const r = await api('POST', '/file-manager/restore/' + id); if (r.success) done.push(id); }
+    if (done.length) { removeLocal(done); toast(done.length + ' item dipulihkan'); }
+    if (done.length < ids.length) toast('Sebagian item gagal dipulihkan', true);
 }
-
-async function forceDelete(id, button){
-
-    openConfirm('Hapus permanen file ini?', async ()=>{
-
-        const res = await fetch(`/file-manager/force-delete/${id}`,{
-            method:'DELETE',
-            headers:{
-                'X-CSRF-TOKEN': csrf
-            }
-        });
-
-        if(res.ok){
-            removeItem(button);
-            showToast('File berhasil dihapus');
-        }
+function deleteIds(ids) {
+    const what = ids.length === 1 ? 'Item ini' : ids.length + ' item';
+    confirmBox('Hapus permanen?', what + ' akan dihapus selamanya dan tidak bisa dikembalikan.', 'Hapus permanen', async () => {
+        const done = [];
+        for (const id of ids) { const r = await api('DELETE', '/file-manager/force-delete/' + id); if (r.success) done.push(id); }
+        if (done.length) { removeLocal(done); toast(done.length + ' item dihapus permanen'); }
+        if (done.length < ids.length) toast('Sebagian item gagal dihapus', true);
     });
 }
 
-/* =========================
-   BULK
-========================= */
-
-async function bulkRestore(){
-
-    for(const id of selected){
-
-        await fetch(`/file-manager/restore/${id}`,{
-            method:'POST',
-            headers:{
-                'X-CSRF-TOKEN': csrf
-            }
-        });
-    }
-
-    showToast('Item berhasil direstore');
-
-    setTimeout(()=>{
-        location.reload();
-    },400);
-}
-
-async function bulkDelete(){
-
-    openConfirm('Hapus permanen semua item yang dipilih?', async ()=>{
-
-        for(const id of selected){
-
-            await fetch(`/file-manager/force-delete/${id}`,{
-                method:'DELETE',
-                headers:{
-                    'X-CSRF-TOKEN': csrf
-                }
-            });
-        }
-
-        showToast('Item berhasil dihapus');
-
-        setTimeout(()=>{
-            location.reload();
-        },400);
-    });
-}
-
-let confirmCallback = null;
-
-function openConfirm(message, onConfirm){
-
-    document.getElementById('confirmMessage').innerText = message;
-
-    const modal = document.getElementById('confirmModal');
-
-    modal.classList.remove('hidden');
-
-    confirmCallback = onConfirm;
-}
-
-function closeConfirm(){
-    document.getElementById('confirmModal').classList.add('hidden');
-    confirmCallback = null;
-}
-
-document.getElementById('confirmOkBtn').addEventListener('click', ()=>{
-    if(typeof confirmCallback === 'function'){
-        confirmCallback();
-    }
-    closeConfirm();
-});
-
-/* =========================
-   BULK MENU
-========================= */
-
-const bulkDropdown =
-document.getElementById('bulkDropdown');
-
-function toggleBulkMenu(){
-
-    bulkDropdown.classList.toggle('hidden');
-}
-
-document.addEventListener('click', e=>{
-
-    const menu =
-    document.getElementById('bulkMenuBtn');
-
-    if(
-        !menu?.contains(e.target) &&
-        !bulkDropdown?.contains(e.target)
-    ){
-        bulkDropdown?.classList.add('hidden');
+$('list').addEventListener('click', e => {
+    const row = e.target.closest('.tr-row');
+    if (!row) return;
+    const id = Number(row.dataset.id);
+    if (e.target.closest('[data-restore]')) { restoreIds([id]); return; }
+    if (e.target.closest('[data-del]')) { deleteIds([id]); return; }
+    if (e.target.closest('[data-chk]')) {
+        e.target.closest('[data-chk]').checked ? sel.add(id) : sel.delete(id);
+        row.classList.toggle('sel', sel.has(id));
+        syncBulk();
     }
 });
-
-function clearSelection(){
-
-    selected.clear();
-
-    document.querySelectorAll('.select-item')
-    .forEach(cb=> cb.checked = false);
-
-    updateBulkBar();
+function toggleAll(checked) {
+    visible().forEach(i => checked ? sel.add(i.id) : sel.delete(i.id));
+    render();
 }
-
-
-/* =========================
-   CTRL + A
-========================= */
-
-document.addEventListener('keydown', e=>{
-
-    if(
-        (e.ctrlKey || e.metaKey) &&
-        e.key.toLowerCase() === 'a'
-    ){
-
-        const active = document.activeElement;
-
-        // izinkan Ctrl+A di input selain search
-        if(
-            active &&
-            (
-                active.tagName === 'TEXTAREA' ||
-                active.isContentEditable
-            )
-        ){
-            return;
-        }
-
-        // kalau focus di search dan ada text → normal select text
-        if(
-            active?.id === 'searchInput' &&
-            active.value.length > 0
-        ){
-            return;
-        }
-
-        e.preventDefault();
-
-        const checkboxes = [
-            ...document.querySelectorAll('.select-item')
-        ];
-
-        const allSelected =
-            selected.size === checkboxes.length;
-
-        if(allSelected){
-
-            selected.clear();
-
-            checkboxes.forEach(cb=>{
-                cb.checked = false;
-            });
-
-        }else{
-
-            checkboxes.forEach(cb=>{
-
-                // skip item hidden hasil search
-                const item = cb.closest('.trash-item');
-
-                if(item?.style.display === 'none'){
-                    return;
-                }
-
-                cb.checked = true;
-
-                selected.add(cb.value);
-            });
-        }
-
-        updateBulkBar();
-    }
-});
-
-/* =========================
-   VIRTUALIZED LIST
-========================= */
-
-const trashContainer =
-document.getElementById('trashContainer');
-
-const virtualItems =
-document.getElementById('virtualItems');
-
-const virtualSpacer =
-document.getElementById('virtualSpacer');
-
-const ITEM_HEIGHT = 92;
-const BUFFER = 8;
-
-let trashData = JSON.parse(
-    document.getElementById('trashData').textContent
-);
-
-let filteredData = [...trashData];
-
-function renderVirtualList(){
-
-    if(
-        !trashContainer ||
-        !virtualItems ||
-        !virtualSpacer ||
-        listView.classList.contains('hidden')
-    ){
-        return;
-    }
-
-    const scrollTop =
-    trashContainer.scrollTop;
-
-    const containerHeight =
-    trashContainer.clientHeight;
-
-    const start =
-    Math.max(
-        0,
-        Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER
-    );
-
-    const visibleCount =
-    Math.ceil(containerHeight / ITEM_HEIGHT)
-    + BUFFER * 2;
-
-    const end =
-    Math.min(
-        filteredData.length,
-        start + visibleCount
-    );
-
-    virtualSpacer.style.height =
-        `${filteredData.length * ITEM_HEIGHT}px`;
-
-    virtualItems.style.transform =
-        `translateY(${start * ITEM_HEIGHT}px)`;
-
-    let html = '';
-
-    for(let i=start; i<end; i++){
-
-        const f = filteredData[i];
-
-        html += `
-        <div class="trash-item group
-                    flex items-center justify-between gap-3
-                    p-3 mb-2 rounded-2xl
-                    border border-gray-200 dark:border-gray-800
-                    bg-white dark:bg-gray-900
-                    hover:border-red-300 dark:hover:border-red-700
-                    hover:shadow-sm transition"
-            data-name="${f.name.toLowerCase()}">
-
-            <div class="flex items-center gap-3 min-w-0">
-
-                <input type="checkbox"
-                class="select-item w-4 h-4 rounded"
-                value="${f.id}"
-                ${selected.has(String(f.id))
-                    ? 'checked'
-                    : ''}>
-
-                <div class="w-12 h-12 rounded-2xl
-                            bg-red-100 dark:bg-red-900/20
-                            flex items-center justify-center
-                            text-2xl shrink-0">
-
-                    ${f.type === 'folder'
-                        ? '📁'
-                        : '📄'}
-
-                </div>
-
-                <div class="min-w-0">
-
-                    <div class="font-medium truncate">
-                        ${f.name}
-                    </div>
-
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2">
-
-                        <span>
-                            Dihapus ${f.deleted}
-                            •
-                            Auto dihapus ${f.remaining} hari lagi
-                        </span>
-
-                        ${f.type === 'file'
-                            ? `
-                            <span>•</span>
-                            <span>${f.size} KB</span>
-                            `
-                            : ''}
-
-                    </div>
-
-                </div>
-
-            </div>
-        </div>
-        `;
-    }
-
-    virtualItems.innerHTML = html;
-
-    bindVirtualCheckboxes();
-}
-
-function bindVirtualCheckboxes(){
-
-    const checkboxes =
-    [...virtualItems.querySelectorAll('.select-item')];
-
-    checkboxes.forEach((cb,index)=>{
-
-        cb.addEventListener('change', ()=>{
-
-            if(cb.checked){
-                selected.add(cb.value);
-            }else{
-                selected.delete(cb.value);
-            }
-
-            updateBulkBar();
-        });
+$('chkAll').onchange = e => toggleAll(e.target.checked);
+$('chkAllHead').onchange = e => toggleAll(e.target.checked);
+$('bulkRestore').onclick = () => restoreIds(Array.from(sel));
+$('bulkDelete').onclick = () => deleteIds(Array.from(sel));
+$('emptyBtn').onclick = () => {
+    if (!items.length) return;
+    confirmBox('Kosongkan Trash?', 'Semua item di Trash akan dihapus permanen dan tidak bisa dikembalikan.', 'Kosongkan', async () => {
+        const r = await api('DELETE', '/file-manager/empty-trash');
+        if (r.success) { items = []; sel.clear(); render(); toast('Trash dikosongkan'); }
+        else toast('Gagal mengosongkan Trash', true);
     });
-}
-
-document.querySelectorAll('#gridView .select-item')
-.forEach(cb=>{
-
-    cb.addEventListener('change', ()=>{
-
-        if(cb.checked){
-            selected.add(cb.value);
-        }else{
-            selected.delete(cb.value);
-        }
-
-        updateBulkBar();
-    });
-});
-
-/* =========================
-   SEARCH VIRTUAL
-========================= */
-
-searchInput?.addEventListener('input', e=>{
-
-    const q =
-    e.target.value
-    .trim()
-    .toLowerCase();
-
-    filteredData =
-    trashData.filter(f=>
-        f.name.toLowerCase().includes(q)
-    );
-
-    trashContainer.scrollTop = 0;
-
-    renderVirtualList();
-});
-
-/* =========================
-   SCROLL
-========================= */
-
-let virtualTicking = false;
-
-trashContainer?.addEventListener('scroll', ()=>{
-
-    if(virtualTicking) return;
-
-    requestAnimationFrame(()=>{
-
-        renderVirtualList();
-
-        virtualTicking = false;
-
-    });
-
-    virtualTicking = true;
-});
-
-/* =========================
-   VIEW MODE PATCH
-========================= */
-
-const originalSetViewMode =
-setViewMode;
-
-setViewMode = function(mode){
-
-    originalSetViewMode(mode);
-
-    if(mode === 'list'){
-        renderVirtualList();
-    }
 };
+let t = null;
+$('q').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { query = e.target.value.trim(); render(); }, 200); });
 
-/* =========================
-   INIT
-========================= */
-setViewMode(
-    localStorage.getItem('trash_view') || 'list'
-);
-
+render();
+})();
 </script>
+
+<style>
+.tr { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.tr .btn { display: inline-flex; align-items: center; gap: 6px; }
+.tr-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tr-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+.tr-sub { font-size: .8125rem; color: var(--text-muted); margin: 2px 0 0; }
+.tr-actions { display: flex; gap: 8px; }
+.tr-danger { background: #DC2626; border: 1px solid #DC2626; color: #fff; border-radius: 9px; padding: 8px 14px; font-size: .875rem; font-weight: 500; cursor: pointer; font-family: inherit; }
+.tr-danger:hover { background: #B91C1C; }
+.tr-danger:disabled { opacity: .45; cursor: default; }
+.tr-toolbar { position: relative; min-height: 44px; }
+.tr-search input { width: 100%; max-width: 360px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-primary); font-size: .875rem; font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
+.tr-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.tr-bulk { display: none; position: absolute; inset: 0; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent-muted); color: var(--text-primary); }
+.tr-bulk.show { display: flex; }
+.tr-spacer { flex: 1; }
+.tr-allwrap { display: inline-flex; align-items: center; gap: 8px; font-size: .875rem; cursor: pointer; }
+.tr-allwrap input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+
+.tr-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.tr-listhead, .tr-row { display: grid; grid-template-columns: 24px 44px minmax(0,1fr) 110px auto; align-items: center; gap: 10px; padding: 10px 16px; }
+.tr-listhead { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.tr-row { border-bottom: 1px solid var(--border); transition: background .15s; content-visibility: auto; contain-intrinsic-size: 64px; }
+.tr-row:last-child { border-bottom: none; }
+.tr-row:hover { background: rgba(37,99,235,.04); }
+.tr-row.sel { background: var(--accent-muted); }
+.tr-ico { display: flex; align-items: center; justify-content: center; }
+.tr-folder { width: 32px; height: 32px; fill: #F59E0B; }
+.tr-badge { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 40px; border-radius: 8px; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.k-pdf { background: #FEE2E2; color: #B91C1C; }
+.k-word { background: #DBEAFE; color: #1D4ED8; }
+.k-excel { background: #DCFCE7; color: #15803D; }
+.k-other { background: var(--bg-elevated); color: var(--text-muted); }
+.tr-meta { min-width: 0; }
+.tr-name { font-size: .875rem; font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-info { font-size: .75rem; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-left { font-size: .8125rem; color: var(--text-secondary); white-space: nowrap; }
+.tr-left.warn { color: #DC2626; font-weight: 600; }
+.tr-rowact { display: flex; align-items: center; gap: 6px; }
+.tr-iconbtn { width: 36px; height: 36px; border-radius: 50%; border: none; background: none; cursor: pointer; font-size: 1rem; }
+.tr-iconbtn:hover { background: rgba(239,68,68,.12); }
+
+.tr-empty { display: none; flex-direction: column; align-items: center; gap: 6px; padding: 64px 16px; text-align: center; color: var(--text-muted); font-size: .875rem; }
+.tr-empty.show { display: flex; }
+.tr-empty b { color: var(--text-primary); font-size: 1rem; }
+.tr-eico { font-size: 3rem; line-height: 1; margin-bottom: 6px; }
+
+.tr-modal { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.45); backdrop-filter: blur(6px); }
+.tr-modal.open { display: flex; }
+.tr-box { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg); width: 92%; max-width: 400px; padding: 24px; }
+.tr-box h2 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 8px; }
+.tr-box p { font-size: .875rem; color: var(--text-secondary); margin: 0 0 20px; line-height: 1.6; }
+.tr-box-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 639px) {
+    .tr-hide-sm { display: none; }
+    .tr-listhead, .tr-row { grid-template-columns: 24px 40px minmax(0,1fr) auto; padding: 10px 12px; }
+    .tr-rowact .btn { padding: 6px 10px; font-size: .8125rem; }
+    .tr-bulk .btn { padding: 6px 10px; font-size: .8125rem; }
+}
+</style>
 
 @endsection

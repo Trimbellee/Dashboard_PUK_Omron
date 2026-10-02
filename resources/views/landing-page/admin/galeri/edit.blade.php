@@ -87,6 +87,15 @@
                 </label>
             @endif
         </div>
+        @if (\App\Helpers\PermissionHelper::can('approve_gallery'))
+            <div class="lp-form__group">
+                <label style="display:flex; align-items:center; gap:8px; font-weight:600;">
+                    <input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $foto->is_featured))>
+                    Jadikan media unggulan
+                </label>
+                <p class="lp-editor-hint">Media unggulan tampil paling depan dengan kartu besar di galeri publik (berlaku jika sudah published).</p>
+            </div>
+        @endif
     </div>
 
     <aside class="lp-editor__sidebar">

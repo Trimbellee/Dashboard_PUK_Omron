@@ -178,6 +178,13 @@
                         <p class="lp-admin-galeri-card__kegiatan">{{ $foto->kegiatan }}</p>
                     @endif
 
+                    @if ($foto->is_featured)
+                        <span class="lp-admin-badge lp-admin-badge--published" style="margin-bottom:6px;">★ Unggulan</span>
+                    @endif
+                    @if (str_contains((string) $foto->thumbnail_url, 'placeholder-media'))
+                        <span class="lp-admin-badge lp-admin-badge--revisi" style="margin-bottom:6px;">Tanpa thumbnail</span>
+                    @endif
+
                     @if ($foto->status === 'revisi' && $foto->catatan_revisi)
                         <div class="lp-admin-note">{{ $foto->catatan_revisi }}</div>
                     @endif

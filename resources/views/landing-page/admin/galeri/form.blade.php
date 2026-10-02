@@ -34,7 +34,7 @@
             </div>
 
             <div class="lp-form__group">
-                <label for="kegiatan">Nama Album (opsional)</label>
+                <label for="kegiatan">Deskripsi / Kegiatan (opsional)</label>
                 <input type="text" id="kegiatan" name="kegiatan" value="{{ old('kegiatan') }}" placeholder="Contoh: Rapat Anggota Tahunan 2026" list="kegiatan-list" autocomplete="off">
                 <datalist id="kegiatan-list">
                     @foreach (($kegiatanList ?? []) as $namaKegiatan)

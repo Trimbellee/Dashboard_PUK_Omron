@@ -16,6 +16,7 @@ use App\Models\LaporanBendahara;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\BidangMaster;
+use App\Helpers\PdfCompressor;
 
 class PengajuanController extends Controller
 {
@@ -209,8 +210,10 @@ class PengajuanController extends Controller
         $path = null;
 
         if ($request->hasFile('LampiranProposal')) {
-            $path = $request->file('LampiranProposal')
-                ->storeAs('file/proposal', "{$id}.pdf");
+            $path = "file/proposal/{$id}.pdf";
+            Storage::put($path, PdfCompressor::compress(
+                $request->file('LampiranProposal')->getRealPath()
+            ));
         }
 
         $pengajuan = Pengajuan::create([
@@ -273,8 +276,10 @@ class PengajuanController extends Controller
             if ($p->lampiran_proposal && Storage::exists($p->lampiran_proposal)) {
                 Storage::delete($p->lampiran_proposal);
             }
-            $p->lampiran_proposal = $request->file('LampiranProposal')
-                ->storeAs('file/proposal', "{$p->id}.pdf");
+            $p->lampiran_proposal = "file/proposal/{$p->id}.pdf";
+            Storage::put($p->lampiran_proposal, PdfCompressor::compress(
+                $request->file('LampiranProposal')->getRealPath()
+            ));
             $p->save();
         }
 
@@ -319,8 +324,10 @@ class PengajuanController extends Controller
             Storage::delete($p->lampiran_laporan);
         }
 
-        $p->lampiran_laporan = $request->file('LampiranLaporan')
-            ->storeAs('file/laporan', "{$p->id}.pdf");
+        $p->lampiran_laporan = "file/laporan/{$p->id}.pdf";
+        Storage::put($p->lampiran_laporan, PdfCompressor::compress(
+            $request->file('LampiranLaporan')->getRealPath()
+        ));
 
         $p->aktual_biaya  = (float) $request->AktualBiaya;
         $p->dikembalikan  = (float) $p->biaya - $p->aktual_biaya;

@@ -78,7 +78,7 @@
         .logo-spee {
             top: 12px;
             left: 0mm;
-            width: 120px;
+            width: 95px;
             /* 🔥 BEBAS DIUBAH */
         }
 
@@ -172,8 +172,8 @@
             </tr>
         </table>
 
-        <img class="logo-abs logo-spee" src="{{ public_path('assets/logo-spee.png') }}">
-        <img class="logo-abs logo-fspmi" src="{{ public_path('assets/logo-fspmi.png') }}">
+        <img class="logo-abs logo-spee"  src="{{ public_path('assets/logo-spee-pdf.jpg') }}">
+        <img class="logo-abs logo-fspmi" src="{{ public_path('assets/logo-fspmi-pdf.jpg') }}">
 
         <div class="header-line-1"></div>
         <div class="header-line-2"></div>
