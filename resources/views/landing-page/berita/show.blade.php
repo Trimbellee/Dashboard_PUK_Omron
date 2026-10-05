@@ -375,21 +375,7 @@
                             </div>
                         @endif
 
-                        {{-- Widget: Newsletter --}}
-                        <div class="lp-sidebar-widget lp-sidebar-widget--newsletter" x-data="newsletterForm()">
-                            <div class="lp-sidebar-widget__newsletter-icon">📧</div>
-                            <h4 class="lp-sidebar-widget__title">Newsletter</h4>
-                            <p class="lp-newsletter-widget__desc">Dapatkan berita terbaru langsung ke email Anda.</p>
-                            <form @submit.prevent="submit()" class="lp-newsletter-widget__form">
-                                <input type="email" x-model="email" placeholder="Email Anda" required class="lp-newsletter-widget__input">
-                                <button type="submit" class="lp-btn lp-btn--primary" :disabled="loading">
-                                    <span x-show="!loading">Berlangganan</span>
-                                    <span x-show="loading" x-cloak>Mengirim...</span>
-                                </button>
-                            </form>
-                            <p class="lp-newsletter-widget__msg lp-newsletter-widget__msg--success" x-show="status==='success'" x-cloak x-text="message"></p>
-                            <p class="lp-newsletter-widget__msg lp-newsletter-widget__msg--error" x-show="status==='error'" x-cloak x-text="message"></p>
-                        </div>
+                        
 
                     </div>
                 </aside>
@@ -470,41 +456,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-function newsletterForm() {
-    return {
-        email: '',
-        loading: false,
-        status: null,
-        message: '',
-        submit() {
-            this.loading = true;
-            this.status = null;
-            fetch('{{ route("newsletter.subscribe") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ email: this.email })
-            })
-            .then(async res => {
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data.message || 'Gagal berlangganan.');
-                return data;
-            })
-            .then(data => {
-                this.status = 'success';
-                this.message = data.message || '✅ Berhasil berlangganan!';
-                this.email = '';
-            })
-            .catch(err => {
-                this.status = 'error';
-                this.message = err.message || '❌ Terjadi kesalahan. Coba lagi.';
-            })
-            .finally(() => { this.loading = false; });
-        }
-    };
-}
 </script>
 @endpush

@@ -111,7 +111,8 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::put('galeri/{foto}', [GalleryAdminController::class, 'update'])->name('galeri.update');
     Route::get('galeri-kegiatan', [GalleryAdminController::class, 'kegiatan'])->name('galeri.kegiatan');
     Route::post('galeri-kegiatan/rename', [GalleryAdminController::class, 'renameKegiatan'])->name('galeri.rename-kegiatan');
-
+    Route::get('galeri-massal', [GalleryAdminController::class, 'bulk'])->name('galeri.bulk');
+    Route::post('galeri-massal', [GalleryAdminController::class, 'bulkStore'])->name('galeri.bulk-store');
 
     Route::prefix('kegiatan')->name('kegiatan.')->group(function () { 
         Route::get('/', [AdminKegiatanController::class, 'index'])->name('index');
@@ -193,7 +194,6 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
 Route::get('/', [LandingPageController::class, 'index'])->name('landing.index');
 Route::get('/berita', [BeritaController::class, 'index'])->name('berita.index');
 Route::get('/berita/{slug}', [BeritaController::class, 'show'])->name('berita.show');
-Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::post('/kontak', [KontakController::class, 'store'])->name('kontak.store');
 Route::get('/galeri', [GaleriController::class, 'index'])->name('galeri.index');
 Route::get('/informasi/{slug}', [InformationController::class, 'show'])->name('informasi.show');
@@ -470,22 +470,22 @@ Route::middleware(['authcheck'])->group(function () {
     Route::prefix('file-manager')->group(function(){
 
         Route::get('/', [FileManagerController::class, 'index'])->name('filemanager.index');
+        Route::get('/data', [FileManagerController::class, 'data']);
+        Route::post('/folder', [FileManagerController::class, 'storeFolder']);
+        Route::post('/upload', [FileManagerController::class, 'upload']);
+        Route::delete('/delete/{id}', [FileManagerController::class, 'delete']);
+        Route::post('/rename/{id}', [FileManagerController::class, 'rename']);
+        Route::get('/trash', [FileManagerController::class, 'trash'])->name('filemanager.trash');
+        Route::post('/restore/{id}', [FileManagerController::class, 'restore']);
+        Route::get('/download/{id}', [FileManagerController::class, 'download']);
+        Route::post('/move', [FileManagerController::class, 'move']);
+        Route::delete('/force-delete/{id}',[FileManagerController::class, 'forceDelete']);
+        Route::delete('/empty-trash',[FileManagerController::class, 'emptyTrash']);
+        Route::get('/folders-tree', [FileManagerController::class, 'foldersTree']);
+        Route::delete('/bulk-delete', [FileManagerController::class, 'bulkDelete']);
+        Route::get('/file/{id}', [FileManagerController::class, 'view']);
 
     });
-
-    Route::get('/file-manager/data', [FileManagerController::class, 'data']);
-    Route::post('/file-manager/folder', [FileManagerController::class, 'storeFolder']);
-    Route::post('/file-manager/upload', [FileManagerController::class, 'upload']);
-    Route::delete('/file-manager/delete/{id}', [FileManagerController::class, 'delete']);
-    Route::post('/file-manager/rename/{id}', [FileManagerController::class, 'rename']);
-    Route::get('/file-manager/trash', [FileManagerController::class, 'trash'])->name('filemanager.trash');
-    Route::post('/file-manager/restore/{id}', [FileManagerController::class, 'restore']);
-    Route::get('/file-manager/download/{id}', [FileManagerController::class, 'download']);
-    Route::post('/file-manager/move', [FileManagerController::class, 'move']);
-    Route::delete('/file-manager/force-delete/{id}',[FileManagerController::class, 'forceDelete']);
-    Route::delete('/file-manager/empty-trash',[FileManagerController::class, 'emptyTrash']);
-    Route::get('/file-manager/folders-tree', [FileManagerController::class, 'foldersTree']);
-    Route::delete('/file-manager/bulk-delete', [FileManagerController::class, 'bulkDelete']);
 
 
     /*

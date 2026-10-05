@@ -258,7 +258,14 @@ const ALLOWED = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx']);
 const MAX_MB = 10;
 const CONCURRENCY = 3;
 const CACHE_TTL = 20000;
-const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches;
+let lastPointer = 'mouse';   // 'mouse' | 'touch' | 'pen' — alat yang terakhir dipakai
+const isTouchPointer = () => lastPointer === 'touch';
+
+// state double-tap untuk mode sentuh
+let lastTapId = null;
+let lastTapAt = 0;
+let singleTapTimer = null;
+const DOUBLE_TAP_MS = 320;
 const initFolder = @json($parentId ?? null);
 
 function readJSON(key, fallback) {
@@ -285,6 +292,7 @@ const byId = new Map();
 const nodes = new Map();
 const cache = new Map();
 let reqId = 0, ctrl = null;
+let menuIds = [];
 
 const el = {
     fm: $('fm'), stats: $('fmStats'), toolbar: $('fmToolbar'), search: $('searchInput'), searchWrap: $('searchWrap'),
@@ -355,7 +363,7 @@ function itemHTML(it) {
     const sel = S.sel.has(it.id) ? ' fm-selected' : '';
     const drop = it.type === 'folder' ? ' fm-droptarget' : '';
     const size = it.type === 'folder' ? '—' : fmtSize(it.size);
-    const thumb = (S.view === 'grid' && it.thumb_url) ? '<img src="' + esc(it.thumb_url) + '" alt="" loading="lazy" draggable="false">' : iconHTML(it);
+    const thumb = iconHTML(it);
     const sub = it.location
         ? '<div class="fm-sub loc">' + esc(it.location) + '</div>'
         : '<div class="fm-sub">' + [it.type === 'file' ? size : 'Folder', fmtDate(it, true)].join(' • ') + '</div>';
@@ -525,10 +533,15 @@ function onPopState() {
     const f = new URLSearchParams(location.search).get('folder');
     goFolder(f ? Number(f) : null, false);
 }
+function openFileInNewTab(it) {
+    if (!it || !it.url) return;
+    if (it.ext !== 'pdf') { downloadItem(it.id); return; }
+    window.open(it.url, '_blank', 'noopener');
+}
 function activate(it) {
     if (!it) return;
     if (it.type === 'folder') goFolder(it.id);
-    else openPreview(it.id);
+    else openFileInNewTab(it);
 }
 
 /* ============================================================
@@ -576,42 +589,85 @@ function onListClick(e) {
     const id = Number(node.dataset.id);
     if (longPressed) { longPressed = false; return; }
 
+    // titik tiga → menu
     if (e.target.closest('[data-more]')) {
-        if (!S.sel.has(id)) { S.sel = new Set([id]); S.anchor = idxOf(id); syncSel(); }
+        const ids = (S.sel.has(id) && S.sel.size > 1) ? Array.from(S.sel) : [id];
         const r = e.target.closest('[data-more]').getBoundingClientRect();
-        showMenu(Array.from(S.sel), r.right - 210, r.bottom + 4);
+        showMenu(ids, r.right - 210, r.bottom + 4);
         return;
     }
+
+    // bulatan → pilih / batal pilih
     if (e.target.closest('[data-check]')) { toggleSel(id); return; }
 
-    if (IS_TOUCH) {
-        if (S.sel.size) toggleSel(id); else activate(byId.get(id));
+    // Ctrl/Shift + klik tetap bisa memilih banyak item (desktop)
+    if (!isTouchPointer() && (e.ctrlKey || e.metaKey || e.shiftKey)) { clickSelect(id, e); return; }
+
+    const it = byId.get(id);
+    if (!it) return;
+
+    if (isTouchPointer()) {
+        // sedang mode pilih: ketuk = pilih / batal pilih
+        if (S.sel.size) { toggleSel(id); return; }
+
+        // folder: ketuk satu kali membuka
+        if (it.type === 'folder') { goFolder(it.id); return; }
+
+        // file: tunggu sebentar — kalau tidak ada ketukan kedua, anggap single tap (tidak buka).
+        // ketukan kedua dalam DOUBLE_TAP_MS membuka file.
+        const now = Date.now();
+        if (lastTapId === id && now - lastTapAt < DOUBLE_TAP_MS) {
+            // double tap → buka
+            clearTimeout(singleTapTimer);
+            singleTapTimer = null;
+            lastTapId = null;
+            lastTapAt = 0;
+            openFileInNewTab(it);
+        } else {
+            // first tap → simpan state, jangan buka apa-apa
+            clearTimeout(singleTapTimer);
+            lastTapId = id;
+            lastTapAt = now;
+            singleTapTimer = setTimeout(() => {
+                // window double-tap lewat → reset
+                lastTapId = null;
+                lastTapAt = 0;
+                singleTapTimer = null;
+            }, DOUBLE_TAP_MS);
+        }
         return;
     }
-    clickSelect(id, e);
+    // desktop: klik sekali tidak melakukan apa-apa (buka dengan klik dua kali)
 }
+
 function onListDblClick(e) {
-    if (IS_TOUCH) return;
+    if (isTouchPointer()) return;
     const node = e.target.closest('.fm-item');
     if (!node || e.target.closest('[data-more],[data-check]')) return;
     activate(byId.get(Number(node.dataset.id)));
 }
-function onListContext(e) {
-    if (IS_TOUCH) { e.preventDefault(); return; }
+
+function onContextCapture(e) {
+    if (!el.scroll.contains(e.target)) return;      // hanya di area daftar
     const node = e.target.closest('.fm-item');
-    if (!node || node.classList.contains('fm-skel')) return;
-    e.preventDefault();
-    const id = Number(node.dataset.id);
-    if (!S.sel.has(id)) { S.sel = new Set([id]); S.anchor = idxOf(id); syncSel(); }
-    showMenu(Array.from(S.sel), e.clientX, e.clientY);
+
+    if (isTouchPointer()) { if (node) e.preventDefault(); return; }
+
+    if (node && !node.classList.contains('fm-skel')) {
+        e.preventDefault();
+        const id = Number(node.dataset.id);
+        const ids = (S.sel.has(id) && S.sel.size > 1) ? Array.from(S.sel) : [id];
+        showMenu(ids, e.clientX, e.clientY);
+        return;
+    }
+    if (S.clip.length) {                             // area kosong: menu tempel
+        e.preventDefault();
+        closeMenus();
+        el.ctx.innerHTML = menuBtn('paste', 'move', 'Tempel di sini (' + S.clip.length + ')');
+        placeCtx(e.clientX, e.clientY);
+    }
 }
-function onScrollContext(e) {
-    if (e.target.closest('.fm-item') || !S.clip.length) return;
-    e.preventDefault();
-    closeMenus();
-    el.ctx.innerHTML = menuBtn('paste', 'move', 'Tempel di sini (' + S.clip.length + ')');
-    placeCtx(e.clientX, e.clientY);
-}
+
 function onTouchStart(e) {
     const n = e.target.closest('.fm-item');
     if (!n || n.classList.contains('fm-skel') || e.target.closest('[data-more]')) return;
@@ -658,6 +714,7 @@ function placeCtx(x, y) {
 function showMenu(ids, x, y) {
     closeMenus();
     if (!ids.length) return;
+    menuIds = ids;
     if (window.innerWidth < 768) {
         const one = ids.length === 1 ? byId.get(ids[0]) : null;
         $('sheetTitle').textContent = one ? one.name : ids.length + ' item dipilih';
@@ -671,9 +728,10 @@ function showMenu(ids, x, y) {
 function closeMenus() {
     el.ctx.style.display = 'none';
     el.sheet.classList.remove('open');
+     menuIds = [];
 }
-function runAct(act) {
-    const ids = Array.from(S.sel);
+function runAct(act, ids) {
+    ids = ids && ids.length ? ids : (menuIds.length ? menuIds : Array.from(S.sel));
     const it = ids.length === 1 ? byId.get(ids[0]) : null;
     switch (act) {
         case 'open': activate(it); break;
@@ -1059,11 +1117,11 @@ function onItemDragStart(e) {
     const n = e.target.closest('.fm-item');
     if (!n || n.classList.contains('fm-skel')) return;
     const id = Number(n.dataset.id);
-    if (!S.sel.has(id)) { S.sel = new Set([id]); S.anchor = idxOf(id); syncSel(); }
-    dragIds = Array.from(S.sel);
+    dragIds = S.sel.has(id) ? Array.from(S.sel) : [id];
     e.dataTransfer.setData('application/x-fm-ids', JSON.stringify(dragIds));
     e.dataTransfer.effectAllowed = 'move';
 }
+
 function onItemDragEnd() { dragIds = []; clearHot(); }
 
 /* ============================================================
@@ -1168,8 +1226,9 @@ function onDocClick(e) {
     const m = e.target.closest('[data-act]');
     if (m && (el.ctx.contains(m) || el.sheet.contains(m))) {
         const act = m.dataset.act;
-        closeMenus();
-        runAct(act);
+        const ids = menuIds.slice();     // <-- SIMPAN
+        closeMenus();                     // menuIds direset di sini, tapi `ids` lokal masih punya
+        runAct(act, ids);                 // <-- kirim ids sebagai argumen
         return;
     }
     if (!e.target.closest('#ctx') && !e.target.closest('.fm-sheet-panel') && !e.target.closest('[data-more]')) closeMenus();
@@ -1195,23 +1254,17 @@ on(window, 'resize', closeMenus);
 
 on(el.list, 'click', onListClick);
 on(el.list, 'dblclick', onListDblClick);
-on(el.list, 'contextmenu', onListContext);
 on(el.list, 'dragstart', onItemDragStart);
 on(el.list, 'dragend', onItemDragEnd);
 on(el.list, 'touchstart', onTouchStart, { passive: true });
 on(el.list, 'touchmove', onTouchMove, { passive: true });
 on(el.list, 'touchend', onTouchEnd, { passive: true });
 on(el.list, 'touchcancel', onTouchEnd, { passive: true });
-on(el.list, 'error', e => {
-    if (e.target.tagName !== 'IMG') return;
-    const n = e.target.closest('.fm-item');
-    const it = n && byId.get(Number(n.dataset.id));
-    if (it) e.target.closest('.fm-thumb').innerHTML = iconHTML(it);
-}, { capture: true });
-on(el.scroll, 'contextmenu', onScrollContext);
 on(el.scroll, 'scroll', closeMenus, { passive: true });
 on(el.ctx, 'contextmenu', e => e.preventDefault());
 on($('moveTree'), 'click', onTreeClick);
+on(window, 'contextmenu', onContextCapture, { capture: true });
+on(document, 'pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, { capture: true, passive: true });
 
 on(el.search, 'input', onSearchInput);
 on(el.sort, 'change', () => { const p = el.sort.value.split(':'); applySort(p[0], p[1]); });
@@ -1225,7 +1278,7 @@ io.observe(el.sentinel);
 window.fmCleanup = function () {
     ac.abort(); io.disconnect();
     if (ctrl) ctrl.abort();
-    clearTimeout(searchTimer); clearTimeout(lpTimer); clearTimeout(upHideTimer);
+        clearTimeout(searchTimer); clearTimeout(lpTimer); clearTimeout(upHideTimer); clearTimeout(singleTapTimer);
     document.body.style.overflow = '';
 };
 
@@ -1309,6 +1362,7 @@ load(true);
 
 /* item dasar */
 .fm-item { position: relative; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: background-color .15s, border-color .15s, box-shadow .15s; content-visibility: auto; }
+.fm-item { touch-action: manipulation; }
 .fm-item:hover { background: rgba(37,99,235,.05); }
 .fm-item.fm-selected { background: var(--accent-muted); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .fm-name { font-size: .875rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
@@ -1323,6 +1377,7 @@ load(true);
 .fm-item:hover .fm-more, .fm-item:focus-within .fm-more { opacity: 1; }
 .fm-more:hover { background: var(--bg-elevated); color: var(--text-primary); }
 @media (hover: none) { .fm-more { opacity: 1; } }
+@media (hover: none) { .fm-check { opacity: 1; } }
 
 .fm-drop-hot { background: var(--accent-muted) !important; outline: 2px dashed var(--accent); outline-offset: -2px; }
 .fm-folder { fill: #F59E0B; }
@@ -1338,7 +1393,6 @@ load(true);
 .fm-list.grid .fm-item:hover { border-color: rgba(37,99,235,.35); box-shadow: var(--shadow-sm); }
 .fm-list.grid .fm-item.fm-selected { border-color: var(--accent); }
 .fm-list.grid .fm-thumb { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; background: var(--bg-elevated); overflow: hidden; }
-.fm-list.grid .fm-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
 .fm-list.grid .fm-folder { width: 64px; height: 64px; }
 .fm-list.grid .fm-badge { width: 56px; height: 68px; border-radius: 12px; font-size: 14px; }
 .fm-list.grid .fm-meta { padding: 10px 12px 12px; }
@@ -1350,7 +1404,6 @@ load(true);
 .fm-list.list { display: flex; flex-direction: column; padding: 4px 12px 12px; }
 .fm-list.list .fm-item { display: grid; grid-template-columns: 22px 38px minmax(0,1fr) 100px 170px 36px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border-bottom: 1px solid var(--border); contain-intrinsic-size: 56px; }
 .fm-list.list .fm-thumb { display: flex; align-items: center; justify-content: center; }
-.fm-list.list .fm-thumb img { display: none; }
 .fm-list.list .fm-folder { width: 30px; height: 30px; }
 .fm-list.list .fm-badge { width: 32px; height: 38px; border-radius: 8px; font-size: 10px; }
 .fm-list.list .fm-sub:not(.loc) { display: none; }

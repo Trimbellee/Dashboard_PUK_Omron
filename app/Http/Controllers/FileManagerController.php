@@ -11,6 +11,9 @@ use Illuminate\Support\Str;
 
 class FileManagerController extends Controller
 {
+    /** Disk PRIVAT tempat file disimpan (storage/app/private). Tidak bisa diakses lewat URL langsung. */
+    private const DISK = 'local';
+
     /* ============================================================
      | VIEW
      ============================================================ */
@@ -92,8 +95,7 @@ class FileManagerController extends Controller
                 'ext'                  => $f->type === 'file' ? strtolower(pathinfo($f->name, PATHINFO_EXTENSION)) : null,
                 'parent_id'            => $f->parent_id,
                 'size'                 => $f->size,
-                'url'                  => $f->path ? Storage::url($f->path) : null,
-                'thumb_url'            => $f->thumbnail ? Storage::url($f->thumbnail) : null,
+                'url'                  => $f->path ? '/file-manager/file/' . $f->id : null,
                 'updated_at'           => optional($f->updated_at)->toIso8601String(),
                 'updated_at_formatted' => optional($f->updated_at)->format('d M Y H:i'),
                 'location'             => $folderMap ? $this->locationOf($f->parent_id, $folderMap) : null,
@@ -158,7 +160,7 @@ class FileManagerController extends Controller
     }
 
     /* ============================================================
-     | UPLOAD  (PDF dikompres + thumbnail, ukuran disimpan)
+     | UPLOAD  (PDF dikompres, ukuran disimpan)
      ============================================================ */
     public function upload(Request $req)
     {
@@ -186,25 +188,14 @@ class FileManagerController extends Controller
             ]);
         }
 
-        $disk       = Storage::disk('public');
+        $disk       = $this->privateDisk();
         $storedName = now()->format('Ymd_His') . '_' . Str::random(8) . '.' . $ext;
         $path       = 'filemanager/' . $storedName;
 
         if ($ext === 'pdf') {
             $disk->put($path, PdfCompressor::compress($file->getRealPath()));
         } else {
-            $file->storeAs('filemanager', $storedName, 'public');
-        }
-
-        $thumb = null;
-
-        if ($ext === 'pdf') {
-            $jpg = PdfCompressor::thumbnail($disk->path($path));
-
-            if ($jpg) {
-                $thumb = 'filemanager/thumbs/' . pathinfo($storedName, PATHINFO_FILENAME) . '.jpg';
-                $disk->put($thumb, $jpg);
-            }
+            $file->storeAs('filemanager', $storedName, self::DISK);
         }
 
         $model = new File();
@@ -213,7 +204,6 @@ class FileManagerController extends Controller
             'type'      => 'file',
             'path'      => $path,
             'size'      => $disk->size($path),
-            'thumbnail' => $thumb,
             'parent_id' => $req->parent_id,
         ])->save();
 
@@ -226,10 +216,33 @@ class FileManagerController extends Controller
     public function download($id)
     {
         $file = File::where('type', 'file')->findOrFail($id);
+        $disk = $this->diskFor($file->path);
 
-        abort_unless($file->path && Storage::disk('public')->exists($file->path), 404);
+        abort_unless($disk, 404);
 
-        return Storage::disk('public')->download($file->path, $file->name);
+        return $disk->download($file->path, $file->name);
+    }
+
+    /* ============================================================
+     | VIEW INLINE (hanya untuk user yang sudah login)
+     ============================================================ */
+    public function view($id)
+    {
+        $file = File::where('type', 'file')->findOrFail($id);
+        $disk = $this->diskFor($file->path);
+
+        abort_unless($disk, 404);
+
+        // hanya PDF yang ditampilkan inline; jenis lain langsung diunduh
+        if (strtolower(pathinfo($file->name, PATHINFO_EXTENSION)) !== 'pdf') {
+            return $disk->download($file->path, $file->name);
+        }
+
+        return $disk->response($file->path, $file->name, [
+            'Content-Type'           => 'application/pdf',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control'          => 'private, max-age=0, must-revalidate',
+        ], 'inline');
     }
 
     /* ============================================================
@@ -445,6 +458,32 @@ class FileManagerController extends Controller
     /* ============================================================
      | HELPERS
      ============================================================ */
+    private function privateDisk()
+    {
+        return Storage::disk(self::DISK);
+    }
+
+    /**
+     * Disk tempat sebuah file berada: privat dulu, lalu fallback ke disk public
+     * untuk file lama yang belum dimigrasi (php artisan filemanager:make-private).
+     */
+    private function diskFor(?string $path)
+    {
+        if (!$path) {
+            return null;
+        }
+
+        $private = $this->privateDisk();
+
+        if ($private->exists($path)) {
+            return $private;
+        }
+
+        $public = Storage::disk('public');
+
+        return $public->exists($path) ? $public : null;
+    }
+
     private function invalidName(string $name): bool
     {
         return $name === '' || preg_match('/[\/\\\\:*?"<>|]/', $name) === 1;
@@ -508,14 +547,11 @@ class FileManagerController extends Controller
         }
 
         if ($file->type === 'file') {
-            $disk = Storage::disk('public');
-
-            if ($file->path) {
-                $disk->delete($file->path);
-            }
-
-            if ($file->thumbnail) {
-                $disk->delete($file->thumbnail);
+            // hapus dari disk privat dan (untuk file lama yang belum dimigrasi) disk public
+            foreach ([$this->privateDisk(), Storage::disk('public')] as $disk) {
+                if ($file->path) {
+                    $disk->delete($file->path);
+                }
             }
         }
 

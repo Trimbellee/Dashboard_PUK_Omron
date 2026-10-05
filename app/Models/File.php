@@ -13,7 +13,9 @@ class File extends Model
         'name',
         'type',
         'path',
-        'parent_id'
+        'parent_id',
+        'thumbnail',
+        'size',
     ];
 
     // relasi parent

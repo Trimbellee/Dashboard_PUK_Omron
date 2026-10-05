@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 /**
- * Helper Ghostscript: kompres PDF + buat thumbnail halaman pertama.
+ * Helper Ghostscript untuk mengompres PDF.
  * Aman: apa pun yang gagal tidak melempar exception
- * (compress() mengembalikan file asli, thumbnail() mengembalikan null).
+ * (compress() mengembalikan file asli).
  *
  * .env:  GS_BINARY=gs (Linux)  |  GS_BINARY=gswin64c (Windows)
  */
@@ -79,44 +79,6 @@ class PdfCompressor
         } finally {
             if ($tmpIn) {
                 @unlink($tmpIn);
-            }
-        }
-    }
-
-    /**
-     * Thumbnail JPEG halaman pertama PDF (kecil, sekitar 10-25 KB).
-     * Return isi JPEG (binary string) atau null kalau gagal.
-     */
-    public static function thumbnail(string $pdfPath, int $dpi = 45): ?string
-    {
-        $tmp = null;
-
-        try {
-            $tmp = tempnam(self::tempDir(), 'pdft_');
-
-            $ok = self::run([
-                '-sDEVICE=jpeg',
-                '-dJPEGQ=70',
-                "-r{$dpi}",
-                '-dFirstPage=1',
-                '-dLastPage=1',
-                '-dTextAlphaBits=4',
-                '-dGraphicsAlphaBits=4',
-                '-sOutputFile=' . $tmp,
-                $pdfPath,
-            ], 30);
-
-            if (!$ok || filesize($tmp) === 0) {
-                return null;
-            }
-
-            return file_get_contents($tmp);
-        } catch (\Throwable $e) {
-            Log::warning('[PdfCompressor] thumbnail: ' . $e->getMessage());
-            return null;
-        } finally {
-            if ($tmp) {
-                @unlink($tmp);
             }
         }
     }
