@@ -16,15 +16,36 @@ class PdfCompressor
 {
     private const PRESETS = ['/ebook', '/screen'];
 
-    /** Kompres file PDF di path tertentu, return isi PDF (binary string). */
+    /**
+     * Kompres file PDF di path tertentu, return isi PDF (binary string).
+     * Hasil tiap percobaan dicatat di storage/logs/laravel.log (level info) supaya bisa dicek.
+     *
+     * Opsional (.env): PDF_GRAYSCALE=true menambah percobaan terakhir yang mengubah halaman
+     * jadi hitam-putih/abu-abu (jauh lebih kecil untuk PDF hasil scan, tapi warna hilang).
+     */
     public static function compress(string $inputPath, int $targetKb = 100): string
     {
         $temps    = [];
+        $original = filesize($inputPath);
         $bestPath = $inputPath;
-        $bestSize = filesize($inputPath);
+        $bestSize = $original;
+        $log      = [];
 
         try {
-            foreach (self::PRESETS as $preset) {
+            $attempts = [
+    		['/ebook', []],
+    		['/screen', []],
+    		['/screen', [
+        		'-dDownsampleMonoImages=true',
+        		'-dMonoImageDownsampleType=/Subsample',
+        		'-dMonoImageResolution=200',
+    		]],
+		];
+            if (filter_var(env('PDF_GRAYSCALE', false), FILTER_VALIDATE_BOOLEAN)) {
+                $attempts[] = ['/ebook', ['-sColorConversionStrategy=Gray', '-dProcessColorModel=/DeviceGray']];
+            }
+
+            foreach ($attempts as [$preset, $extra]) {
                 if ($bestSize <= $targetKb * 1024) {
                     break;
                 }
@@ -32,24 +53,29 @@ class PdfCompressor
                 $tmp     = tempnam(self::tempDir(), 'pdfc_');
                 $temps[] = $tmp;
 
-                $ok = self::run([
+                $ok = self::run(array_merge([
                     '-sDEVICE=pdfwrite',
                     '-dCompatibilityLevel=1.4',
                     "-dPDFSETTINGS={$preset}",
                     '-dDetectDuplicateImages=true',
                     '-dCompressFonts=true',
                     '-dSubsetFonts=true',
+                ], $extra, [
                     '-sOutputFile=' . $tmp,
                     $inputPath,
-                ], 60);
+                ]), 60);
 
-                if ($ok) {
-                    $size = filesize($tmp);
-                    if ($size > 0 && $size < $bestSize) {
-                        $bestPath = $tmp;
-                        $bestSize = $size;
-                    }
+                $size  = $ok ? (int) filesize($tmp) : 0;
+                $log[] = $preset . ($extra ? '+gray' : '') . '=' . ($ok ? self::kb($size) : 'gagal');
+
+                if ($ok && $size > 0 && $size < $bestSize) {
+                    $bestPath = $tmp;
+                    $bestSize = $size;
                 }
+            }
+
+            if ($log) {
+                Log::info(sprintf('[PdfCompressor] %s -> %s (%s)', self::kb($original), self::kb($bestSize), implode(', ', $log)));
             }
 
             return file_get_contents($bestPath);
@@ -61,6 +87,11 @@ class PdfCompressor
                 @unlink($t);
             }
         }
+    }
+
+    private static function kb(int $bytes): string
+    {
+        return number_format($bytes / 1024, 0) . 'KB';
     }
 
     /** Kompres PDF yang masih berupa string (mis. hasil $pdf->output() DomPDF). */

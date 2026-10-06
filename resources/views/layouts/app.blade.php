@@ -63,12 +63,7 @@
             <span class="nav-icon">📦</span>
             <span>Inventaris Barang</span>
         </a>
-        <a href="{{ route('inventaris.peminjaman') }}"
-            class="nav-item {{ request()->routeIs('inventaris.peminjaman*') ? 'active' : '' }}">
-            <span class="nav-icon">📋</span>
-            <span>Peminjaman</span>
-        </a>
-
+        
         @if(in_array(session('user')['role'], ['Ketua','Sekretaris']))
         <div class="nav-section-label" style="margin-top:8px;">Pengaturan</div>
         <a href="{{ route('pengaturan.index') }}"

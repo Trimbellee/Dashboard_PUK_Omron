@@ -279,7 +279,7 @@ const S = {
     q: '', filter: 'all',
     sort: localStorage.getItem('fm_sort') || 'name',
     dir: localStorage.getItem('fm_dir') || 'asc',
-    view: localStorage.getItem('fm_view') || 'grid',
+    view: localStorage.getItem('fm_view') || (window.innerWidth < 640 ? 'list' : 'grid'),
     sel: new Set(), anchor: -1,
     clip: readJSON('fm_clip', []),
 };
@@ -583,6 +583,34 @@ function clearSel() { S.sel = new Set(); S.anchor = -1; syncSel(); }
    ============================================================ */
 let longPressed = false, lpTimer = null, lpStart = null;
 
+/* tooltip nama file (layar sentuh tidak punya hover) */
+let tipEl = null, tipTimer = null;
+function showNameTip(node, it, withHint) {
+    hideNameTip();
+    tipEl = document.createElement('div');
+    tipEl.className = 'fm-tip';
+    tipEl.innerHTML = '<div class="fm-tip-name">' + esc(it.name) + '</div>'
+        + (withHint ? '<div class="fm-tip-hint">Ketuk dua kali untuk membuka</div>' : '');
+    document.body.appendChild(tipEl);
+
+    const r = node.getBoundingClientRect();
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    let left = r.left + r.width / 2 - w / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+    let top = r.top - h - 8;                                   // di atas item
+    if (top < 8) top = Math.min(r.bottom + 8, window.innerHeight - h - 8);   // kalau tidak muat, di bawah
+    tipEl.style.left = left + 'px';
+    tipEl.style.top = top + 'px';
+
+    const el2 = tipEl;
+    requestAnimationFrame(() => el2.classList.add('show'));
+    tipTimer = setTimeout(hideNameTip, 2800);
+}
+function hideNameTip() {
+    clearTimeout(tipTimer);
+    if (tipEl) { tipEl.remove(); tipEl = null; }
+}
+
 function onListClick(e) {
     const node = e.target.closest('.fm-item');
     if (!node || node.classList.contains('fm-skel')) return;
@@ -608,32 +636,22 @@ function onListClick(e) {
 
     if (isTouchPointer()) {
         // sedang mode pilih: ketuk = pilih / batal pilih
-        if (S.sel.size) { toggleSel(id); return; }
+        if (S.sel.size) { hideNameTip(); toggleSel(id); return; }
 
         // folder: ketuk satu kali membuka
-        if (it.type === 'folder') { goFolder(it.id); return; }
+        if (it.type === 'folder') { hideNameTip(); goFolder(it.id); return; }
 
-        // file: tunggu sebentar — kalau tidak ada ketukan kedua, anggap single tap (tidak buka).
-        // ketukan kedua dalam DOUBLE_TAP_MS membuka file.
+        // file: ketukan pertama menampilkan nama lengkap, ketukan kedua membuka
         const now = Date.now();
-        if (lastTapId === id && now - lastTapAt < DOUBLE_TAP_MS) {
-            // double tap → buka
-            clearTimeout(singleTapTimer);
-            singleTapTimer = null;
+        if (lastTapId === id && now - lastTapAt < 400) {
             lastTapId = null;
-            lastTapAt = 0;
+            hideNameTip();
+            localStorage.setItem('fm_tap_hint_done', '1');
             openFileInNewTab(it);
         } else {
-            // first tap → simpan state, jangan buka apa-apa
-            clearTimeout(singleTapTimer);
             lastTapId = id;
             lastTapAt = now;
-            singleTapTimer = setTimeout(() => {
-                // window double-tap lewat → reset
-                lastTapId = null;
-                lastTapAt = 0;
-                singleTapTimer = null;
-            }, DOUBLE_TAP_MS);
+            showNameTip(node, it, !localStorage.getItem('fm_tap_hint_done'));
         }
         return;
     }
@@ -1220,6 +1238,7 @@ function handleAction(act, node) {
     }
 }
 function onDocClick(e) {
+    if (!e.target.closest('.fm-item')) hideNameTip();
     const a = e.target.closest('[data-action]');
     if (a) { handleAction(a.dataset.action, a); return; }
 
@@ -1260,7 +1279,7 @@ on(el.list, 'touchstart', onTouchStart, { passive: true });
 on(el.list, 'touchmove', onTouchMove, { passive: true });
 on(el.list, 'touchend', onTouchEnd, { passive: true });
 on(el.list, 'touchcancel', onTouchEnd, { passive: true });
-on(el.scroll, 'scroll', closeMenus, { passive: true });
+on(el.scroll, 'scroll', () => { closeMenus(); hideNameTip(); }, { passive: true });
 on(el.ctx, 'contextmenu', e => e.preventDefault());
 on($('moveTree'), 'click', onTreeClick);
 on(window, 'contextmenu', onContextCapture, { capture: true });
@@ -1279,6 +1298,7 @@ window.fmCleanup = function () {
     ac.abort(); io.disconnect();
     if (ctrl) ctrl.abort();
         clearTimeout(searchTimer); clearTimeout(lpTimer); clearTimeout(upHideTimer); clearTimeout(singleTapTimer);
+    hideNameTip();
     document.body.style.overflow = '';
 };
 
@@ -1542,6 +1562,51 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 }
 @media (min-width: 1280px) { .fm-list.grid { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .fm *, .fm-modal *, .fm-sheet * { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+
+/* ── nama file panjang di layar kecil ── */
+@media (max-width: 767px) {
+    .fm-name { font-size:12px;  white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; line-height: 1.35; }
+    .fm-list.grid .fm-name { -webkit-line-clamp: 3; line-clamp: 3; }
+    .fm-list.grid .fm-thumb { aspect-ratio: 2 / 1; }
+    .fm-list.grid .fm-item { contain-intrinsic-size: auto 170px; }
+    .fm-list.list .fm-item { contain-intrinsic-size: auto 72px; }
+    .fm-pv-name { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+}
+
+/* judul menu bawah: tampilkan nama lengkap (maks. 3 baris) */
+.fm-sheet-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow-wrap: anywhere; line-height: 1.4; }
+
+/* ── layar kecil: thumbnail & info (ukuran, tanggal) lebih kecil dari nama ── */
+@media (max-width: 767px) {
+    .fm { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+    /* ukuran & tanggal: 10px, nama file tetap 12px */
+    .fm-sub, .fm-size, .fm-date { font-size: 10px; line-height: 1.3; }
+    .fm-sub { margin-top: 1px; }
+
+    /* tampilan daftar: kolom thumbnail lebih sempit, baris lebih rapat */
+    .fm-list.list .fm-item { grid-template-columns: 22px 30px minmax(0,1fr) 72px 128px 36px; gap: 6px; contain-intrinsic-size: auto 60px; }
+    .fm-list.list .fm-badge { width: 26px; height: 32px; border-radius: 6px; font-size: 8px; }
+    .fm-list.list .fm-folder { width: 24px; height: 24px; }
+    .fm-listhead { grid-template-columns: 22px 30px minmax(0,1fr) 72px 128px 36px; gap: 6px; padding: 8px 18px; font-size: 10px; }
+    .fm-list.list .fm-skel { grid-template-columns: 30px 1fr; height: 46px; }
+    .fm-list.list .fm-skel .fm-thumb { width: 26px; height: 32px; }
+
+    /* tampilan grid: badge dan ikon folder lebih kecil */
+    .fm-list.grid .fm-badge { width: 40px; height: 48px; border-radius: 9px; font-size: 11px; }
+    .fm-list.grid .fm-folder { width: 44px; height: 44px; }
+}
+
+/* HP (di bawah 640px): kolom ukuran & tanggal disembunyikan, infonya ada di baris bawah nama */
+@media (max-width: 639px) {
+    .fm-list.list .fm-item { grid-template-columns: 22px 30px minmax(0,1fr) 36px; }
+}
+
+/* tooltip nama file (ketuk di layar sentuh) */
+.fm-tip { position: fixed; left: 0; top: 0; z-index: 9500; max-width: min(320px, calc(100vw - 16px)); padding: 8px 12px; border-radius: 10px; background: #111827; color: #fff; box-shadow: var(--shadow-lg); font-size: 12px; line-height: 1.4; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; }
+.fm-tip.show { opacity: 1; transform: none; }
+.fm-tip-name { font-weight: 600; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
+.fm-tip-hint { margin-top: 4px; font-size: 10.5px; color: #9CA3AF; }
 </style>
 
 @endsection
