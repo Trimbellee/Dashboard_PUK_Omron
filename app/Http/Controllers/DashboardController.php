@@ -213,7 +213,11 @@ class DashboardController extends Controller
         for ($m = 1; $m <= 12; $m++) {
             $laporan        = $laporanPerBulan->get($m);
             $laporanSelesai = $laporanSelesaiPerBulan->get($m);
-            $danaOperPerBulan[$m] = (int) ($laporanSelesai?->debit_json['Dana Operasional'] ?? 0);
+            $danaOperPerBulan[$m] = (int) (
+                $laporanSelesai?->debit_json['dana_operasional']
+                ?? $laporanSelesai?->debit_json['Dana Operasional']
+                ?? 0
+            );
             if ($m > $maxMonth) { $insentifPerBulan[$m] = 0; continue; }
             $insentifItems = $laporan?->insentif_json;
             if (empty($insentifItems)) $insentifItems = $this->defaultInsentif();
@@ -349,7 +353,11 @@ class DashboardController extends Controller
         
                 /* Pajak bank — khusus Bunga Giro */
                 if ($bidang === 'BUNGA GIRO') {
-                    $pajakBank = (int)($laporan->pajak_bank ?? 0);
+                                        $pajakBank = (int) (
+                        $laporan->pajak_json['bunga_giro']
+                        ?? $laporan->pajak_bank
+                        ?? 0
+                    );
                     if ($pajakBank > 0) {
                         $rows->push((object)[
                             'nama'      => 'Pajak Bank',

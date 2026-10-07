@@ -38,6 +38,25 @@ class LaporanKeuanganService
     | ★ Hanya laporan bendahara berstatus "Selesai" yang dihitung.
     |--------------------------------------------------------------------------
     */
+    private const JENIS_KODE = [
+        'Dana Operasional'     => 'dana_operasional',
+        'Dana Perjuangan'      => 'dana_perjuangan',
+        'Dana Sosial'          => 'dana_sosial',
+        'Dana Permusyawaratan' => 'dana_permusyawaratan',
+        'Dana Sosial Politik'  => 'dana_sosial_politik',
+        'Bunga Giro'           => 'bunga_giro',
+        'Bunga Deposito'       => 'bunga_deposito',
+        'COS DPP'              => 'cos_dpp',
+    ];
+
+    /** Baca nilai dari json laporan: coba kode dulu, lalu nama lama (data lama belum termigrasi). */
+    private function nilaiJenis(?array $json, string $namaLabel): int
+    {
+        if (!$json) return 0;
+        $kode = self::JENIS_KODE[$namaLabel] ?? null;
+        return (int) ($json[$kode] ?? $json[$namaLabel] ?? 0);
+    }
+
     public function getDebitKreditBulanan(int $tahun): array
     {
         $bulanLabel = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -48,12 +67,10 @@ class LaporanKeuanganService
             'Bunga Giro','Bunga Deposito','COS DPP',
         ];
 
-        // ★ Hanya laporan yang sudah "Selesai" yang dipakai untuk grafik & breakdown
         $laporanPerBulan = LaporanBendahara::where('tahun', $tahun)
             ->where('status', 'Selesai')
             ->get()->keyBy('bulan');
 
-        // ★ Bulan terakhir yang ada laporan SELESAI-nya di tahun ini
         $bulanTerakhirLaporan = $laporanPerBulan->keys()->max() ?? 0;
 
         $labels = []; $debit = []; $kredit = [];
@@ -71,19 +88,15 @@ class LaporanKeuanganService
 
         for ($m = 1; $m <= $batasLoop; $m++) {
             $labels[] = $bulanLabel[$m - 1];
-            $laporan       = $laporanPerBulan->get($m);
-            $saldoAwalJson = $laporan?->saldo_awal_json ?? [];
-            $debitJson     = $laporan?->debit_json  ?? [];
-            $kreditJson    = $laporan?->kredit_json ?? [];
-            $totalJson     = $laporan?->total_json  ?? [];
+            $laporan = $laporanPerBulan->get($m);
 
             $debitBulan = 0; $kreditBulan = 0; $totalBulan = 0;
 
             foreach ($jenisKas as $j) {
-                $sa = (int) ($saldoAwalJson[$j] ?? 0);
-                $d = (int) ($debitJson[$j]  ?? 0);
-                $k = (int) ($kreditJson[$j] ?? 0);
-                $t = (int) ($totalJson[$j]  ?? 0);
+                $sa = $this->nilaiJenis($laporan?->saldo_awal_json, $j);
+                $d  = $this->nilaiJenis($laporan?->debit_json, $j);
+                $k  = $this->nilaiJenis($laporan?->kredit_json, $j);
+                $t  = $this->nilaiJenis($laporan?->total_json, $j);
 
                 $debitBulan  += $d;
                 $kreditBulan += $k;
@@ -118,7 +131,6 @@ class LaporanKeuanganService
             'tahun'                => $tahun,
         ];
     }
-
     /*
     |--------------------------------------------------------------------------
     | DETAIL PER JENIS DANA (dipakai modal drill-down breakdown)
@@ -168,7 +180,7 @@ class LaporanKeuanganService
 
                 /* Pajak bank — khusus Bunga Giro */
                 if ($jenisKey === 'BUNGA GIRO') {
-                    $pajakBank = (int) ($laporan->pajak_bank ?? 0);
+                    $pajakBank = (int) ($laporan->pajak_json['bunga_giro'] ?? $laporan->pajak_bank ?? 0);
                     if ($pajakBank > 0) {
                         $rows->push((object) [
                             'nama'      => 'Pajak Bank',
