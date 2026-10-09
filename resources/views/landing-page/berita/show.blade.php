@@ -3,6 +3,17 @@
 @push('styles')
     @vite(['resources/css/landing-page/berita/show.css'])
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+
+    @include('landing-page.partials.og-meta', [
+        'ogType'        => 'article',
+        'ogTitle'       => $berita->judul,
+        'ogDescription' => \Illuminate\Support\Str::limit(strip_tags($berita->ringkasan), 200),
+        'ogUrl'         => route('berita.show', $berita->slug),
+        'ogImage'       => !empty($berita->gambar) ? asset('storage/' . $berita->gambar) : asset('assets/media.png'),
+        'ogPublished'   => optional($berita->published_at)->toIso8601String(),
+        'ogSection'     => $berita->kategori,
+        'ogTags'        => $berita->tags->pluck('name')->all(),
+    ])
 @endpush
 
 @section('title', $berita->judul . ' - PUK OMRON')
