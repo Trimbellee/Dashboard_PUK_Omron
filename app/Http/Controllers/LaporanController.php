@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Laporan;
 use App\Models\Pengajuan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use App\Models\User;
 use App\Helpers\PdfCompressor;
+use App\Services\BrevoMailService;
 
 
 class LaporanController extends Controller
@@ -154,18 +154,17 @@ class LaporanController extends Controller
         KIRIM EMAIL NOTIF
         =================
         */
-        /*
         $emails = $this->emailsByRole(['Bendahara', 'Ketua', 'Sekretaris']);
 
-        if ($emails) {
-            Mail::to($emails)->send(
-                new \App\Mail\LaporanUploadedMail($pengajuan)
-            );
-        }
+		foreach ($emails as $email) {
 
-        $this->notifySelisihDana($pengajuan); 
-        =*/
+    		BrevoMailService::sendMailable(
+		$email,
+        	null,
+        	new \App\Mail\LaporanUploadedMail($pengajuan)
+    		);
 
+	}
         return redirect()->route('pengajuan.index')
             ->with('success', 'Laporan berhasil disimpan!');
     }
@@ -189,9 +188,11 @@ protected function notifySelisihDana($p)
 
     if ($p->dikembalikan != 0) {
 
-        Mail::to($pembuat->email)->send(
-            new \App\Mail\SelisihDanaMail($p)
-        );
+        BrevoMailService::sendMailable(
+    	$pembuat->email,
+    	null,
+    	new \App\Mail\SelisihDanaMail($p)
+	);
 
     }
 }

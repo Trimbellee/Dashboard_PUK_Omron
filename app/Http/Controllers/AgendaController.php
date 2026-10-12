@@ -6,7 +6,7 @@ use App\Models\AgendaEvent;
 use App\Models\ReminderRecipient;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use App\Services\BrevoMailService;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -280,14 +280,17 @@ class AgendaController extends Controller
         
         foreach ($recipients as $recipient) {
             try {
-                Mail::send('emails.reminder', [
-                    'event' => $event,
-                    'recipient' => $recipient,
-                ], function ($message) use ($recipient, $event) {
-                    $message->to($recipient->email)
-                            ->subject('Reminder: ' . $event->title);
-                });
-                
+                $html = view('emails.reminder', [
+    			'event' => $event,
+    			'recipient' => $recipient,
+		])->render();
+
+		BrevoMailService::send(
+    			$recipient->email,
+    			$recipient->name ?? null,
+    			'Reminder: ' . $event->title,
+    			$html
+		);                
                 Log::info('Reminder email sent', [
                     'event_id' => $event->id,
                     'email' => $recipient->email,

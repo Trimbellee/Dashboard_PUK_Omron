@@ -13,6 +13,8 @@ export default defineConfig({
                 'resources/css/landing-page/berita/index.css',
                 'resources/css/landing-page/berita/show.css',
                 'resources/css/landing-page/auth/login.css',
+		'resources/css/landing-page/auth/ganti-password.css',
+		'resources/css/landing-page/auth/reset-password.css',
                 'resources/css/landing-page/galeri/galeri.css',
                 'resources/css/landing-page/informasi/informasi.css',
 		'resources/css/landing-page/keuangan.css', 

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\BidangMaster;
 use App\Helpers\PdfCompressor;
+use App\Services\BrevoMailService;
 
 class PengajuanController extends Controller
 {
@@ -37,25 +38,35 @@ class PengajuanController extends Controller
      | HELPER — kirim mail, gagal tidak meledak
      ─────────────────────────────────────────*/
     protected function sendMailSafe($mailable, $to): void
-    {
-        try {
-            if (is_array($to)) {
-                $to = array_filter($to); // buang null / kosong
-            }
+{
+    try {
 
-            if (empty($to)) return;
-
-            Mail::to($to)->send($mailable);
-
-        } catch (\Throwable $e) {
-            // Catat di log tapi JANGAN lempar exception ke client
-            Log::warning('[PengajuanController] Gagal kirim email: ' . $e->getMessage(), [
-                'mailable' => get_class($mailable),
-                'to'       => $to,
-            ]);
+        if (is_array($to)) {
+            $to = array_filter($to);
         }
-    }
 
+        if (empty($to)) return;
+
+
+        foreach ((array) $to as $email) {
+
+            BrevoMailService::sendMailable(
+                $email,
+                null,
+                $mailable
+            );
+
+        }
+
+    } catch (\Throwable $e) {
+
+        Log::warning('[PengajuanController] Gagal kirim email Brevo: ' . $e->getMessage(), [
+            'mailable' => get_class($mailable),
+            'to'       => $to,
+        ]);
+
+    }
+}
     /* ─────────────────────────────────────────
      | HELPER — email berdasarkan role
      ─────────────────────────────────────────*/
