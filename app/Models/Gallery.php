@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
- use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Storage;
 
 class Gallery extends Model
 {
@@ -68,5 +68,14 @@ class Gallery extends Model
                 Storage::disk('public')->delete($m[1]);
             }
         });
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'submitted_bidang5'    => 'Menunggu Reviewer',
+            'submitted_sekretaris' => 'Menunggu Approval',
+            default                => str_replace('_', ' ', $this->status),
+        };
     }
 }

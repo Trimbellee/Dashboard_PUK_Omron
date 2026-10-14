@@ -165,8 +165,10 @@
                         </div>
                     </template>
 
-                    <span class="lp-admin-badge lp-admin-badge--{{ $foto->status }} lp-admin-galeri-card__badge" x-show="!playing">
-                        {{ str_replace('_', ' ', $foto->status) }}
+                   
+
+                    <span class="lp-admin-badge lp-admin-badge--{{ $foto->status_label }} lp-admin-galeri-card__badge" x-show="!playing">
+                        {{ $foto->status_label }}
                     </span>
                     @if ($foto->type === 'video')
                         <span class="lp-video-badge" x-show="!playing">▶</span>
@@ -199,7 +201,13 @@
                             <form action="{{ route('admin.galeri.submit', $foto) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="lp-pill-btn lp-pill-btn--primary">
-                                    Kirim ke {{ PermissionHelper::can('review_gallery') ? 'Reviewer' : 'Sekretaris' }}
+                                    @if (PermissionHelper::can('approve_gallery'))
+                                        Terbitkan Langsung
+                                    @elseif (PermissionHelper::can('review_gallery'))
+                                        Kirim ke Sekretaris
+                                    @else
+                                        Kirim ke Reviewer
+                                    @endif
                                 </button>
                             </form>
                             <form id="delete-galeri-{{ $foto->id }}" action="{{ route('admin.galeri.destroy', $foto) }}" method="POST">
@@ -217,7 +225,7 @@
                             <form action="{{ route('admin.galeri.review-bidang5', $foto) }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="approve" value="1">
-                                <button type="submit" class="lp-pill-btn lp-pill-btn--success">Teruskan</button>
+                                <button type="submit" class="lp-pill-btn lp-pill-btn--success">Teruskan ke approval</button>
                             </form>
                             <button type="button" class="lp-pill-btn" onclick="document.getElementById('tolak-bidang5-{{ $foto->id }}').classList.toggle('lp-hidden')">Tolak</button>
                             <form id="tolak-bidang5-{{ $foto->id }}" action="{{ route('admin.galeri.review-bidang5', $foto) }}" method="POST" class="lp-hidden lp-admin-reject-form">

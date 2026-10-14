@@ -267,6 +267,15 @@ Route::middleware(['web', 'anggota.login'])->group(function () {
 
 });      
 
+
+
+// ===== Ganti password wajib (login pertama dengan password default) =====
+Route::get('/anggota/ganti-password', [AnggotaAuthController::class, 'showGantiPassword'])
+    ->name('anggota.password.ganti');
+
+Route::post('/anggota/ganti-password', [AnggotaAuthController::class, 'updatePassword'])
+    ->middleware('throttle:10,1')
+    ->name('anggota.ganti-password.update');
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATION

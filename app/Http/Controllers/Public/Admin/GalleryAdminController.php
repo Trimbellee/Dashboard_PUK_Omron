@@ -16,6 +16,7 @@ use Illuminate\View\View;
 class GalleryAdminController extends Controller
 {
     use HandlesApprovalWorkflow;
+    
 
     public function index(Request $request): View
     {
@@ -161,13 +162,13 @@ class GalleryAdminController extends Controller
             $request->validate(['catatan_revisi' => ['required', 'string', 'max:1000']]);
         }
 
-        $this->reviewByBidang5($foto, $approve, $request->catatan_revisi, 'gallery');
+        // FIX: tambahkan null untuk $editedData, baru 'gallery' untuk $type
+        $this->reviewByBidang5($foto, $approve, $request->catatan_revisi, null, 'gallery');
 
         return back()->with('success', $approve
             ? 'Media diteruskan ke Sekretaris untuk approval final.'
             : 'Media dikembalikan untuk direvisi.');
     }
-
     public function approveSekretaris(Request $request, Gallery $foto): RedirectResponse
     {
         abort_unless(PermissionHelper::can('approve_gallery'), 403);
