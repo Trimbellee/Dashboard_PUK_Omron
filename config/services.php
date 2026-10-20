@@ -37,8 +37,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-     'appsscript' => [
-    'url' => env('APPS_SCRIPT_URL'),
-],
 
+    'appsscript' => [
+    'url' => env('APPS_SCRIPT_URL'),
+    ],
+
+    'google_drive' => ['key' => env('GOOGLE_DRIVE_API_KEY')],
 ];

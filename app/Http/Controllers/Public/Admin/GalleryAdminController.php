@@ -16,7 +16,6 @@ use Illuminate\View\View;
 class GalleryAdminController extends Controller
 {
     use HandlesApprovalWorkflow;
-    
 
     public function index(Request $request): View
     {
@@ -71,6 +70,8 @@ class GalleryAdminController extends Controller
             'url'         => ['required', 'url', 'max:2000'],
             'type'        => ['required', 'in:image,video'],
             'thumbnail'   => ['nullable', 'url', 'max:2000'],
+            // Unggah gambar sendiri (otomatis dikecilkan); prioritas di atas thumbnail otomatis/URL
+            'thumbnail_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         // Proses URL dengan MediaHelper (YouTube, Google Drive, TikTok)
@@ -97,9 +98,30 @@ class GalleryAdminController extends Controller
             ? 'video'
             : $validated['type'];
 
-        // Jika admin memberikan thumbnail manual, gunakan itu
+        // Thumbnail manual (jika diisi admin); URL CDN TikTok tidak pernah disimpan mentah
         if (!empty($validated['thumbnail'])) {
-            $media['thumbnail_url'] = $validated['thumbnail'];
+            $manual = $this->resolveManualThumbnail(
+                $validated['thumbnail'],
+                $media['source'],
+                $media['external_id'],
+                (string) ($media['thumbnail_url'] ?? '')
+            );
+            if ($manual !== '') {
+                $media['thumbnail_url'] = $manual;
+            }
+        }
+
+        // Gambar yang diunggah admin menimpa semua sumber thumbnail lain
+        if ($request->hasFile('thumbnail_file')) {
+            $uploaded = MediaHelper::storeUploadedThumbnail($request->file('thumbnail_file'));
+            if ($uploaded === '') {
+                return back()
+                    ->withInput()
+                    ->withErrors(['thumbnail_file' => 'Gambar tidak bisa diproses. Coba format JPG atau PNG.']);
+            }
+            // Hasil unduhan otomatis (jika ada) tidak terpakai lagi -> hapus agar tidak jadi sampah
+            $this->deleteLocalThumbnail($media['thumbnail_url'] ?? null);
+            $media['thumbnail_url'] = $uploaded;
         }
 
         // Jika thumbnail_url masih kosong (Google Drive / TikTok gagal ambil), set placeholder
@@ -141,6 +163,9 @@ class GalleryAdminController extends Controller
             'Anda tidak berhak menghapus media ini.'
         );
 
+        // Hapus file thumbnail lokal (TikTok) agar tidak jadi sampah di disk
+        $this->deleteLocalThumbnail($foto->thumbnail_url);
+
         $foto->delete();
 
         return back()->with('success', 'Media berhasil dihapus.');
@@ -169,6 +194,7 @@ class GalleryAdminController extends Controller
             ? 'Media diteruskan ke Sekretaris untuk approval final.'
             : 'Media dikembalikan untuk direvisi.');
     }
+
     public function approveSekretaris(Request $request, Gallery $foto): RedirectResponse
     {
         abort_unless(PermissionHelper::can('approve_gallery'), 403);
@@ -219,6 +245,9 @@ class GalleryAdminController extends Controller
             'type'            => ['nullable', 'in:image,video'],
             'thumbnail'       => ['nullable', 'url', 'max:2000'],
             'reset_thumbnail' => ['nullable', 'boolean'],
+            'thumbnail_file'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            // Opsional (khusus TikTok): tempel ulang link video bila ambil-ulang otomatis gagal
+            'url_ulang'       => ['nullable', 'url', 'max:2000'],
         ]);
 
         // Tipe hanya bisa diubah untuk Google Drive; YouTube dan TikTok selalu video
@@ -226,18 +255,59 @@ class GalleryAdminController extends Controller
             ? ($data['type'] ?? $foto->type)
             : 'video';
 
-        // Thumbnail: kosong = tidak diubah; "kembalikan otomatis" hanya untuk YouTube dan Drive
+        // Thumbnail: kosong = tidak diubah; "ambil ulang otomatis" berlaku untuk YouTube, Drive, dan TikTok
         $oldThumb = (string) $foto->thumbnail_url;
         $newThumb = $oldThumb;
 
-        if ($request->boolean('reset_thumbnail') && $foto->source === 'youtube') {
+        if ($request->hasFile('thumbnail_file')) {
+            $uploaded = MediaHelper::storeUploadedThumbnail($request->file('thumbnail_file'));
+            if ($uploaded === '') {
+                return back()
+                    ->withInput()
+                    ->withErrors(['thumbnail_file' => 'Gambar tidak bisa diproses. Coba format JPG atau PNG.']);
+            }
+            $newThumb = $uploaded;
+        } elseif ($request->boolean('reset_thumbnail') && $foto->source === 'youtube') {
             $newThumb = MediaHelper::getYouTubeThumbnail($foto->external_id);
         } elseif ($request->boolean('reset_thumbnail') && $foto->source === 'googledrive') {
             $newThumb = MediaHelper::getGoogleDriveThumbnail($foto->external_id);
+        } elseif ($request->boolean('reset_thumbnail') && $foto->source === 'tiktok') {
+            $local = '';
+
+            // 1) Jika admin menempel ulang link TikTok, pakai itu (paling andal)
+            if (!empty($data['url_ulang']) && MediaHelper::isTikTokUrl($data['url_ulang'])) {
+                $media = MediaHelper::processUrl($data['url_ulang']);
+                if ($media && ($media['source'] ?? null) === 'tiktok'
+                    && (string) $media['external_id'] === (string) $foto->external_id) {
+                    $local = (string) ($media['thumbnail_url'] ?? '');
+                }
+            }
+
+            // 2) Kalau tidak, coba ambil ulang dari ID video yang tersimpan
+            if ($local === '') {
+                $local = MediaHelper::refreshTikTokThumbnail((string) $foto->external_id);
+            }
+
+            if ($local === '') {
+                return back()
+                    ->withInput()
+                    ->withErrors(['thumbnail' => 'Thumbnail TikTok gagal diambil otomatis. Tempel ulang link video TikTok di kolom link, atau isi URL gambar manual.']);
+            }
+
+            $newThumb = $local;
         } elseif (!empty($data['thumbnail'])) {
-            $newThumb = $data['thumbnail'];
+            $manual = $this->resolveManualThumbnail(
+                $data['thumbnail'],
+                (string) $foto->source,
+                (string) $foto->external_id,
+                ''
+            );
+            if ($manual !== '') {
+                $newThumb = $manual;
+            }
         }
 
+        // File lokal lama dihapus hanya jika thumbnail benar-benar berganti ke file/URL lain
         if ($newThumb !== $oldThumb) {
             $this->deleteLocalThumbnail($oldThumb);
         }
@@ -335,6 +405,36 @@ class GalleryAdminController extends Controller
         return $nama === '' ? null : $nama;
     }
 
+    /**
+     * Tentukan thumbnail dari input manual admin.
+     * - Untuk video TikTok, URL CDN TikTok (signed, cepat kedaluwarsa, sering terisi otomatis
+     *   oleh JS preview) TIDAK disimpan mentah: diunduh, dikecilkan, lalu disimpan lokal.
+     *   Jika hasil otomatis ($currentThumb) sudah berupa file lokal, hasil itu dipertahankan.
+     * - Selain itu, URL manual dipakai apa adanya.
+     * Mengembalikan string kosong jika tidak ada yang perlu diganti / gagal.
+     */
+    private function resolveManualThumbnail(
+        string $thumbnail,
+        string $source,
+        string $externalId,
+        string $currentThumb
+    ): string {
+        $host = strtolower(parse_url($thumbnail, PHP_URL_HOST) ?? '');
+        $isTikTokCdn = $source === 'tiktok'
+            && (bool) preg_match('/(tiktok|ibyteimg|byteimg)/', $host);
+
+        if (!$isTikTokCdn) {
+            return $thumbnail;
+        }
+
+        // Hasil unduhan otomatis sudah ada dan berupa file lokal -> pertahankan
+        if ($currentThumb !== '' && str_contains($currentThumb, '/storage/gallery-thumbs/')) {
+            return $currentThumb;
+        }
+
+        return MediaHelper::storeTikTokThumbnail($thumbnail, $externalId);
+    }
+
     private function deleteLocalThumbnail(?string $url): void
     {
         if ($url && preg_match('#/storage/(gallery-thumbs/[\w.\-]+)$#', $url, $m)) {
@@ -353,4 +453,62 @@ class GalleryAdminController extends Controller
 
         return response()->json($data ?: ['error' => 'Invalid URL']);
     }
+
+    public function storeFolder(Request $request): RedirectResponse
+{
+    abort_unless(PermissionHelper::can('create_gallery'), 403);
+
+    $data = $request->validate([
+        'folder_url' => ['required', 'url', 'max:2000'],
+        'kegiatan'   => ['nullable', 'string', 'max:255'],
+        'kategori'   => ['nullable', 'string', 'in:' . implode(',', array_keys(Gallery::KATEGORI_LIST))],
+    ]);
+
+    $folderId = MediaHelper::extractGoogleDriveFolderId($data['folder_url']);
+    if (!$folderId) {
+        return back()->withInput()->withErrors(['folder_url' => 'Link folder Google Drive tidak valid.']);
+    }
+
+    $files = MediaHelper::listGoogleDriveFolderImages($folderId);
+    if ($files === null) {
+        return back()->withInput()->withErrors(['folder_url' => 'Gagal membaca folder. Pastikan folder dibagikan publik dan API key sudah diatur.']);
+    }
+    if (empty($files)) {
+        return back()->withInput()->withErrors(['folder_url' => 'Tidak ada gambar di folder ini.']);
+    }
+
+    $existing = Gallery::where('source', 'googledrive')
+        ->whereIn('external_id', collect($files)->pluck('id'))
+        ->pluck('external_id')->all();
+
+    $kegiatan = self::normalizeKegiatan($data['kegiatan'] ?? null);
+    $userId   = session('anggota.id');
+    $dibuat = 0;
+
+    DB::transaction(function () use ($files, $existing, $data, $kegiatan, $userId, &$dibuat) {
+        foreach ($files as $f) {
+            if (in_array($f['id'], $existing, true)) continue; // lewati duplikat
+
+            Gallery::create([
+                'judul'         => null,
+                'kegiatan'      => $kegiatan,
+                'kategori'      => $data['kategori'] ?? null,
+                'type'          => 'image',
+                'source'        => 'googledrive',
+                'external_id'   => $f['id'],
+                'thumbnail_url' => MediaHelper::getGoogleDriveThumbnail($f['id']),
+                'embed_url'     => MediaHelper::getGoogleDriveEmbedUrl($f['id']),
+                'status'        => 'draft',
+                'created_by'    => $userId,
+            ]);
+            $dibuat++;
+        }
+    });
+
+    $dilewati = count($files) - $dibuat;
+    return redirect()->route('admin.galeri.index')
+        ->with('success', "{$dibuat} foto ditambahkan sebagai draft" . ($dilewati ? ", {$dilewati} dilewati (sudah ada)." : '.'));
+}
+
+
 }

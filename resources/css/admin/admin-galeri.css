@@ -842,3 +842,62 @@
         flex-wrap: wrap;
     }
 }
+
+/* ==========================================================================
+   ADMIN GALERI — Tambahan untuk form gabungan (Satu Media + Impor Folder)
+   ========================================================================== */
+
+/* Alpine: sembunyikan elemen x-cloak sampai Alpine siap */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Fieldset pembungkus tiap mode: tampil sebagai kolom dengan jarak yang sama
+   seperti .lp-editor__main (tanpa ini, form-group di dalamnya menempel rapat) */
+.lp-form__fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+
+/* <select> kategori memakai class .lp-form__input yang belum ada di CSS,
+   jadi sebelumnya tampil polos. Samakan dengan input lain. */
+.lp-form__group select,
+.lp-form__input {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-form__group select:focus,
+.lp-form__input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Radio & file input ikut kena aturan ".lp-form__group input" (padding + border),
+   jadi radio tampil membesar. Kembalikan ke tampilan normal. */
+.lp-form__group input[type="radio"],
+.lp-form__group input[type="checkbox"] {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    width: auto;
+}
+.lp-form__group input[type="file"] {
+    padding: 8px 10px;
+    background: var(--bg-surface);
+}
+
+/* Tab mode di form: tanpa garis bawah ganda dan margin bawaan .lp-filter-tabs */
+.lp-editor__main > .lp-filter-tabs {
+    margin-bottom: 0;
+}

@@ -837,3 +837,37 @@ section.lp-gx-page {
     .lp-gx-card__img,
     .lp-gx-play { transition: none !important; }
 }
+
+/* ==========================================================================
+   TAMBAHAN UNTUK FILTER AJAX
+   Tempel di AKHIR resources/css/landing-page/galeri/galeri.css
+   ========================================================================== */
+
+/* Area hasil saat sedang memuat */
+.lp-gx-live {
+    min-height: 40vh;
+    transition: opacity 0.2s ease;
+}
+.lp-gx-live.is-loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Atribut [hidden] harus menang atas display bawaan class di bawah ini */
+.lp-gx-btn[hidden],
+.lp-gx-search__clear[hidden],
+.lp-gx-kbd[hidden] {
+    display: none !important;
+}
+
+/* Tombol hapus pencarian kini <button>, bukan <a> */
+button.lp-gx-search__clear {
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-gx-live { transition: none; }
+}

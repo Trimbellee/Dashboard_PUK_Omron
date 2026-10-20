@@ -402,7 +402,7 @@
                 <ul>
                     <li><a href="#tentang">Tentang Kami</a></li>
                     <li><a href="#struktur">Struktur</a></li>
-                    <li><a href="#program">Program Kerja</a></li>
+                    <li><a href="#berita">Berita</a></li>
                     <li><a href="#kontak">Kontak</a></li>
                 </ul>
             </div>
