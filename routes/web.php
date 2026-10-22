@@ -104,6 +104,7 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::get('/galeri/create', [GalleryAdminController::class, 'create'])->name('galeri.create');
     Route::post('/galeri', [GalleryAdminController::class, 'store'])->name('galeri.store');
     Route::post('galeri/folder', [GalleryAdminController::class, 'storeFolder'])->name('galeri.store-folder');
+    Route::post('galeri/album/aksi', [GalleryAdminController::class, 'albumAksi'])->name('galeri.album-aksi');
     Route::delete('/galeri/{foto}', [GalleryAdminController::class, 'destroy'])->name('galeri.destroy');
     Route::post('/galeri/{foto}/submit', [GalleryAdminController::class, 'submit'])->name('galeri.submit');
     Route::post('/galeri/{foto}/review-bidang5', [GalleryAdminController::class, 'reviewBidang5'])->name('galeri.review-bidang5');

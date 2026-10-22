@@ -48,6 +48,10 @@
         <a href="{{ route('admin.galeri.index', ['filter' => 'published']) }}" class="{{ $activeFilter === 'published' ? 'active' : '' }}">Published</a>
     </div>
 
+    @include('landing-page.admin.galeri._album-tools')
+
+    @if ($mode === 'foto')
+
     <div class="lp-admin-galeri-grid">
         @forelse ($galeriList as $foto)
             @php
@@ -273,8 +277,9 @@
             </div>
         @endforelse
     </div>
+    @endif
 
-    <div class="lp-pagination">{{ $galeriList->links() }}</div>
+    <div class="lp-pagination">{{ ($mode === 'album' ? $albums : $galeriList)->links() }}</div>
 
     {{-- Loader untuk YouTube IFrame API (sekali per page load) + factory Alpine component --}}
     <script>

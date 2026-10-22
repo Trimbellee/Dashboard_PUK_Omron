@@ -117,7 +117,7 @@
             <p class="lp-editor-hint" style="margin:0 0 6px;">Sumber: <strong>{{ $sumberLabel }}</strong></p>
             <p class="lp-editor-hint" style="margin:0 0 6px;">
                 Status:
-                <span class="lp-admin-badge lp-admin-badge--{{ $foto->status }}">{{ str_replace('_', ' ', $foto->status) }}</span>
+                <span class="lp-admin-badge lp-admin-badge--{{ $foto->status_label }}">{{ $foto->status_label }}</span>
             </p>
             <p class="lp-editor-hint" style="margin:0 0 10px;">
                 <a href="{{ $asalUrl }}" target="_blank" rel="noopener">Buka sumber asli ↗</a>

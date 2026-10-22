@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Helpers\RfidHelper;
 
 class AdminKegiatanPendaftaranController extends Controller
 {
@@ -244,9 +245,8 @@ class AdminKegiatanPendaftaranController extends Controller
         ]);
 
         $kodeRaw = trim($validated['kode']);
-        // Buang separator dan uppercase-kan supaya UID NFC ("04:a3:b2:c1")
-        // dan reader USB ("04A3B2C1") tetap cocok.
-        $kode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $kodeRaw));
+
+        $kode = RfidHelper::normalize($kodeRaw);
 
         $anggota = $this->cariAnggotaByKode($kodeRaw, $kode);
 

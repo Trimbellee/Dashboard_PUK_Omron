@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use App\Helpers\RfidHelper;
 
 
 
@@ -160,7 +161,9 @@ class AnggotaController extends Controller
         }
 
         if (!empty($validated['rfid_code'])) {
-            $validated['rfid_code'] = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $validated['rfid_code']));
+            $validated['rfid_code'] = RfidHelper::normalize(
+                $validated['rfid_code']
+            );
         } else {
             $validated['rfid_code'] = null;
         }
@@ -272,7 +275,9 @@ class AnggotaController extends Controller
         }
 
         if (!empty($validated['rfid_code'])) {
-            $validated['rfid_code'] = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $validated['rfid_code']));
+            $validated['rfid_code'] = RfidHelper::normalize(
+                $validated['rfid_code']
+            );
         } else {
             $validated['rfid_code'] = null;
         }

@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class GalleryAdminController extends Controller
 {
@@ -20,29 +21,92 @@ class GalleryAdminController extends Controller
     public function index(Request $request): View
     {
         $statBase = Gallery::query();
-
+    
         $stats = [
             'draft'     => (clone $statBase)->whereIn('status', ['draft', 'revisi'])->count(),
             'menunggu'  => (clone $statBase)->whereIn('status', ['submitted_bidang5', 'submitted_sekretaris'])->count(),
             'published' => (clone $statBase)->where('status', 'published')->count(),
         ];
-
-        $query = (clone $statBase)->latest();
-
+    
         $filter = $request->string('filter')->toString();
-        match ($filter) {
-            'draft'     => $query->whereIn('status', ['draft', 'revisi']),
-            'menunggu'  => $query->whereIn('status', ['submitted_bidang5', 'submitted_sekretaris']),
-            'published' => $query->where('status', 'published'),
+        $filterStatuses = match ($filter) {
+            'draft'     => ['draft', 'revisi'],
+            'menunggu'  => ['submitted_bidang5', 'submitted_sekretaris'],
+            'published' => ['published'],
             default     => null,
         };
-
-        return view('landing-page.admin.galeri.index', [
-            'galeriList'   => $query->paginate(20)->withQueryString(),
-            'stats'        => $stats,
-            'activeFilter' => $filter ?: 'semua',
-        ]);
+    
+        // ?kegiatan=NAMA  -> tampilkan foto dalam satu album ("__none" = tanpa kegiatan)
+        $kegiatanAktif = $request->query('kegiatan');
+        $kegiatanAktif = (is_string($kegiatanAktif) && $kegiatanAktif !== '') ? $kegiatanAktif : null;
+    
+        // Default: daftar album. ?tampilan=foto atau ?kegiatan=... -> grid foto
+        $mode = ($kegiatanAktif !== null || $request->query('tampilan') === 'foto') ? 'foto' : 'album';
+    
+        $data = [
+            'stats'          => $stats,
+            'activeFilter'   => $filter ?: 'semua',
+            'mode'           => $mode,
+            'kegiatanAktif'  => $kegiatanAktif,
+            'albums'         => null,
+            'covers'         => [],
+            'tanpaKegiatan'  => null,
+            'albumInfo'      => null,
+            'galeriList'     => null,
+        ];
+    
+        if ($mode === 'album') {
+            $albums = Gallery::query()
+                ->whereNotNull('kegiatan')
+                ->where('kegiatan', '!=', '')
+                ->select(
+                    'kegiatan',
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw("SUM(status IN ('draft','revisi')) as draft"),
+                    DB::raw("SUM(status IN ('submitted_bidang5','submitted_sekretaris')) as menunggu"),
+                    DB::raw("SUM(status = 'published') as published"),
+                    DB::raw('MIN(id) as cover_id'),
+                    DB::raw('MAX(created_at) as terbaru')
+                )
+                ->groupBy('kegiatan')
+                // nama filter (draft/menunggu/published) sama dengan alias kolom di atas
+                ->when($filterStatuses, fn ($q) => $q->having($filter, '>', 0))
+                ->orderByDesc('terbaru')
+                ->paginate(12)
+                ->withQueryString();
+    
+            $data['albums'] = $albums;
+            $data['covers'] = Gallery::whereIn('id', $albums->pluck('cover_id'))->pluck('thumbnail_url', 'id');
+    
+            // Media yang belum punya kegiatan tetap bisa diakses lewat kartu khusus
+            $tanpa = Gallery::query()
+                ->where(fn ($w) => $w->whereNull('kegiatan')->orWhere('kegiatan', ''))
+                ->when($filterStatuses, fn ($q) => $q->whereIn('status', $filterStatuses));
+    
+            $totalTanpa = (clone $tanpa)->count();
+            if ($totalTanpa > 0) {
+                $data['tanpaKegiatan'] = [
+                    'total' => $totalTanpa,
+                    'cover' => (clone $tanpa)->orderBy('id')->value('thumbnail_url'),
+                ];
+            }
+        } else {
+            $query = $kegiatanAktif !== null
+                ? $this->albumScope($kegiatanAktif)->orderBy('id')   // urutan sesuai impor
+                : Gallery::query()->latest();
+    
+            $query->when($filterStatuses, fn ($q) => $q->whereIn('status', $filterStatuses));
+    
+            $data['galeriList'] = $query->paginate(20)->withQueryString();
+    
+            if ($kegiatanAktif !== null) {
+                $data['albumInfo'] = $this->albumInfo($kegiatanAktif);
+            }
+        }
+    
+        return view('landing-page.admin.galeri.index', $data);
     }
+    
 
     public function create(): View
     {
@@ -455,60 +519,187 @@ class GalleryAdminController extends Controller
     }
 
     public function storeFolder(Request $request): RedirectResponse
-{
-    abort_unless(PermissionHelper::can('create_gallery'), 403);
-
-    $data = $request->validate([
-        'folder_url' => ['required', 'url', 'max:2000'],
-        'kegiatan'   => ['nullable', 'string', 'max:255'],
-        'kategori'   => ['nullable', 'string', 'in:' . implode(',', array_keys(Gallery::KATEGORI_LIST))],
-    ]);
-
-    $folderId = MediaHelper::extractGoogleDriveFolderId($data['folder_url']);
-    if (!$folderId) {
-        return back()->withInput()->withErrors(['folder_url' => 'Link folder Google Drive tidak valid.']);
-    }
-
-    $files = MediaHelper::listGoogleDriveFolderImages($folderId);
-    if ($files === null) {
-        return back()->withInput()->withErrors(['folder_url' => 'Gagal membaca folder. Pastikan folder dibagikan publik dan API key sudah diatur.']);
-    }
-    if (empty($files)) {
-        return back()->withInput()->withErrors(['folder_url' => 'Tidak ada gambar di folder ini.']);
-    }
-
-    $existing = Gallery::where('source', 'googledrive')
-        ->whereIn('external_id', collect($files)->pluck('id'))
-        ->pluck('external_id')->all();
-
-    $kegiatan = self::normalizeKegiatan($data['kegiatan'] ?? null);
-    $userId   = session('anggota.id');
-    $dibuat = 0;
-
-    DB::transaction(function () use ($files, $existing, $data, $kegiatan, $userId, &$dibuat) {
-        foreach ($files as $f) {
-            if (in_array($f['id'], $existing, true)) continue; // lewati duplikat
-
-            Gallery::create([
-                'judul'         => null,
-                'kegiatan'      => $kegiatan,
-                'kategori'      => $data['kategori'] ?? null,
-                'type'          => 'image',
-                'source'        => 'googledrive',
-                'external_id'   => $f['id'],
-                'thumbnail_url' => MediaHelper::getGoogleDriveThumbnail($f['id']),
-                'embed_url'     => MediaHelper::getGoogleDriveEmbedUrl($f['id']),
-                'status'        => 'draft',
-                'created_by'    => $userId,
-            ]);
-            $dibuat++;
+    {
+        abort_unless(PermissionHelper::can('create_gallery'), 403);
+    
+        $data = $request->validate([
+            'folder_url' => ['required', 'url', 'max:2000'],
+            'kegiatan'   => ['nullable', 'string', 'max:255'],
+            'kategori'   => ['nullable', 'string', 'in:' . implode(',', array_keys(Gallery::KATEGORI_LIST))],
+            // maks 45 supaya masih muat nomor urut dalam batas 55 karakter kolom judul
+            'judul'      => ['nullable', 'string', 'max:45'],
+            'nomor_urut' => ['nullable', 'boolean'],
+        ]);
+    
+        $folderId = MediaHelper::extractGoogleDriveFolderId($data['folder_url']);
+        if (!$folderId) {
+            return back()->withInput()->withErrors(['folder_url' => 'Link folder Google Drive tidak valid.']);
         }
-    });
+    
+        $files = MediaHelper::listGoogleDriveFolderImages($folderId);
+        if ($files === null) {
+            return back()->withInput()->withErrors(['folder_url' => 'Gagal membaca folder. Pastikan folder dibagikan publik dan API key sudah diatur.']);
+        }
+        if (empty($files)) {
+            return back()->withInput()->withErrors(['folder_url' => 'Tidak ada gambar di folder ini.']);
+        }
+    
+        $existing = Gallery::where('source', 'googledrive')
+            ->whereIn('external_id', collect($files)->pluck('id'))
+            ->pluck('external_id')->all();
+    
+        $kegiatan = self::normalizeKegiatan($data['kegiatan'] ?? null);
+        $userId   = session('anggota.id');
+    
+        // Dasar judul: isian judul, kalau kosong pakai nama kegiatan
+        $dasarJudul = self::normalizeKegiatan($data['judul'] ?? null)
+            ?? ($kegiatan !== null ? Str::limit($kegiatan, 45, '') : null);
+        $pakaiNomor = $request->boolean('nomor_urut');
+        $lebar      = strlen((string) count($files));
+    
+        $dibuat = 0;
+    
+        DB::transaction(function () use ($files, $existing, $data, $kegiatan, $userId, $dasarJudul, $pakaiNomor, $lebar, &$dibuat) {
+            foreach ($files as $i => $f) {
+                if (in_array($f['id'], $existing, true)) continue; // lewati duplikat
+    
+                $judul = $dasarJudul;
+                if ($judul !== null && $pakaiNomor) {
+                    // nomor mengikuti urutan file di Drive (bukan hanya yang baru dibuat)
+                    $judul .= ' ' . str_pad((string) ($i + 1), $lebar, '0', STR_PAD_LEFT);
+                }
+    
+                Gallery::create([
+                    'judul'         => $judul,
+                    'kegiatan'      => $kegiatan,
+                    'kategori'      => $data['kategori'] ?? null,
+                    'type'          => 'image',
+                    'source'        => 'googledrive',
+                    'external_id'   => $f['id'],
+                    'thumbnail_url' => MediaHelper::getGoogleDriveThumbnail($f['id']),
+                    'embed_url'     => MediaHelper::getGoogleDriveEmbedUrl($f['id']),
+                    'status'        => 'draft',
+                    'created_by'    => $userId,
+                ]);
+                $dibuat++;
+            }
+        });
+    
+        $dilewati = count($files) - $dibuat;
+    
+        // Langsung arahkan ke album yang baru dibuat
+        $tujuan = $kegiatan !== null
+            ? route('admin.galeri.index', ['kegiatan' => $kegiatan])
+            : route('admin.galeri.index', ['tampilan' => 'foto']);
+    
+        return redirect($tujuan)
+            ->with('success', "{$dibuat} foto ditambahkan sebagai draft" . ($dilewati ? ", {$dilewati} dilewati (sudah ada)." : '.'));
+    }
 
-    $dilewati = count($files) - $dibuat;
-    return redirect()->route('admin.galeri.index')
-        ->with('success', "{$dibuat} foto ditambahkan sebagai draft" . ($dilewati ? ", {$dilewati} dilewati (sudah ada)." : '.'));
-}
+    public function albumAksi(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'kegiatan' => ['required', 'string', 'max:255'],
+            'aksi'     => ['required', 'in:submit,review,approve,hapus'],
+        ]);
+    
+        abort_unless(match ($data['aksi']) {
+            'submit'  => PermissionHelper::can('create_gallery'),
+            'review'  => PermissionHelper::can('review_gallery'),
+            'approve' => PermissionHelper::can('approve_gallery'),
+            'hapus'   => true, // dicek per foto lewat bolehHapus()
+        }, 403);
+    
+        $userId  = session('anggota.id');
+        $jabatan = session('anggota.jabatan_puk');
+        $items   = $this->albumScope($data['kegiatan'])->get();
+    
+        $berhasil = 0;
+        $gagal    = 0;
+    
+        foreach ($items as $foto) {
+            try {
+                switch ($data['aksi']) {
+                    case 'submit':
+                        if ($foto->created_by !== $userId || !in_array($foto->status, ['draft', 'revisi'], true)) {
+                            continue 2;
+                        }
+                        $this->submitForApproval($foto, $jabatan, 'gallery');
+                        break;
+    
+                    case 'review':
+                        if ($foto->status !== 'submitted_bidang5') continue 2;
+                        $this->reviewByBidang5($foto, true, null, null, 'gallery');
+                        break;
+    
+                    case 'approve':
+                        if ($foto->status !== 'submitted_sekretaris') continue 2;
+                        $this->approveBySekretaris($foto, true, null, 'gallery');
+                        break;
+    
+                    case 'hapus':
+                        if (!$this->bolehHapus($foto)) continue 2;
+                        $this->deleteLocalThumbnail($foto->thumbnail_url);
+                        $foto->delete();
+                        break;
+                }
+                $berhasil++;
+            } catch (\Throwable $e) {
+                report($e);
+                $gagal++;
+            }
+        }
+    
+        $label = [
+            'submit'  => 'dikirim / diterbitkan',
+            'review'  => 'diteruskan ke approval',
+            'approve' => 'disetujui dan dipublikasikan',
+            'hapus'   => 'dihapus',
+        ][$data['aksi']];
+    
+        $pesan = "{$berhasil} foto {$label}" . ($gagal ? ", {$gagal} gagal (lihat log)." : '.');
+    
+        // Album yang sudah kosong -> kembali ke daftar album
+        $redirect = ($data['aksi'] === 'hapus' && $this->albumScope($data['kegiatan'])->doesntExist())
+            ? redirect()->route('admin.galeri.index')
+            : back();
+    
+        return $redirect->with('success', $pesan);
+    }
+
+    private function albumScope(string $kegiatan)
+    {
+        $query = Gallery::query();
+    
+        return $kegiatan === '__none'
+            ? $query->where(fn ($w) => $w->whereNull('kegiatan')->orWhere('kegiatan', ''))
+            : $query->where('kegiatan', $kegiatan);
+    }
+    
+    /** Jumlah foto per aksi yang boleh dilakukan user ini di satu album. */
+    private function albumInfo(string $kegiatan): array
+    {
+        $userId = session('anggota.id');
+        $rows   = $this->albumScope($kegiatan)->get(['id', 'status', 'created_by']);
+    
+        return [
+            'total'      => $rows->count(),
+            'bisa_kirim' => $rows->filter(fn ($f) => $f->created_by === $userId
+                                && in_array($f->status, ['draft', 'revisi'], true))->count(),
+            'review'     => $rows->where('status', 'submitted_bidang5')->count(),
+            'approval'   => $rows->where('status', 'submitted_sekretaris')->count(),
+            'bisa_hapus' => $rows->filter(fn ($f) => $this->bolehHapus($f))->count(),
+        ];
+    }
+    
+    /** Aturan hapus yang sama dengan destroy(): pemilik (draft/revisi) atau approver (published). */
+    private function bolehHapus(Gallery $foto): bool
+    {
+        $userId = session('anggota.id');
+    
+        return ($foto->created_by === $userId && in_array($foto->status, ['draft', 'revisi'], true))
+            || (PermissionHelper::can('approve_gallery') && $foto->status === 'published');
+    }
 
 
 }

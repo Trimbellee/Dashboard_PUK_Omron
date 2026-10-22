@@ -871,3 +871,163 @@ button.lp-gx-search__clear {
 @media (prefers-reduced-motion: reduce) {
     .lp-gx-live { transition: none; }
 }
+
+
+/* ==========================================================================
+   TAMBAHAN: TAMPILAN ALBUM
+   ========================================================================== */
+
+/* Pilihan tampilan (Album / Semua Media) */
+.lp-gx-view {
+    display: inline-flex;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--bg-surface-alt);
+}
+.lp-gx-view a {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-gx-view a:hover { color: var(--text-primary); }
+.lp-gx-view a.active {
+    background: var(--bg-surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+}
+@media (max-width: 560px) {
+    .lp-gx-view { display: flex; width: 100%; }
+    .lp-gx-view a { flex: 1; justify-content: center; }
+}
+
+/* Baris tab tipe di bawah kepala album */
+.lp-gx-bar--tabs { margin-top: 0; }
+
+/* Kepala album */
+.lp-gx-albumhead {
+    margin: 4px 0 18px;
+    padding: 16px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--gx-r);
+    background: var(--bg-surface);
+}
+.lp-gx-albumhead__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+}
+.lp-gx-albumhead__back:hover { text-decoration: underline; }
+.lp-gx-albumhead__title {
+    margin: 0;
+    font-family: var(--font-display, inherit);
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+.lp-gx-albumhead__meta {
+    margin: 4px 0 0;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+}
+
+/* Kartu album: cover dengan efek tumpukan foto di belakangnya */
+.lp-gx-grid--albums { padding-top: 8px; }
+.lp-gx-album {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: #fff;
+}
+.lp-gx-album::before,
+.lp-gx-album::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    border-radius: var(--gx-r) var(--gx-r) 0 0;
+    transition: transform 0.3s var(--gx-ease);
+}
+.lp-gx-album::before {
+    left: 16px;
+    right: 16px;
+    top: -8px;
+    height: 24px;
+    background: var(--border-color);
+}
+.lp-gx-album::after {
+    left: 8px;
+    right: 8px;
+    top: -4px;
+    height: 24px;
+    border: 1px solid var(--border-color);
+    border-bottom: 0;
+    background: var(--bg-surface-alt);
+}
+.lp-gx-album__cover {
+    position: relative;
+    z-index: 1;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--gx-r-sm);
+    background: var(--bg-surface-alt);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.3s var(--gx-ease), box-shadow 0.3s var(--gx-ease);
+}
+@media (min-width: 640px) {
+    .lp-gx-album__cover { border-radius: var(--gx-r); }
+}
+.lp-gx-album:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--gx-r);
+}
+.lp-gx-album__count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+}
+@media (hover: hover) {
+    .lp-gx-album:hover .lp-gx-album__cover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    .lp-gx-album:hover::before { transform: translateY(-4px); }
+    .lp-gx-album:hover::after  { transform: translateY(-3px); }
+    .lp-gx-album:hover .lp-gx-card__img { transform: scale(1.07); }
+}
+
+/* Animasi muncul untuk kartu album (sama seperti kartu media) */
+.lp-gx-js .lp-gx-album:not(.is-visible) { opacity: 0; }
+.lp-gx-album.is-visible {
+    animation: lp-gx-rise 0.6s var(--gx-ease) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-gx-js .lp-gx-album:not(.is-visible) { opacity: 1; }
+    .lp-gx-album.is-visible { animation: none; }
+    .lp-gx-album__cover,
+    .lp-gx-album::before,
+    .lp-gx-album::after { transition: none !important; }
+}

@@ -50,14 +50,23 @@
         if (($q['sort'] ?? '') === 'terbaru') {
             unset($q['sort']);
         }
-        return route('galeri.index', array_filter($q, fn ($v) => $v !== null && $v !== '')) . '#hasil';
+        return route('galeri.index', array_filter($q, fn ($v) => $v !== null && $v !== ''));
     };
+
+    $namaKegiatan = fn (?string $k) => $k === '__none' ? 'Lainnya' : $k;
 
     $hasFilter   = $filters['q'] || $filters['type'] || $filters['kategori'] || $filters['kegiatan'];
     $placeholder = asset('images/placeholder-media.png');
+    $isAlbumMode = $mode === 'album';
 
-    // Kartu pertama dibuat besar (bento) di halaman 1 jika datanya cukup
-    $useFeature = $galeriList->currentPage() === 1 && $galeriList->count() >= 5;
+    // Paginator aktif: daftar album (mode album) atau daftar media (mode foto)
+    $pager = $isAlbumMode ? $albums : $galeriList;
+
+    // Kartu pertama dibuat besar (bento) di halaman 1 jika datanya cukup (hanya di mode foto)
+    $useFeature = !$isAlbumMode && $galeriList->currentPage() === 1 && $galeriList->count() >= 5;
+
+    // Toggle "Album" tetap aktif saat berada di dalam sebuah album
+    $toggleAlbumActive = $isAlbumMode || $filters['kegiatan'] !== '';
 @endphp
 
 <section class="lp-gx-page">
@@ -75,7 +84,7 @@
                     <span class="lp-gx-eyebrow"><span class="lp-gx-eyebrow__dot"></span> Galeri</span>
                     <h1 class="lp-gx-title">Dokumentasi <span class="lp-gx-title__accent">Kegiatan</span> PUK OMRON</h1>
                     <p class="lp-gx-lead">
-                        Foto dan video perjuangan, pendidikan, serta kebersamaan anggota. Cari, saring, dan putar langsung tanpa meninggalkan halaman.
+                        Foto dan video perjuangan, pendidikan, serta kebersamaan anggota. Buka album kegiatan, cari, saring, dan putar langsung tanpa meninggalkan halaman.
                     </p>
                 </div>
 
@@ -102,12 +111,15 @@
 
         {{-- ===== TOOLBAR: PENCARIAN, KATEGORI, URUTAN (statis; dikendalikan JavaScript) =====
              Form tetap berfungsi tanpa JS (GET biasa), tetapi dengan JS dikirim lewat AJAX. --}}
-        <form id="hasil" action="{{ route('galeri.index') }}#hasil" method="GET" class="lp-gx-toolbar">
+        <form id="hasil" action="{{ route('galeri.index') }}" method="GET" class="lp-gx-toolbar">
             @if ($filters['type'])
                 <input type="hidden" name="type" value="{{ $filters['type'] }}">
             @endif
             @if ($filters['kegiatan'])
                 <input type="hidden" name="kegiatan" value="{{ $filters['kegiatan'] }}">
+            @endif
+            @if ($filters['tampilan'])
+                <input type="hidden" name="tampilan" value="{{ $filters['tampilan'] }}">
             @endif
 
             <label class="lp-gx-search">
@@ -143,7 +155,7 @@
 
             <div class="lp-gx-actions">
                 <button type="submit" class="lp-gx-btn lp-gx-btn--primary">Cari</button>
-                <a href="{{ route('galeri.index') }}#hasil" class="lp-gx-btn lp-gx-btn--ghost" data-gx-reset @if (!$hasFilter) hidden @endif>Reset</a>
+                <a href="{{ route('galeri.index') }}" class="lp-gx-btn lp-gx-btn--ghost" data-gx-reset @if (!$hasFilter) hidden @endif>Reset</a>
             </div>
         </form>
 
@@ -156,50 +168,64 @@
         {{-- ===== AREA DINAMIS: seluruh isi di dalam #gx-live diganti lewat AJAX ===== --}}
         <div id="gx-live" class="lp-gx-live">
 
-            {{-- ===== ALBUM (KEGIATAN) ===== --}}
-            @if ($albums->isNotEmpty())
-                <div class="lp-gx-albums">
-                    <span class="lp-gx-albums__label">Album</span>
-                    <div class="lp-gx-albums__list">
-                        <a href="{{ $url(['kegiatan' => '']) }}"
-                           data-gx-kegiatan=""
-                           class="lp-album-chip {{ $filters['kegiatan'] === '' ? 'active' : '' }}">Semua</a>
-                        @foreach ($albums as $album)
-                            <a href="{{ $url(['kegiatan' => $album->kegiatan]) }}"
-                               data-gx-kegiatan="{{ $album->kegiatan }}"
-                               class="lp-album-chip {{ $filters['kegiatan'] === $album->kegiatan ? 'active' : '' }}">
-                                {{ $album->kegiatan }} <em>{{ $album->total }}</em>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
-            {{-- ===== TAB TIPE + JUMLAH HASIL ===== --}}
+            {{-- ===== PILIH TAMPILAN (Album / Semua Media) + JUMLAH HASIL ===== --}}
             <div class="lp-gx-bar">
-                <nav class="lp-gx-seg" aria-label="Tipe media">
-                    <a href="{{ $url(['type' => '']) }}" data-gx-type="" class="{{ $filters['type'] === '' ? 'active' : '' }}">
-                        Semua <small>{{ $stats['total'] }}</small>
+                <nav class="lp-gx-view" aria-label="Tampilan galeri">
+                    <a href="{{ route('galeri.index') }}" data-gx-view="" class="{{ $toggleAlbumActive ? 'active' : '' }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                        Album
                     </a>
-                    <a href="{{ $url(['type' => 'image']) }}" data-gx-type="image" class="{{ $filters['type'] === 'image' ? 'active' : '' }}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-                        Foto <small>{{ $stats['image'] }}</small>
-                    </a>
-                    <a href="{{ $url(['type' => 'video']) }}" data-gx-type="video" class="{{ $filters['type'] === 'video' ? 'active' : '' }}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m10 8 6 4-6 4V8z"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
-                        Video <small>{{ $stats['video'] }}</small>
+                    <a href="{{ route('galeri.index', ['tampilan' => 'semua']) }}" data-gx-view="semua" class="{{ !$toggleAlbumActive ? 'active' : '' }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        Semua Media
                     </a>
                 </nav>
 
                 <p class="lp-gx-count">
-                    @if ($galeriList->total() > 0)
-                        Menampilkan <strong>{{ $galeriList->firstItem() }}–{{ $galeriList->lastItem() }}</strong>
-                        dari <strong>{{ $galeriList->total() }}</strong> media
+                    @if ($pager->total() > 0)
+                        Menampilkan <strong>{{ $pager->firstItem() }}–{{ $pager->lastItem() }}</strong>
+                        dari <strong>{{ $pager->total() }}</strong> {{ $isAlbumMode ? 'album' : 'media' }}
                     @else
-                        Tidak ada media
+                        {{ $isAlbumMode ? 'Tidak ada album' : 'Tidak ada media' }}
                     @endif
                 </p>
             </div>
+
+            {{-- ===== KEPALA ALBUM (saat membuka satu album) ===== --}}
+            @if (!$isAlbumMode && $albumHeader)
+                <div class="lp-gx-albumhead">
+                    <a href="{{ route('galeri.index') }}" data-gx-view="" class="lp-gx-albumhead__back">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        Semua Album
+                    </a>
+                    <h2 class="lp-gx-albumhead__title">{{ $namaKegiatan($filters['kegiatan']) }}</h2>
+                    <p class="lp-gx-albumhead__meta">
+                        {{ $albumHeader['foto'] }} foto · {{ $albumHeader['video'] }} video
+                        @if ($albumHeader['terakhir'])
+                            · Diperbarui {{ \Illuminate\Support\Carbon::parse($albumHeader['terakhir'])->translatedFormat('d M Y') }}
+                        @endif
+                    </p>
+                </div>
+            @endif
+
+            {{-- ===== TAB TIPE (hanya di mode foto) ===== --}}
+            @if (!$isAlbumMode)
+                <div class="lp-gx-bar lp-gx-bar--tabs">
+                    <nav class="lp-gx-seg" aria-label="Tipe media">
+                        <a href="{{ $url(['type' => '']) }}" data-gx-type="" class="{{ $filters['type'] === '' ? 'active' : '' }}">
+                            Semua <small>{{ $tabCounts['total'] }}</small>
+                        </a>
+                        <a href="{{ $url(['type' => 'image']) }}" data-gx-type="image" class="{{ $filters['type'] === 'image' ? 'active' : '' }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                            Foto <small>{{ $tabCounts['image'] }}</small>
+                        </a>
+                        <a href="{{ $url(['type' => 'video']) }}" data-gx-type="video" class="{{ $filters['type'] === 'video' ? 'active' : '' }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m10 8 6 4-6 4V8z"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+                            Video <small>{{ $tabCounts['video'] }}</small>
+                        </a>
+                    </nav>
+                </div>
+            @endif
 
             {{-- ===== CHIP FILTER AKTIF ===== --}}
             @if ($hasFilter)
@@ -223,84 +249,161 @@
                     @endif
                     @if ($filters['kegiatan'])
                         <a href="{{ $url(['kegiatan' => '']) }}" data-gx-clear="kegiatan" class="lp-filter-chip">
-                            Album: {{ $filters['kegiatan'] }} <span aria-hidden="true">&times;</span>
+                            Album: {{ $namaKegiatan($filters['kegiatan']) }} <span aria-hidden="true">&times;</span>
                         </a>
                     @endif
                 </div>
             @endif
 
-            {{-- ===== GRID GALERI ===== --}}
-            <div class="lp-gx-grid">
-                @forelse ($galeriList as $item)
-                    @php
-                        $kategoriLabel = \App\Models\Gallery::KATEGORI_LIST[$item->kategori] ?? null;
-                        $isVideo       = $item->type === 'video';
-                        $isFeature     = $useFeature && $loop->first;
-                        $tanggal       = $item->published_at
-                            ? \Illuminate\Support\Carbon::parse($item->published_at)->translatedFormat('d M Y')
-                            : null;
-                        $meta = collect([$item->kegiatan, $tanggal])->filter()->implode(' · ');
-                    @endphp
-                    <article class="lp-gx-card {{ $isFeature ? 'lp-gx-card--feature' : '' }}" style="--i: {{ $loop->index }}">
-                        <div class="lp-gx-card__media"
-                             role="button"
-                             tabindex="0"
-                             data-galeri-open="{{ $item->id }}"
-                             aria-label="Buka {{ $isVideo ? 'video' : 'foto' }}: {{ $item->judul ?? 'Tanpa judul' }}">
+            {{-- ===== MODE ALBUM: kartu album ===== --}}
+            @if ($isAlbumMode)
+                @php
+                    $adaTanpa = $tanpaAlbum && $albums->currentPage() === 1;
+                    $idx = 0;
+                @endphp
 
-                            @if ($item->thumbnail_url)
-                                <img class="lp-gx-card__img"
-                                     src="{{ $item->thumbnail_url }}"
-                                     alt="{{ $item->judul ?? 'Media' }}"
-                                     loading="{{ $loop->index < 4 ? 'eager' : 'lazy' }}"
-                                     decoding="async"
-                                     onerror="this.onerror=null;this.src='{{ $placeholder }}'">
-                            @else
-                                <div class="lp-gx-card__placeholder">{{ $isVideo ? '🎬' : '🖼️' }}</div>
-                            @endif
-
-                            <span class="lp-gx-card__shade"></span>
-
-                            <div class="lp-gx-card__top">
-                                <span class="lp-gx-badge lp-gx-badge--{{ $item->type }}"><i></i>{{ $isVideo ? 'Video' : 'Foto' }}</span>
-                                @if ($kategoriLabel)
-                                    <span class="lp-gx-badge lp-gx-badge--{{ $item->kategori }}">{{ $kategoriLabel }}</span>
+                <div class="lp-gx-grid lp-gx-grid--albums">
+                    @foreach ($albums as $album)
+                        @php
+                            $cover   = $covers[$album->cover_id] ?? null;
+                            $tglAkhir = $album->terakhir
+                                ? \Illuminate\Support\Carbon::parse($album->terakhir)->translatedFormat('d M Y')
+                                : null;
+                        @endphp
+                        <a class="lp-gx-album"
+                           href="{{ $url(['kegiatan' => $album->kegiatan, 'tampilan' => '']) }}"
+                           data-gx-kegiatan="{{ $album->kegiatan }}"
+                           style="--i: {{ $idx++ }}"
+                           aria-label="Buka album {{ $album->kegiatan }}, {{ $album->total }} media">
+                            <div class="lp-gx-album__cover">
+                                @if ($cover)
+                                    <img class="lp-gx-card__img" src="{{ $cover }}" alt="" loading="{{ $loop->index < 4 ? 'eager' : 'lazy' }}" decoding="async"
+                                         onerror="this.onerror=null;this.src='{{ $placeholder }}'">
+                                @else
+                                    <div class="lp-gx-card__placeholder">🖼️</div>
                                 @endif
+                                <span class="lp-gx-card__shade"></span>
+                                <span class="lp-gx-album__count">{{ $album->total }} media</span>
+                                <div class="lp-gx-card__info">
+                                    <h3 class="lp-gx-card__title">{{ $album->kegiatan }}</h3>
+                                    <p class="lp-gx-card__meta">
+                                        {{ collect([
+                                            $album->foto > 0 ? $album->foto . ' foto' : null,
+                                            $album->video > 0 ? $album->video . ' video' : null,
+                                            $tglAkhir,
+                                        ])->filter()->implode(' · ') }}
+                                    </p>
+                                </div>
                             </div>
+                        </a>
+                    @endforeach
 
-                            @if ($isVideo)
-                                <span class="lp-gx-play" aria-hidden="true">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                                </span>
-                            @endif
-
-                            <div class="lp-gx-card__info">
-                                <h3 class="lp-gx-card__title">{{ $item->judul ?? 'Tanpa judul' }}</h3>
-                                @if ($meta !== '')
-                                    <p class="lp-gx-card__meta">{{ $meta }}</p>
+                    @if ($adaTanpa)
+                        <a class="lp-gx-album"
+                           href="{{ $url(['kegiatan' => '__none', 'tampilan' => '']) }}"
+                           data-gx-kegiatan="__none"
+                           style="--i: {{ $idx++ }}"
+                           aria-label="Buka media lainnya, {{ $tanpaAlbum['total'] }} media">
+                            <div class="lp-gx-album__cover">
+                                @if ($tanpaAlbum['cover'])
+                                    <img class="lp-gx-card__img" src="{{ $tanpaAlbum['cover'] }}" alt="" loading="lazy" decoding="async"
+                                         onerror="this.onerror=null;this.src='{{ $placeholder }}'">
+                                @else
+                                    <div class="lp-gx-card__placeholder">🖼️</div>
                                 @endif
+                                <span class="lp-gx-card__shade"></span>
+                                <span class="lp-gx-album__count">{{ $tanpaAlbum['total'] }} media</span>
+                                <div class="lp-gx-card__info">
+                                    <h3 class="lp-gx-card__title">Lainnya</h3>
+                                    <p class="lp-gx-card__meta">Media tanpa album</p>
+                                </div>
                             </div>
-                        </div>
-                    </article>
-                @empty
-                    <div class="lp-gx-empty">
-                        <span class="lp-gx-empty__icon">🖼️</span>
-                        @if ($hasFilter)
-                            <p class="lp-gx-empty__title">Tidak ada media yang cocok</p>
-                            <p>Coba kata kunci lain atau <a href="{{ route('galeri.index') }}#hasil" data-gx-reset>reset filter</a> untuk melihat semua galeri.</p>
-                        @else
-                            <p class="lp-gx-empty__title">Belum ada media galeri</p>
+                        </a>
+                    @endif
+
+                    @if ($albums->isEmpty() && !$adaTanpa)
+                        <div class="lp-gx-empty">
+                            <span class="lp-gx-empty__icon">🖼️</span>
+                            <p class="lp-gx-empty__title">Belum ada album</p>
                             <p>Dokumentasi kegiatan akan tampil di sini setelah dipublikasikan.</p>
-                        @endif
-                    </div>
-                @endforelse
-            </div>
+                        </div>
+                    @endif
+                </div>
+
+            {{-- ===== MODE FOTO: grid media ===== --}}
+            @else
+                <div class="lp-gx-grid">
+                    @forelse ($galeriList as $item)
+                        @php
+                            $kategoriLabel = \App\Models\Gallery::KATEGORI_LIST[$item->kategori] ?? null;
+                            $isVideo       = $item->type === 'video';
+                            $isFeature     = $useFeature && $loop->first;
+                            $tanggal       = $item->published_at
+                                ? \Illuminate\Support\Carbon::parse($item->published_at)->translatedFormat('d M Y')
+                                : null;
+                            $meta = collect([$item->kegiatan, $tanggal])->filter()->implode(' · ');
+                        @endphp
+                        <article class="lp-gx-card {{ $isFeature ? 'lp-gx-card--feature' : '' }}" style="--i: {{ $loop->index }}">
+                            <div class="lp-gx-card__media"
+                                 role="button"
+                                 tabindex="0"
+                                 data-galeri-open="{{ $item->id }}"
+                                 aria-label="Buka {{ $isVideo ? 'video' : 'foto' }}: {{ $item->judul ?? 'Tanpa judul' }}">
+
+                                @if ($item->thumbnail_url)
+                                    <img class="lp-gx-card__img"
+                                         src="{{ $item->thumbnail_url }}"
+                                         alt="{{ $item->judul ?? 'Media' }}"
+                                         loading="{{ $loop->index < 4 ? 'eager' : 'lazy' }}"
+                                         decoding="async"
+                                         onerror="this.onerror=null;this.src='{{ $placeholder }}'">
+                                @else
+                                    <div class="lp-gx-card__placeholder">{{ $isVideo ? '🎬' : '🖼️' }}</div>
+                                @endif
+
+                                <span class="lp-gx-card__shade"></span>
+
+                                <div class="lp-gx-card__top">
+                                    <span class="lp-gx-badge lp-gx-badge--{{ $item->type }}"><i></i>{{ $isVideo ? 'Video' : 'Foto' }}</span>
+                                    @if ($kategoriLabel)
+                                        <span class="lp-gx-badge lp-gx-badge--{{ $item->kategori }}">{{ $kategoriLabel }}</span>
+                                    @endif
+                                </div>
+
+                                @if ($isVideo)
+                                    <span class="lp-gx-play" aria-hidden="true">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                    </span>
+                                @endif
+
+                                <div class="lp-gx-card__info">
+                                    <h3 class="lp-gx-card__title">{{ $item->judul ?? 'Tanpa judul' }}</h3>
+                                    @if ($meta !== '')
+                                        <p class="lp-gx-card__meta">{{ $meta }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        </article>
+                    @empty
+                        <div class="lp-gx-empty">
+                            <span class="lp-gx-empty__icon">🖼️</span>
+                            @if ($hasFilter)
+                                <p class="lp-gx-empty__title">Tidak ada media yang cocok</p>
+                                <p>Coba kata kunci lain atau <a href="{{ route('galeri.index') }}" data-gx-reset>reset filter</a> untuk kembali ke daftar album.</p>
+                            @else
+                                <p class="lp-gx-empty__title">Belum ada media galeri</p>
+                                <p>Dokumentasi kegiatan akan tampil di sini setelah dipublikasikan.</p>
+                            @endif
+                        </div>
+                    @endforelse
+                </div>
+            @endif
 
             {{-- ===== PAGINATION ===== --}}
-            @if ($galeriList->hasPages())
+            @if ($pager->hasPages())
                 <div class="lp-pagination">
-                    {{ $galeriList->links('vendor.pagination.lp') }}
-                    <p class="lp-gx-pageinfo">Halaman {{ $galeriList->currentPage() }} dari {{ $galeriList->lastPage() }}</p>
+                    {{ $pager->links('vendor.pagination.lp') }}
+                    <p class="lp-gx-pageinfo">Halaman {{ $pager->currentPage() }} dari {{ $pager->lastPage() }}</p>
                 </div>
             @endif
         </div>
@@ -311,10 +414,11 @@
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
 </button>
 
-{{-- Lightbox ikut diganti saat filter, karena daftar media yang bisa dibuka ikut berubah --}}
+{{-- Lightbox ikut diganti saat filter, karena daftar media yang bisa dibuka ikut berubah.
+     Di mode album tidak ada media yang ditampilkan, jadi daftarnya kosong. --}}
 <div id="gx-lb">
     @include('landing-page.partials.galeri-lightbox', [
-        'mediaItems' => $galeriList,
+        'mediaItems' => $galeriList ?? collect(),
         'focusMedia' => $focusMedia,
         'syncUrl'    => true,
     ])
@@ -335,10 +439,11 @@
     const kbd      = form.querySelector('.lp-gx-kbd');
     const btnReset = form.querySelector('[data-gx-reset]');
 
-    // Filter yang tidak punya kontrol form (tab tipe dan album) disimpan di sini
+    // Filter yang tidak punya kontrol form (tab tipe, album, tampilan) disimpan di sini
     const state = {
         type:     @json($filters['type']),
         kegiatan: @json($filters['kegiatan']),
+        tampilan: @json($filters['tampilan']),   // '' = album, 'semua' = semua media
     };
     const basePath = location.pathname;
 
@@ -355,7 +460,7 @@
         }, { threshold: 0.08, rootMargin: '0px 0px -4% 0px' });
     }
     function revealCards() {
-        live.querySelectorAll('.lp-gx-card:not(.is-visible)').forEach((c) => {
+        live.querySelectorAll('.lp-gx-card:not(.is-visible), .lp-gx-album:not(.is-visible)').forEach((c) => {
             if (io) io.observe(c); else c.classList.add('is-visible');
         });
     }
@@ -376,6 +481,7 @@
         if (state.type) p.set('type', state.type);
         if (selKat.value) p.set('kategori', selKat.value);
         if (state.kegiatan) p.set('kegiatan', state.kegiatan);
+        if (state.tampilan) p.set('tampilan', state.tampilan);
         if (selSort.value && selSort.value !== 'terbaru') p.set('sort', selSort.value);
         const qs = p.toString();
         return basePath + (qs ? '?' + qs : '');
@@ -388,6 +494,7 @@
         const t = params.get('type');
         state.type = (t === 'image' || t === 'video') ? t : '';
         state.kegiatan = params.get('kegiatan') || '';
+        state.tampilan = params.get('tampilan') === 'semua' ? 'semua' : '';
     }
 
     /* ---------- Muat hasil lewat AJAX dan ganti area dinamis ---------- */
@@ -417,19 +524,12 @@
             if (!nextLive) throw new Error('Area hasil tidak ditemukan');
             if (my !== seq) return; // sudah ada permintaan yang lebih baru
 
-            // Pertahankan posisi geser daftar album agar tidak melompat ke awal
-            const oldAlbumList = live.querySelector('.lp-gx-albums__list');
-            const albumScroll  = oldAlbumList ? oldAlbumList.scrollLeft : 0;
-
             live.innerHTML = nextLive.innerHTML;
             if (nextLb) lbWrap.innerHTML = nextLb.innerHTML;
             document.body.style.overflow = ''; // jaga-jaga jika lightbox sempat terbuka
 
             if (mode === 'push') history.pushState(null, '', url);
             else if (mode === 'replace') history.replaceState(null, '', url);
-
-            const newAlbumList = live.querySelector('.lp-gx-albums__list');
-            if (newAlbumList) newAlbumList.scrollLeft = albumScroll;
 
             revealCards();
             syncToolbar();
@@ -478,32 +578,48 @@
         });
     }
 
-    /* ---------- 2 & 3) Tab tipe, album, chip, reset, pagination: satu delegasi klik ---------- */
+    /* ---------- 2 & 3) Tampilan, album, tab tipe, chip, reset, pagination: satu delegasi klik ---------- */
     document.addEventListener('click', (e) => {
         const a = e.target.closest('a');
-        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
         const inLive = live.contains(a);
         const isReset = a.hasAttribute('data-gx-reset');
         if (!inLive && !isReset) return;
 
+        // Pilih tampilan: "Album" ('') atau "Semua Media" ('semua'); keduanya membersihkan filter lain
+        if (inLive && 'gxView' in a.dataset) {
+            e.preventDefault();
+            e.stopPropagation();
+            qInput.value = '';
+            selKat.value = '';
+            state.type = '';
+            state.kegiatan = '';
+            state.tampilan = a.dataset.gxView === 'semua' ? 'semua' : '';
+            return run('push', true);
+        }
+
         // Tab tipe (Semua / Foto / Video)
         if (inLive && 'gxType' in a.dataset) {
             e.preventDefault();
+            e.stopPropagation();
             state.type = a.dataset.gxType;
             return run('push');
         }
 
-        // Album (kegiatan)
+        // Buka album (kegiatan)
         if (inLive && 'gxKegiatan' in a.dataset) {
             e.preventDefault();
+            e.stopPropagation();
             state.kegiatan = a.dataset.gxKegiatan;
-            return run('push');
+            state.tampilan = '';
+            return run('push', true);
         }
 
         // Chip filter aktif (hapus satu filter)
         if (inLive && a.dataset.gxClear) {
             e.preventDefault();
+            e.stopPropagation();
             const k = a.dataset.gxClear;
             if (k === 'q') qInput.value = '';
             if (k === 'type') state.type = '';
@@ -512,25 +628,28 @@
             return run('push');
         }
 
-        // Reset semua filter
+        // Reset semua filter (kembali ke daftar album)
         if (isReset) {
             e.preventDefault();
+            e.stopPropagation();
             qInput.value = '';
             selKat.value = '';
             selSort.value = 'terbaru';
             state.type = '';
             state.kegiatan = '';
+            state.tampilan = '';
             return run('push');
         }
 
         // Pagination: pakai URL dari tautan (sudah memuat semua filter + nomor halaman)
         if (inLive && a.closest('.lp-pagination')) {
             e.preventDefault();
+            e.stopPropagation();
             const u = new URL(a.href, location.href);
             applyParams(u.searchParams);
             return load(u.pathname + u.search, { mode: 'push', scroll: true });
         }
-    });
+    }, true); // true = fase capture: berjalan lebih dulu daripada skrip lain di layout
 
     /* ---------- Tombol back/forward browser ---------- */
     window.addEventListener('popstate', () => {
@@ -564,13 +683,6 @@
         e.preventDefault();
         qInput.focus();
     });
-
-    /* ---------- Album aktif digeser ke tengah daftar (saat halaman pertama dibuka) ---------- */
-    const activeAlbum = live.querySelector('.lp-album-chip.active');
-    const albumList = live.querySelector('.lp-gx-albums__list');
-    if (activeAlbum && albumList) {
-        albumList.scrollLeft = activeAlbum.offsetLeft - (albumList.clientWidth - activeAlbum.clientWidth) / 2;
-    }
 
     /* ---------- Tombol kembali ke atas ---------- */
     const topBtn = document.getElementById('lpGxTop');

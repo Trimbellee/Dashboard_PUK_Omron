@@ -123,6 +123,17 @@
                         akan ditambahkan sebagai draft dengan kategori &amp; kegiatan di atas. File yang sudah pernah ditambahkan akan dilewati.
                     </p>
                 </div>
+
+                <div class="lp-form__group">
+                    <label for="judul_folder">Judul untuk Semua Foto (opsional)</label>
+                    <input type="text" id="judul_folder" name="judul" value="{{ old('judul') }}" placeholder="Contoh: Dokumentasi RAKERNIK" maxlength="45">
+                    @error('judul') <span class="lp-form__error">{{ $message }}</span> @enderror
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:500; margin-top:6px;">
+                        <input type="checkbox" name="nomor_urut" value="1" {{ old('folder_url') ? (old('nomor_urut') ? 'checked' : '') : 'checked' }}>
+                        Beri nomor urut (Dokumentasi RAKERNIK 01, 02, 03, ...)
+                    </label>
+                    <p class="lp-editor-hint">Jika dikosongkan, judul memakai nama kegiatan. Jika kegiatan juga kosong, foto tanpa judul. Urutan nomor mengikuti nama file di Drive.</p>
+                </div>
             </fieldset>
         </div>
 
@@ -149,7 +160,7 @@
             <div class="lp-editor__panel" x-show="mode === 'folder'" x-cloak>
                 <h3 class="lp-editor__panel-title">Impor Folder</h3>
                 <p class="lp-editor-hint" style="margin:0;">
-                    Semua foto di folder akan masuk sebagai draft. Judul dikosongkan; Anda bisa mengeditnya satu per satu setelah impor.
+                    Semua foto di folder akan masuk sebagai draft. Judul diisi otomatis dari isian di sebelah kiri; Anda tetap bisa mengeditnya satu per satu setelah impor.
                 </p>
             </div>
 

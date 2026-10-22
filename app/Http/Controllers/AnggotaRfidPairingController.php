@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use App\Helpers\RfidHelper;
+
 
 class AnggotaRfidPairingController extends Controller
 {
@@ -35,7 +37,8 @@ class AnggotaRfidPairingController extends Controller
             'kode' => ['required', 'string', 'max:100'],
         ]);
 
-        $kode = $this->normalize($validated['kode']);
+        $kode = RfidHelper::normalize($validated['kode']);
+
 
         if ($kode === '') {
             return response()->json(['ok' => false, 'message' => 'Kode tidak valid.'], 422);
@@ -103,7 +106,7 @@ class AnggotaRfidPairingController extends Controller
             'anggota_id' => ['required', 'integer'],
         ]);
 
-        $kode = $this->normalize($validated['kode']);
+        $kode = RfidHelper::normalize($validated['kode']);
 
         if ($kode === '') {
             return response()->json(['ok' => false, 'message' => 'Kode tidak valid.'], 422);
@@ -264,11 +267,5 @@ class AnggotaRfidPairingController extends Controller
         return addcslashes($s, '%_\\');
     }
 
-    /**
-     * Normalisasi kode — buang separator, uppercase.
-     */
-    private function normalize(string $kode): string
-    {
-        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', trim($kode)));
-    }
+    
 }

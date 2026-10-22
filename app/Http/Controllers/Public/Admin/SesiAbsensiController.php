@@ -16,6 +16,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\QueryException;
+use App\Helpers\RfidHelper;
+
 
 class SesiAbsensiController extends Controller
 {
@@ -195,15 +197,12 @@ class SesiAbsensiController extends Controller
         ]);
 
         $kodeRaw = trim($validated['kode']);
-        $kodeNormalized = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $kodeRaw));
+        $kodeNormalized = RfidHelper::normalize($kodeRaw);
 
         $anggota = Anggota::where('nik_karyawan', $kodeRaw)
-            ->orWhere('ulid', $kodeRaw)
-            ->orWhereRaw(
-                "UPPER(REPLACE(REPLACE(REPLACE(rfid_code, ':', ''), '-', ''), ' ', '')) = ?",
-                [$kodeNormalized]
-            )
-            ->first();
+        ->orWhere('ulid', $kodeRaw)
+        ->orWhere('rfid_code', $kodeNormalized)
+        ->first();
 
         if (! $anggota) {
             return response()->json([
