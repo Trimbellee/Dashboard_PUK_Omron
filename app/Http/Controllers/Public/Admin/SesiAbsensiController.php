@@ -25,6 +25,19 @@ class SesiAbsensiController extends Controller
     /** Radius akurasi GPS maksimum yang dianggap valid (meter). */
     private const AKURASI_MAKS_METER = 500;
 
+    private function serialisasiRows($entries)
+    {
+        $nama = Anggota::whereIn('id', $entries->pluck('anggota_id')->filter())
+            ->pluck('nama_lengkap', 'id');
+
+        return $entries->map(fn ($e) => [
+            'id'   => $e->id,
+            'nama' => $nama[$e->anggota_id] ?? null,
+            'data' => $e->data,
+            'jam'  => $e->created_at->format('H:i'),
+        ])->values();
+    }
+
 
     /**
      * Whitelist kolom tabel anggota yang boleh ditampilkan admin di daftar
@@ -103,12 +116,15 @@ class SesiAbsensiController extends Controller
             'kolom_ditampilkan' => $validated['kolom_ditampilkan'],
             'status' => 'buka',
             'dibuat_oleh' => session('anggota.nama'),
+            'jabatan_puk' => (string) session('anggota.jabatan_puk', ''),
         ]);
 
         return redirect()
             ->route('admin.sesi-absensi.show', $sesi)
             ->with('success', 'Sesi absensi berhasil dibuat.');
     }
+
+    
 
     public function show(SesiAbsensi $sesi): View
     {
@@ -259,6 +275,7 @@ class SesiAbsensiController extends Controller
             'nama' => $anggota->nama_lengkap,
             'row' => [
                 'id' => $entri->id,
+                'nama' => $anggota->nama_lengkap,
                 'data' => $entri->data,
                 'jam' => $entri->created_at->format('H:i'),
             ],
@@ -279,16 +296,46 @@ class SesiAbsensiController extends Controller
             $query->where('id', '>', $sejakId);
         }
 
-        $list = $query->get()->map(fn ($entri) => [
-            'id' => $entri->id,
-            'data' => $entri->data,
-            'jam' => $entri->created_at->format('H:i'),
-        ]);
+       $list = $query->get();
 
         return response()->json([
-            'total' => $sesi->entri()->count(), // total keseluruhan, bukan cuma yang baru
-            'list' => $list,
+            'total'       => $sesi->entri()->count(),
+            'list'        => $this->serialisasiRows($list),
+            'semua_id'    => $sesi->entri()->pluck('id'),   // untuk membuang baris yang sudah dibatalkan
             'terakhir_id' => $sesi->entri()->max('id') ?? $sejakId,
+        ]);
+    }
+
+    public function batalHadir(SesiAbsensi $sesi, int $entri): JsonResponse
+    {
+        if (! $sesi->isBuka()) {
+            return response()->json([
+                'status'  => 'sesi_tertutup',
+                'message' => 'Sesi sudah ditutup, kehadiran tidak bisa dibatalkan.',
+            ], 422);
+        }
+
+        // Ambil nama dulu, sebelum entrinya dihapus.
+        $row  = $sesi->entri()->whereKey($entri)->first(['id', 'anggota_id']);
+        $nama = $row
+            ? (Anggota::whereKey($row->anggota_id)->value('nama_lengkap') ?? 'Peserta')
+            : null;
+
+        $dihapus = $sesi->entri()->whereKey($entri)->delete();
+
+        if ($dihapus === 0) {
+            // Sudah dibatalkan dari device lain.
+            return response()->json([
+                'status'  => 'bukan_hadir',
+                'message' => 'Kehadiran ini sudah dibatalkan sebelumnya.',
+                'total'   => $sesi->entri()->count(),
+            ], 409);
+        }
+
+        return response()->json([
+            'status'  => 'dibatalkan',
+            'message' => "{$nama} berhasil dibatalkan.",
+            'total'   => $sesi->entri()->count(),
         ]);
     }
 
@@ -351,15 +398,19 @@ class SesiAbsensiController extends Controller
     }
 
     /**
-     * Hanya pembuat sesi (dibuat_oleh) atau Sekretaris yang boleh
-     * mengelola sesi ini: buka/tutup, edit, hapus.
+     * Hanya pembuat sesi (dicocokkan lewat jabatan PUK) atau Sekretaris
+     * yang boleh mengelola sesi ini: buka/tutup, edit, hapus.
      */
     private function bisaKelolaSesi(SesiAbsensi $sesi): bool
     {
-        $namaSaya = session('anggota.nama');
-        $jabatanSaya = session('anggota.jabatan');
+        $jabatan = trim((string) session('anggota.jabatan_puk', ''));
 
-        return $namaSaya === $sesi->dibuat_oleh || $jabatanSaya === 'Sekretaris';
+        if ($jabatan === '') {
+            return false;
+        }
+
+        return strcasecmp($jabatan, (string) $sesi->jabatan_puk) === 0
+            || strcasecmp($jabatan, 'sekretaris') === 0;
     }
 
     /**

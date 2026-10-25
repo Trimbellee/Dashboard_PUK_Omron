@@ -46,7 +46,7 @@
         <div class="lp-toolbar-actions">
             <a href="{{ route('admin.kegiatan.index') }}" class="lp-btn-ghost">&larr; Kembali</a>
             <a href="{{ route('admin.kegiatan.pendaftar.export', $kegiatan) }}" class="lp-btn-ghost">
-                <i class="ti ti-download" aria-hidden="true"></i> Export CSV
+                <i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Export Excel
             </a>
             @if ($bolehHapus_Edit)
                 <button type="button" class="lp-btn-ghost" @click="bukaTambahModal()">
@@ -100,23 +100,17 @@
                         <td>{{ $row->created_at->format('d-m-Y') }}</td>
                         <td>
                             <div class="lp-aksi">
-                                <form method="POST" action="{{ route('admin.kegiatan.pendaftar.hadir', [$kegiatan, $row]) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="lp-icon-btn" aria-label="Tandai hadir">
-                                        <i class="ti ti-check" aria-hidden="true"></i>
-                                    </button>
-                                </form>
-
                                 @if ($bolehHapus_Edit)
                                     <button
                                         type="button"
                                         class="lp-icon-btn danger"
                                         aria-label="Hapus pendaftar"
-                                        @click="hapus({{ $row->id }}, @js($row->anggota->nama ?? 'pendaftar ini'))"
+                                        @click="hapus({{ $row->id }}, @js($row->anggota->nama_lengkap ?? 'pendaftar ini'))"
                                     >
                                         <i class="ti ti-trash" aria-hidden="true"></i>
                                     </button>
+                                @else
+                                    <span class="lp-empty-aksi">-</span>
                                 @endif
                             </div>
                         </td>

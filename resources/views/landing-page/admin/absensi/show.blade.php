@@ -100,7 +100,7 @@
 
         <template x-if="mode === 'reader'">
             <input type="text" x-ref="tapInput" x-model="kodeInput"
-                   @keydown.enter.prevent="prosesKode(kodeInput)" @blur="fokusInput()"
+                   @keydown.enter.prevent="prosesKode(kodeInput)" @blur="onBlur($event)"
                    class="lp-form__input" style="text-align:center;letter-spacing:.05em;"
                    placeholder="Tap kartu di reader, atau ketik NIK manual..." autocomplete="off">
         </template>
@@ -143,11 +143,14 @@
                             @endif
                         @endforeach
                         <th>Lokasi</th>
+                        @if($sesi->isBuka())
+                            <th></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     <template x-if="list.length === 0">
-                        <tr><td class="abs-empty" :colspan="{{ count($sesi->kolom_ditampilkan) + 3 }}">Belum ada yang hadir.</td></tr>
+                        <tr><td class="abs-empty" :colspan="{{ count($sesi->kolom_ditampilkan) + 3 + ($sesi->isBuka() ? 1 : 0) }}">Belum ada yang hadir.</td></tr>
                     </template>
                     <template x-for="(row, index) in list" :key="row.id">
                         <tr>
@@ -177,12 +180,28 @@
                                     <span style="color:var(--text-secondary);font-size:.78rem;">-</span>
                                 </template>
                             </td>
+                            @if($sesi->isBuka())
+                            <td>
+                                <button type="button" class="abs-undo" @click="batalHadir(row)"
+                                        :disabled="loading" :aria-label="'Batalkan kehadiran ' + (row.nama || '')" title="Batalkan kehadiran">
+                                    <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+                                </button>
+                            </td>
+                            @endif
                         </tr>
                     </template>
                 </tbody>
             </table>
         </div>
     </div>
+
+    @if($sesi->isBuka())
+    {{-- Dipakai modal konfirmasi global. Modal memanggil form.submit(), jadi dicegat di init(). --}}
+    <form id="batal-hadir-form" method="POST" :action="batalUrl" @submit.prevent="kirimBatal()" style="display:none;">
+        @csrf
+        @method('DELETE')
+    </form>
+    @endif
 
 </div>
 
@@ -207,8 +226,18 @@ function sesiAbsensi() {
         IDLE_TIMEOUT_MS: 3 * 60 * 1000, 
         _terakhirId: 0,
         _idleTimer: null,
+        batalUrl: '',
+        _batalId: null,
+        _mutasi: 0,   // naik setiap kali list diubah lokal (tap / batal), untuk menghindari race dengan polling
+        batalUrlTemplate: '{{ route('admin.sesi-absensi.batal-hadir', [$sesi, '__ID__']) }}',
+        
 
         init() {
+            const form = document.getElementById('batal-hadir-form');
+            if (form) {
+                form.submit        = () => this.kirimBatal();
+                form.requestSubmit = () => this.kirimBatal();
+            }
             this.fokusInput();
             this.muatDaftar();
             this.startWatchGps();
@@ -221,7 +250,13 @@ function sesiAbsensi() {
 
         fokusInput() {
             if (this.mode !== 'reader') return;
-            this.$nextTick(() => this.$refs.tapInput?.focus());
+            this.$nextTick(() => this.$refs.tapInput?.focus({ preventScroll: true }));
+        },
+
+        onBlur(e) {
+            const t = e.relatedTarget;
+            if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName)) return;
+            this.fokusInput();
         },
 
         gantiMode(mode) {
@@ -354,6 +389,7 @@ function sesiAbsensi() {
                 this.bunyikanFeedback(this.feedback.ok);
 
                 if (data.status === 'berhasil' && data.row) {
+                    this._mutasi++;
                     this.list.unshift(data.row);
                     this.total++;
                     this._terakhirId = Math.max(this._terakhirId, data.row.id);
@@ -385,32 +421,37 @@ function sesiAbsensi() {
         },
 
         async muatDaftar() {
-        try {
-            const url = new URL('{{ route('admin.sesi-absensi.entries', $sesi) }}', window.location.origin);
-            if (this._terakhirId > 0) {
-                url.searchParams.set('sejak_id', this._terakhirId);
-            }
-
-            const res = await fetch(url);
-            const data = await res.json();
-
-            if (this._terakhirId === 0) {
-                // Load pertama kali: isi penuh
-                this.list = data.list;
-            } else if (data.list.length > 0) {
-                // Polling berikutnya: cuma entri baru, filter yang mungkin sudah
-                // ditambahkan lokal duluan (dari tap sendiri) sebelum prepend
-                const idYangAda = new Set(this.list.map(r => r.id));
-                const entriBaru = data.list.filter(r => !idYangAda.has(r.id));
-                if (entriBaru.length > 0) {
-                    this.list = [...entriBaru, ...this.list];
+            const mutasiAwal = this._mutasi;
+            try {
+                const url = new URL('{{ route('admin.sesi-absensi.entries', $sesi) }}', window.location.origin);
+                if (this._terakhirId > 0) {
+                    url.searchParams.set('sejak_id', this._terakhirId);
                 }
-            }
 
-            this.total = data.total;
-            this._terakhirId = Math.max(this._terakhirId, data.terakhir_id);
-        } catch (e) {}
-    },
+                const res  = await fetch(url);
+                const data = await res.json();
+
+                if (this._terakhirId === 0) {
+                    this.list = data.list;
+                } else if (data.list.length > 0) {
+                    const idYangAda = new Set(this.list.map(r => r.id));
+                    const entriBaru = data.list.filter(r => !idYangAda.has(r.id));
+                    if (entriBaru.length > 0) {
+                        this.list = [...entriBaru, ...this.list];
+                    }
+                }
+
+                // Buang baris yang sudah dibatalkan (dari device lain). Dilewati kalau list berubah
+                // secara lokal selama request berjalan, supaya baris hasil tap sendiri tidak ikut terbuang.
+                if (mutasiAwal === this._mutasi && Array.isArray(data.semua_id)) {
+                    const masihAda = new Set(data.semua_id);
+                    this.list = this.list.filter(r => masihAda.has(r.id));
+                }
+
+                this.total = data.total;
+                this._terakhirId = Math.max(this._terakhirId, data.terakhir_id);
+            } catch (e) {}
+        },
 
         startKamera() {
             this.$nextTick(() => {
@@ -449,6 +490,54 @@ function sesiAbsensi() {
             } catch (e) {
                 this.nfcStatus = 'Gagal mengaktifkan NFC.';
                 this.feedback = { ok: false, message: 'Tidak bisa akses NFC — pastikan izin diberikan.' };
+            }
+        },
+
+        batalHadir(row) {
+            if (this.loading) return;
+
+            this._batalId = row.id;
+            this.batalUrl = this.batalUrlTemplate.replace('__ID__', row.id);
+
+            const nama = row.nama || row.data?.nama_lengkap || 'peserta ini';
+
+            this.$dispatch('open-confirm', {
+                title: 'Batalkan kehadiran?',
+                message: `Kehadiran "${nama}" (jam ${row.jam}) akan dibatalkan. Kamu bisa scan ulang setelah ini.`,
+                confirmLabel: 'Batalkan',
+                variant: 'danger',
+                formId: 'batal-hadir-form',
+            });
+        },
+
+        async kirimBatal() {
+            if (this.loading || !this._batalId) return;
+
+            const id = this._batalId;
+            this.loading = true;
+            try {
+                const res = await fetch(this.batalUrl, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '' },
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (data.status === 'dibatalkan' || data.status === 'bukan_hadir') {
+                    this._mutasi++;
+                    this.list = this.list.filter(r => r.id !== id);
+                    if (typeof data.total === 'number') this.total = data.total;
+                    this.feedback = { ok: data.status === 'dibatalkan', message: data.message };
+                } else {
+                    this.feedback = { ok: false, message: data.message || 'Gagal membatalkan kehadiran.' };
+                }
+            } catch (e) {
+                this.feedback = { ok: false, message: 'Gagal terhubung ke server.' };
+            } finally {
+                this.loading = false;
+                this._batalId = null;
+                this.batalUrl = '';
+                this.fokusInput();
+                setTimeout(() => { this.feedback = null; }, 3000);
             }
         },
     };

@@ -149,13 +149,14 @@
                         </template>
                         <th>Status</th>
                         <th>Waktu hadir</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <template x-if="rows.length === 0">
                         <tr>
-                            <td class="lp-scan__empty" :colspan="5 + fields.length"
-                                x-text="searchResults !== null ? 'Tidak ditemukan yang cocok.' : 'Belum ada yang check-in.'"></td>
+                            <td class="lp-scan__empty" :colspan="6 + fields.length"
+                                x-text="searchResults !== null ? 'Tidak ditemukan yang cocok.' : 'Belum ada yang hadir.'"></td>
                         </tr>
                     </template>
                     <template x-for="row in rows" :key="row.id">
@@ -173,6 +174,12 @@
                             </template>
                             <td><span class="lp-scan__chip">Hadir</span></td>
                             <td class="lp-scan__muted" x-text="row.tgl_hadir"></td>
+                            <td>
+                                <button type="button" class="lp-scan__undo" @click="batalHadir(row)"
+                                        :disabled="loading" :aria-label="'Batalkan kehadiran ' + row.nama" title="Batalkan kehadiran">
+                                    <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+                                </button>
+                            </td>
                         </tr>
                     </template>
                 </tbody>
@@ -184,6 +191,12 @@
             Gunakan pencarian untuk menemukan yang lain.
         </p>
     </section>
+
+    {{-- Dipakai modal konfirmasi global (open-confirm). Submit dicegat → fetch, tanpa reload. --}}
+    <form id="scan-batal-form" method="POST" :action="batalUrl" @submit.prevent="kirimBatal()" style="display:none;">
+        @csrf
+        @method('DELETE')
+    </form>
 </div>
 @endsection
 
@@ -193,6 +206,7 @@ function scanKehadiran() {
     const API = {
         scan: '{{ route('admin.kegiatan.pendaftar.scan', $kegiatan) }}',
         list: '{{ route('admin.kegiatan.pendaftar.hadir-list', $kegiatan) }}',
+        batal: '{{ route('admin.kegiatan.pendaftar.batal-hadir', [$kegiatan, '__ID__']) }}',
     };
     const INITIAL     = @json($initial);
     const POLL_MS     = 4000;
@@ -203,12 +217,14 @@ function scanKehadiran() {
 
     const STATE = {
         idle:           { ikon: 'ti-scan',           judul: 'Siap scan' },
-        berhasil:       { ikon: 'ti-circle-check',   judul: 'Check-in berhasil' },
-        sudah_hadir:    { ikon: 'ti-user-check',     judul: 'Sudah check-in' },
+        berhasil:       { ikon: 'ti-circle-check',   judul: 'Kehadiran berhasil dicatat' },
+        sudah_hadir:    { ikon: 'ti-user-check',     judul: 'Sudah Hadir' },
         belum_daftar:   { ikon: 'ti-alert-triangle', judul: 'Belum terdaftar' },
         tidak_boleh:    { ikon: 'ti-ban',            judul: 'Tidak diizinkan' },
         tidak_dikenali: { ikon: 'ti-circle-x',       judul: 'Tidak dikenali' },
         error:          { ikon: 'ti-alert-circle',   judul: 'Terjadi kesalahan' },
+        dibatalkan:     { ikon: 'ti-arrow-back-up',  judul: 'Kehadiran dibatalkan' },
+        bukan_hadir:    { ikon: 'ti-user-check',     judul: 'Sudah dibatalkan' },
     };
 
     const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -254,6 +270,7 @@ function scanKehadiran() {
         liveSearch: '',
         searchResults: null,      // null = mode normal
         online: true,
+        batalUrl: '',
 
         // ── Internal ──
         _version: INITIAL.version,
@@ -279,7 +296,13 @@ function scanKehadiran() {
         init() {
             if (this._started) return;
             this._started = true;
-
+            
+            const form = document.getElementById('scan-batal-form');
+            if (form) {
+                form.submit        = () => this.kirimBatal();
+                form.requestSubmit = () => this.kirimBatal();
+            }
+            
             this.fokus();
             this._jadwal();
             this._wake();
@@ -313,7 +336,7 @@ function scanKehadiran() {
 
         fokus() {
             if (this.mode !== 'reader') return;
-            this.$nextTick(() => this.$refs.readerInput?.focus());
+            this.$nextTick(() => this.$refs.readerInput?.focus({ preventScroll: true }));
         },
 
         // Kembalikan fokus ke kolom reader, kecuali user sengaja pindah ke input/tombol lain.
@@ -510,11 +533,10 @@ function scanKehadiran() {
         // LIVE LIST
         // ══════════════════════════════════════════════════════
 
-        apply(data) {
+        apply(data, sorot = true) {
             if (!data || data.changed === false) return;
 
-            // Sorot baris yang baru muncul dari device lain
-            if (this.list.length) {
+            if (sorot && this.list.length) {
                 const lama = new Set(this.list.map(r => r.id));
                 const baru = (data.list ?? []).find(r => !lama.has(r.id));
                 if (baru) this._sorot(baru.id);
@@ -541,6 +563,47 @@ function scanKehadiran() {
             } catch (e) {
                 this.online = false;
                 this._gagal++;
+            }
+        },
+
+        // Buka modal konfirmasi (komponen yang sama dengan hapus pendaftar)
+        batalHadir(row) {
+            if (this.loading) return;
+
+            this.batalUrl = API.batal.replace('__ID__', row.id);
+
+            this.$dispatch('open-confirm', {
+                title: 'Batalkan kehadiran?',
+                message: `Kehadiran "${row.nama}" (${row.nik}) akan dibatalkan. Statusnya kembali menjadi diterima, dan kamu bisa scan ulang.`,
+                confirmLabel: 'Batalkan',
+                variant: 'danger',
+                formId: 'scan-batal-form',
+            });
+        },
+
+        // Dipanggil saat user menekan tombol konfirmasi di modal
+        async kirimBatal() {
+            if (this.loading || !this.batalUrl) return;
+
+            this.loading = true;
+            try {
+                const res  = await fetch(this.batalUrl, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf() },
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (data.live) this.apply(data.live, false);
+                if (this.liveSearch.trim().length >= 2) await this.cariLive();
+
+                this._lastKode = '';   // boleh langsung scan ulang kode yang sama
+                this.tampilkan(data.status ? data : { status: 'error', message: 'Gagal membatalkan kehadiran.' });
+            } catch (e) {
+                this.tampilkan({ status: 'error', message: 'Gagal terhubung ke server.' });
+            } finally {
+                this.loading = false;
+                this.batalUrl = '';
+                this.fokus();
             }
         },
 

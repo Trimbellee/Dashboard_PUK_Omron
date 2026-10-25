@@ -72,7 +72,8 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
         Route::get('/{sesi}/entries', [SesiAbsensiController::class, 'entries'])->name('entries');
         Route::post('/{sesi}/tutup', [SesiAbsensiController::class, 'tutup'])->name('tutup');
         Route::get('/{sesi}/export', [SesiAbsensiController::class, 'export'])->name('export');
-	Route::post('/{sesi}/buka', [SesiAbsensiController::class, 'buka'])->name('buka');
+        Route::post('/{sesi}/buka', [SesiAbsensiController::class, 'buka'])->name('buka');
+        Route::delete('/{sesi}/entri/{entri}', [SesiAbsensiController::class, 'batalHadir'])->whereNumber('entri')->name('batal-hadir');
     });    
 
     // ===== Berita =====
@@ -128,14 +129,14 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
 
         Route::prefix('{kegiatan}/pendaftar')->name('pendaftar.')->group(function () {
             Route::get('/', [AdminKegiatanPendaftaranController::class, 'index'])->name('index');
-            Route::get('/export', [AdminKegiatanPendaftaranController::class, 'exportCsv'])->name('export');
-            Route::patch('/{pendaftaran}/hadir', [AdminKegiatanPendaftaranController::class, 'tandaiHadir'])->name('hadir');
+            Route::get('/export', [AdminKegiatanPendaftaranController::class, 'exportExcel'])->name('export');
             Route::delete('/{pendaftaran}', [AdminKegiatanPendaftaranController::class, 'destroy'])->name('destroy');
             Route::get('/cari-anggota', [AdminKegiatanPendaftaranController::class, 'cariAnggota'])->name('cari-anggota');
             Route::post('/', [AdminKegiatanPendaftaranController::class, 'storeManual'])->name('store');
             Route::get('/scan', [AdminKegiatanPendaftaranController::class, 'scanPage'])->name('scan-page');
             Route::post('/scan', [AdminKegiatanPendaftaranController::class, 'scan'])->name('scan');
             Route::get('/hadir-list', [AdminKegiatanPendaftaranController::class, 'daftarHadirJson'])->name('hadir-list');
+            Route::delete('/{pendaftaran}/hadir', [AdminKegiatanPendaftaranController::class, 'batalHadir'])->name('batal-hadir');
         });
     });
 

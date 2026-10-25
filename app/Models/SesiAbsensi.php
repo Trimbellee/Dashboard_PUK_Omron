@@ -18,6 +18,7 @@ class SesiAbsensi extends Model
         'kolom_ditampilkan',
         'status',
         'dibuat_oleh',
+        'jabatan_puk',
         'ditutup_at',
     ];
 

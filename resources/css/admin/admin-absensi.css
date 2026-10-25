@@ -87,3 +87,11 @@
     .abs-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; animation: abs-pulse 1.6s ease-in-out infinite; }
     @keyframes abs-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
     @media (prefers-reduced-motion: reduce) { .abs-live-dot { animation: none; } }
+
+    .abs-undo {
+        width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 8px; border: 1px solid var(--border-color, #e5e7eb); background: transparent;
+        color: var(--text-secondary, #6b7280); cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+    }
+    .abs-undo:hover { color: #dc2626; border-color: #dc2626; background: rgba(220, 38, 38, .08); }
+    .abs-undo:disabled { opacity: .45; cursor: not-allowed; }

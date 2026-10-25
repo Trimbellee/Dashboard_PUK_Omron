@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Helpers\RfidHelper;
+use App\Exports\PendaftarKegiatanExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminKegiatanPendaftaranController extends Controller
 {
@@ -84,56 +85,13 @@ class AdminKegiatanPendaftaranController extends Controller
         return back()->with('success', 'Pendaftar berhasil dihapus.');
     }
 
-    public function exportCsv(Kegiatan $kegiatan): StreamedResponse
+    public function exportExcel(Kegiatan $kegiatan)
     {
         $kegiatan->load('customFields');
-        $customFields = $kegiatan->customFields;
 
-        $filename = str($kegiatan->judul)->slug() . '-pendaftar.csv';
+        $namaFile = str($kegiatan->judul)->slug() . '-pendaftar.xlsx';
 
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename={$filename}",
-        ];
-
-        $callback = function () use ($kegiatan, $customFields) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF"); // BOM supaya Excel membaca UTF-8 dengan benar
-
-            $header = ['No', 'Nama', 'NIK', 'Departemen', 'Status', 'Waktu Hadir', 'Tanggal Daftar'];
-            foreach ($customFields as $field) {
-                $header[] = $field->label;
-            }
-            fputcsv($out, $header);
-
-            $no = 0;
-
-            // chunkById (bukan chunk) → aman dari baris yang terlewat, dan penomoran tidak reset tiap 200 baris.
-            $kegiatan->pendaftar()->with('anggota')->chunkById(200, function ($rows) use ($out, $customFields, &$no) {
-                foreach ($rows as $row) {
-                    $line = [
-                        ++$no,
-                        $row->anggota->nama_lengkap ?? '-',
-                        $row->anggota->nik_karyawan ?? '-',
-                        $row->anggota->departemen ?? '-',
-                        $row->status,
-                        $row->hadir_at ? Carbon::parse($row->hadir_at)->format('d-m-Y H:i') : '',
-                        $row->created_at?->format('d-m-Y H:i') ?? '',
-                    ];
-
-                    foreach ($customFields as $field) {
-                        $jawaban = $row->custom_values[$field->id] ?? '';
-                        $line[]  = is_array($jawaban) ? implode(', ', $jawaban) : $jawaban;
-                    }
-
-                    fputcsv($out, $line);
-                }
-            });
-
-            fclose($out);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(new PendaftarKegiatanExport($kegiatan), $namaFile);
     }
 
     public function cariAnggota(Request $request, Kegiatan $kegiatan): JsonResponse
@@ -346,6 +304,38 @@ class AdminKegiatanPendaftaranController extends Controller
         return response()->json($this->livePayload($kegiatan));
     }
 
+    /**
+     * Batalkan kehadiran (mis. salah ketik NIK). Pendaftaran tetap ada, status kembali 'diterima'.
+     * UPDATE atomik: hanya berhasil kalau statusnya memang masih 'hadir'.
+     */
+    public function batalHadir(Kegiatan $kegiatan, KegiatanPendaftaran $pendaftaran): JsonResponse
+    {
+        abort_unless($pendaftaran->kegiatan_id === $kegiatan->id, 404);
+
+        $diubah = KegiatanPendaftaran::where('id', $pendaftaran->id)
+            ->where('status', 'hadir')
+            ->update(['status' => 'diterima', 'hadir_at' => null]);
+
+        if ($diubah === 0) {
+            // Sudah dibatalkan dari device lain.
+            return response()->json([
+                'status'  => 'bukan_hadir',
+                'message' => 'Kehadiran ini sudah dibatalkan sebelumnya.',
+                'live'    => $this->livePayload($kegiatan),
+            ], 409);
+        }
+
+        $this->bump($kegiatan);
+
+        $nama = $pendaftaran->anggota->nama_lengkap ?? 'Peserta';
+
+        return response()->json([
+            'status'  => 'dibatalkan',
+            'message' => "{$nama} berhasil dibatalkan.",
+            'live'    => $this->livePayload($kegiatan),
+        ]);
+    }
+
     // ══════════════════════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════════════════════
@@ -445,7 +435,7 @@ class AdminKegiatanPendaftaranController extends Controller
 
         return response()->json([
             'status'  => 'sudah_hadir',
-            'message' => "{$info['nama']} sudah check-in sebelumnya" . ($jam ? " (jam {$jam})." : '.'),
+            'message' => "{$info['nama']} sudah hadir sebelumnya" . ($jam ? " (jam {$jam})." : '.'),
             'anggota' => $info,
         ]);
     }
