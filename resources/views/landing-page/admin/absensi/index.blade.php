@@ -54,7 +54,10 @@
                         @endif
                     </td>
                     <td style="color:var(--text-secondary);">{{ $sesi->entri_count }} orang</td>
-                    <td style="color:var(--text-secondary);font-size:.78rem;white-space:nowrap;">{{ $sesi->created_at->translatedFormat('d M Y, H:i') }}</td>
+                    <td style="white-space:nowrap;">
+                        <div style="font-size:.85rem;color:var(--text-primary);font-weight:600;">{{ $sesi->dibuat_oleh ?: '—' }}</div>
+                        <div style="font-size:.78rem;color:var(--text-secondary);margin-top:2px;">{{ $sesi->created_at->translatedFormat('d M Y, H:i') }}</div>
+                    </td>
                     <td style="text-align:right;">
                         <a href="{{ route('admin.sesi-absensi.show', $sesi) }}" class="abs-icon-link">Buka →</a>
                     </td>
