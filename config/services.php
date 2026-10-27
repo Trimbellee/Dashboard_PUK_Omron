@@ -43,4 +43,10 @@ return [
     ],
 
     'google_drive' => ['key' => env('GOOGLE_DRIVE_API_KEY')],
+
+    'gemini' => [
+        'key'         => env('GEMINI_API_KEY'),
+        'model'       => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'daily_limit' => env('GEMINI_DAILY_LIMIT', 30),
+    ],	
 ];

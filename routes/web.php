@@ -97,6 +97,7 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
     Route::post('/media/upload', [NewsAdminController::class, 'uploadMedia'])->name('media.upload');
     Route::post('/berita/auto-save', [NewsAdminController::class, 'autoSave'])->name('berita.auto-save');
     Route::post('/berita/newsletter/{id}', [NewsAdminController::class, 'sendNewsletter'])->name('berita.newsletter');
+    Route::post('berita/generate-ai', [NewsAdminController::class, 'generateWithAI'])->middleware('throttle:10,1')->name('berita.generate-ai');
    
 
     // ===== Galeri =====

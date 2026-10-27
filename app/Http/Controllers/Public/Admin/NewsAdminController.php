@@ -17,6 +17,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use App\Services\GeminiNewsService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class NewsAdminController extends Controller
 {
@@ -600,6 +604,76 @@ class NewsAdminController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    public function generateWithAI(Request $request, GeminiNewsService $gemini): JsonResponse
+    {
+        abort_unless(PermissionHelper::can('create_news'), 403);
+ 
+        $input = $request->validate([
+            'nama_kegiatan' => ['required', 'string', 'max:200'],
+            'apa'           => ['required', 'string', 'max:3000'],
+            'siapa'         => ['nullable', 'string', 'max:2000'],
+            'kapan'         => ['nullable', 'string', 'max:300'],
+            'dimana'        => ['nullable', 'string', 'max:300'],
+            'mengapa'       => ['nullable', 'string', 'max:2000'],
+            'bagaimana'     => ['nullable', 'string', 'max:3000'],
+            'hasil'         => ['nullable', 'string', 'max:2000'],
+            'poin_penting'  => ['nullable', 'string', 'max:2000'],
+            'narasumber'    => ['nullable', 'string', 'max:500'],
+            'kutipan'       => ['nullable', 'string', 'max:2000'],
+            'info_tambahan' => ['nullable', 'string', 'max:2000'],
+            'dokumentasi'   => ['nullable', 'string', 'max:1000'],
+            'peliput'       => ['nullable', 'string', 'max:150'],
+        ]);
+ 
+        // Batas pemakaian harian per anggota (jaga anggaran/kuota API).
+        $userId     = session('anggota.id');
+        $limit      = (int) config('services.gemini.daily_limit', 30);
+        $counterKey = 'gemini-news:' . $userId . ':' . now()->format('Ymd');
+ 
+        if ((int) Cache::get($counterKey, 0) >= $limit) {
+            return response()->json([
+                'success' => false,
+                'message' => "Batas penggunaan AI hari ini ({$limit}x) sudah tercapai. Coba lagi besok.",
+            ], 429);
+        }
+ 
+        set_time_limit(120);
+ 
+        try {
+            $result = $gemini->generate($input);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 502);
+        } catch (\Throwable $e) {
+            Log::error('generateWithAI gagal', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menyusun berita. Silakan coba lagi.',
+            ], 500);
+        }
+ 
+        Cache::add($counterKey, 0, now()->endOfDay());
+        Cache::increment($counterKey);
+        Log::info('AI berita dipakai', ['anggota_id' => $userId, 'kegiatan' => $input['nama_kegiatan']]);
+ 
+        if ($result['needs_more_info']) {
+            return response()->json([
+                'success'         => true,
+                'needs_more_info' => true,
+                'questions'       => $result['questions'],
+            ]);
+        }
+ 
+        $data = $result['data'];
+        // Konten dari AI tetap disanitasi dengan sanitizer yang sama seperti konten Quill.
+        $data['konten_html'] = $this->sanitizeKonten($data['konten_html']);
+ 
+        return response()->json([
+            'success'         => true,
+            'needs_more_info' => false,
+            'data'            => $data,
+        ]);
     }
 
     public function sendNewsletter(News $berita): RedirectResponse

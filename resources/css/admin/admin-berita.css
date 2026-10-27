@@ -2987,3 +2987,138 @@ input[type="checkbox"]:focus-visible {
     background: #1e293b;
     color: #94a3b8;
 }
+
+/* ==========================================================================
+   ASISTEN REDAKSI AI — TEMPELKAN DI AKHIR resources/css/admin/admin-berita.css
+   (sebelum blok DARK MODE juga boleh; yang penting setelah .lp-btn--primary)
+   ========================================================================== */
+
+.lp-btn--ai {
+    background: var(--violet);
+    color: #fff;
+    box-shadow: var(--shadow-xs);
+}
+
+.lp-btn--ai:hover {
+    background: var(--violet-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.28);
+}
+
+.lp-btn--ai:active {
+    transform: translateY(0);
+}
+
+.lp-modal__inner--ai {
+    max-width: 860px;
+}
+
+.lp-ai-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    margin-top: 6px;
+}
+
+.lp-ai-field--full {
+    grid-column: 1 / -1;
+}
+
+.lp-ai-required {
+    color: var(--danger);
+    margin-left: 2px;
+}
+
+.lp-ai-alert {
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 14px;
+}
+
+.lp-ai-alert ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+.lp-ai-alert--error {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.lp-ai-alert--warn {
+    color: var(--warning);
+    background: var(--warning-soft);
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.lp-ai-alert--ok {
+    color: var(--success);
+    background: var(--success-soft);
+    border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.lp-ai-result {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.lp-ai-result__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+.lp-ai-result__box {
+    padding: 12px 16px;
+    background: var(--bg-surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.lp-ai-result__box h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-primary);
+}
+
+.lp-ai-result__box p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.lp-ai-result__box ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+    .lp-ai-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+[data-theme="dark"] .lp-ai-alert--warn {
+    color: #fbbf24;
+    background: #3b2a0a;
+}
+
+[data-theme="dark"] .lp-ai-alert--error {
+    color: #f87171;
+    background: #3a1616;
+}
+
+[data-theme="dark"] .lp-ai-alert--ok {
+    color: #34d399;
+    background: #16301f;
+}

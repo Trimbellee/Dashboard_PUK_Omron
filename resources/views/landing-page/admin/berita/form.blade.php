@@ -170,17 +170,17 @@
                 <div class="lp-editor-card__body">
                     <div class="lp-toggle-group">
                         <label class="lp-toggle">
-                            <input type="checkbox" name="is_featured" value="1" {{ old('is_featured', $berita->is_featured ?? false) ? 'checked' : '' }}>
+                            <input type="checkbox" name="is_featured" value="1" x-model="isFeatured">
                             <span class="lp-toggle__slider"></span>
                             <span>⭐ Featured</span>
                         </label>
                         <label class="lp-toggle">
-                            <input type="checkbox" name="is_breaking" value="1" {{ old('is_breaking', $berita->is_breaking ?? false) ? 'checked' : '' }}>
+                            <input type="checkbox" name="is_breaking" value="1" x-model="isBreaking">
                             <span class="lp-toggle__slider"></span>
                             <span>🚨 Breaking News</span>
                         </label>
                         <label class="lp-toggle">
-                            <input type="checkbox" name="is_headline" value="1" {{ old('is_headline', $berita->is_headline ?? false) ? 'checked' : '' }}>
+                            <input type="checkbox" name="is_headline" value="1" x-model="isHeadline">
                             <span class="lp-toggle__slider"></span>
                             <span>📰 Headline</span>
                         </label>
@@ -196,10 +196,7 @@
                 </div>
                 <div class="lp-editor-card__body">
                     <div class="lp-form-group">
-                        <input type="text"
-                               name="tags"
-                               class="lp-form-input"
-                               value="{{ old('tags', $berita->tags->pluck('name')->implode(', ')) }}"
+                        <input type="text" name="tags" class="lp-form-input" x-model="tags"
                                placeholder="Contoh: politik, ekonomi, sosial, budaya">
                         @error('tags') <span class="lp-form-error">⚠ {{ $message }}</span> @enderror
                     </div>
@@ -367,6 +364,11 @@
                                 🖼️ Media Library
                             </button>
                         </div>
+                        @unless ($isReviewEdit)
+                            <button type="button" class="lp-btn lp-btn--ai" @click="aiOpen = true">
+                                ✨ Buat Berita dengan AI
+                            </button>
+                        @endunless
                         <div class="lp-editor-actions__right">
                             <a href="{{ route('admin.berita.index') }}" class="lp-btn lp-btn--ghost">Batal</a>
                             <button type="submit" class="lp-btn lp-btn--primary" id="btn-save-bottom">
@@ -462,6 +464,8 @@
             </div>
         </div>
 
+        @include('landing-page.admin.berita._ai-assistant')
+
         {{-- ===== KEYBOARD SHORTCUTS HELPER ===== --}}
         <div class="lp-keyboard-shortcuts" x-show="showShortcuts" x-cloak @click.away="showShortcuts = false">
             <h4>⌨️ Keyboard Shortcuts</h4>
@@ -531,6 +535,15 @@
         function beritaEditor(initialKonten, initialKategori) {
             return {
                 // Data
+
+                ...aiAssistant(),
+
+                tags: {{ Js::from(old('tags', $berita->tags->pluck('name')->implode(', '))) }},
+                isFeatured: {{ Js::from((bool) old('is_featured', $berita->is_featured ?? false)) }},
+                isBreaking: {{ Js::from((bool) old('is_breaking', $berita->is_breaking ?? false)) }},
+                isHeadline: {{ Js::from((bool) old('is_headline', $berita->is_headline ?? false)) }},
+
+                
                 quill: null,
                 konten: initialKonten || '',
                 ringkasan: {{ Js::from(old('ringkasan', $berita->ringkasan ?? '')) }},
