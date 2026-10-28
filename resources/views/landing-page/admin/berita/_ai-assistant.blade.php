@@ -244,6 +244,8 @@
                     if (t) t.textContent = (this.metaTitle || '').length + '/70';
                     if (m) m.textContent = (this.metaDescription || '').length + '/250';
                     this.updateSeoScore();
+                    // Hitung ulang setelah Quill selesai memperbarui isi (jumlah kata).
+                    setTimeout(() => this.updateSeoScore(), 300);
                 });
             },
         };
