@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Anggota;
+use App\Helpers\SeragamHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Laravolt\Indonesia\Models\Province;
@@ -87,6 +88,11 @@ class AnggotaAktifExport extends StringValueBinder implements
             'alamat_ktp',
 
             'foto',
+
+            'ukuran_kaos',
+            'ukuran_kemeja',
+            'sudah_punya_kaos',
+            'sudah_punya_kemeja',
         ];
     }
 
@@ -159,6 +165,14 @@ class AnggotaAktifExport extends StringValueBinder implements
             $row->foto
             ? asset('storage/' . $row->foto)
             : null,
+
+            $row->ukuran_kaos,
+
+            $row->ukuran_kemeja,
+
+            SeragamHelper::labelYaTidak($row->sudah_punya_kaos),
+
+            SeragamHelper::labelYaTidak($row->sudah_punya_kemeja),
         ];
     }
 

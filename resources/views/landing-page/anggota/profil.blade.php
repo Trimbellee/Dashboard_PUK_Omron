@@ -112,6 +112,14 @@
                         <dd>{{ $anggota->pendidikan_terakhir ?? '-' }}</dd>
                     </div>
                     <div class="lp-profile-list__item">
+                        <dt>Ukuran Kaos</dt>
+                        <dd>{{ $anggota->ukuran_kaos ?? '-' }}</dd>
+                    </div>
+                    <div class="lp-profile-list__item">
+                        <dt>Ukuran Kemeja</dt>
+                        <dd>{{ $anggota->ukuran_kemeja ?? '-' }}</dd>
+                    </div>
+                    <div class="lp-profile-list__item">
                         <dt>Jenis Identitas</dt>
                         <dd>{{ $anggota->jenis_identitas ?? '-' }}</dd>
                     </div>

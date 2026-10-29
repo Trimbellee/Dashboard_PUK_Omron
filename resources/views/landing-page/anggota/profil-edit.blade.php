@@ -224,6 +224,34 @@
                     </div>
                 </div>
 
+                {{-- ===== UKURAN SERAGAM ===== --}}
+                <div class="lp-edit-card">
+                    <h3 class="lp-edit-card__title">Ukuran Seragam</h3>
+                    <p class="lp-edit-hint" style="margin-bottom:14px;">Pilih ukuran kaos dan kemeja Anda. Ukuran dapat diubah kapan saja.</p>
+                    <div class="lp-edit-grid-2">
+                        <div class="lp-edit-field">
+                            <label class="lp-edit-label">Ukuran Kaos</label>
+                            <select name="ukuran_kaos" class="lp-edit-input">
+                                <option value="">Pilih ukuran</option>
+                                @foreach(\App\Helpers\SeragamHelper::UKURAN as $uk)
+                                    <option value="{{ $uk }}" {{ old('ukuran_kaos', $anggota->ukuran_kaos) === $uk ? 'selected' : '' }}>{{ $uk }}</option>
+                                @endforeach
+                            </select>
+                            @error('ukuran_kaos')<p class="lp-edit-error">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="lp-edit-field">
+                            <label class="lp-edit-label">Ukuran Kemeja</label>
+                            <select name="ukuran_kemeja" class="lp-edit-input">
+                                <option value="">Pilih ukuran</option>
+                                @foreach(\App\Helpers\SeragamHelper::UKURAN as $uk)
+                                    <option value="{{ $uk }}" {{ old('ukuran_kemeja', $anggota->ukuran_kemeja) === $uk ? 'selected' : '' }}>{{ $uk }}</option>
+                                @endforeach
+                            </select>
+                            @error('ukuran_kemeja')<p class="lp-edit-error">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                </div>
+
                 {{-- ===== DOMISILI ===== --}}
                 <div class="lp-edit-card">
                     <h3 class="lp-edit-card__title">Alamat Domisili</h3>

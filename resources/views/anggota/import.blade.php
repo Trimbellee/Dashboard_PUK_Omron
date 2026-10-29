@@ -185,6 +185,26 @@
                 </div>
             </div>
 
+            {{-- INFO KOLOM OPSIONAL: SERAGAM --}}
+            <div style="border-radius:12px;background:var(--bg-elevated);border:1px solid var(--border);padding:16px 18px;margin-bottom:24px;">
+                <div style="font-size:12.5px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">
+                    Kolom opsional: data seragam
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px;">
+                    @foreach(['ukuran_kaos','ukuran_kemeja','sudah_punya_kaos','sudah_punya_kemeja'] as $col)
+                    <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);">
+                        <span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);flex-shrink:0;"></span>
+                        <code style="font-family:'DM Mono',monospace;font-size:11.5px;">{{ $col }}</code>
+                    </div>
+                    @endforeach
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+                    Ukuran: {{ implode(', ', \App\Helpers\SeragamHelper::UKURAN) }}.<br>
+                    Sudah punya: isi <b>Ya</b> atau <b>Tidak</b>.<br>
+                    Sel dikosongkan = data yang sudah tersimpan tidak diubah.
+                </div>
+            </div>
+
             {{-- ACTIONS --}}
             <div class="form-actions">
                 <a href="{{ route('anggota.index') }}" class="btn btn-ghost" style="text-decoration:none;">

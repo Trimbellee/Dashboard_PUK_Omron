@@ -1,4 +1,3 @@
-
 <div
     x-data="{
 
@@ -564,6 +563,71 @@
                 <p class="af-file-meta">JPG, PNG, WEBP · Maks. 2 MB</p>
                 @error('foto')<p class="af-error">{{ $message }}</p>@enderror
             </div>
+        </div>
+    </section>
+
+    {{-- ══ 07 SERAGAM ═════════════════════════════════════════════ --}}
+    @php
+        // Nilai boolean: '' = belum didata, '1' = sudah punya, '0' = belum punya
+        $seragamBool = function (string $field) use ($anggota) {
+            $v = old($field, $anggota->{$field} ?? null);
+            return ($v === null || $v === '') ? '' : (string) (int) $v;
+        };
+        $valKaos   = $seragamBool('sudah_punya_kaos');
+        $valKemeja = $seragamBool('sudah_punya_kemeja');
+    @endphp
+    <section class="af-card">
+        <div class="af-card-header">
+            <div class="af-step-num">07</div>
+            <div>
+                <h2 class="af-card-title">Data Seragam</h2>
+                <p class="af-card-sub">Ukuran dan kepemilikan kaos &amp; kemeja organisasi.</p>
+            </div>
+        </div>
+        <div class="af-grid-2">
+
+            <div class="af-field">
+                <label class="af-label">Ukuran Kaos</label>
+                <select name="ukuran_kaos" class="af-input">
+                    <option value="">Pilih ukuran</option>
+                    @foreach(\App\Helpers\SeragamHelper::UKURAN as $uk)
+                        <option value="{{ $uk }}" {{ old('ukuran_kaos', $anggota->ukuran_kaos ?? '') === $uk ? 'selected' : '' }}>{{ $uk }}</option>
+                    @endforeach
+                </select>
+                @error('ukuran_kaos')<p class="af-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="af-field">
+                <label class="af-label">Sudah Punya Kaos</label>
+                <select name="sudah_punya_kaos" class="af-input">
+                    <option value=""  {{ $valKaos === ''  ? 'selected' : '' }}>Belum didata</option>
+                    <option value="1" {{ $valKaos === '1' ? 'selected' : '' }}>Sudah punya</option>
+                    <option value="0" {{ $valKaos === '0' ? 'selected' : '' }}>Belum punya</option>
+                </select>
+                @error('sudah_punya_kaos')<p class="af-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="af-field">
+                <label class="af-label">Ukuran Kemeja</label>
+                <select name="ukuran_kemeja" class="af-input">
+                    <option value="">Pilih ukuran</option>
+                    @foreach(\App\Helpers\SeragamHelper::UKURAN as $uk)
+                        <option value="{{ $uk }}" {{ old('ukuran_kemeja', $anggota->ukuran_kemeja ?? '') === $uk ? 'selected' : '' }}>{{ $uk }}</option>
+                    @endforeach
+                </select>
+                @error('ukuran_kemeja')<p class="af-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="af-field">
+                <label class="af-label">Sudah Punya Kemeja</label>
+                <select name="sudah_punya_kemeja" class="af-input">
+                    <option value=""  {{ $valKemeja === ''  ? 'selected' : '' }}>Belum didata</option>
+                    <option value="1" {{ $valKemeja === '1' ? 'selected' : '' }}>Sudah punya</option>
+                    <option value="0" {{ $valKemeja === '0' ? 'selected' : '' }}>Belum punya</option>
+                </select>
+                @error('sudah_punya_kemeja')<p class="af-error">{{ $message }}</p>@enderror
+            </div>
+
         </div>
     </section>
 

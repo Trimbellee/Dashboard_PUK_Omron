@@ -48,12 +48,18 @@ class Anggota extends Model
         'nomor_whatsapp',
         'email',
         'rfid_code',
+        'ukuran_kaos',
+        'ukuran_kemeja',
+        'sudah_punya_kaos',
+        'sudah_punya_kemeja',
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
         'tanggal_mulai_bekerja' => 'date',
         'tanggal_masuk_anggota' => 'date',
+        'sudah_punya_kaos' => 'boolean',
+        'sudah_punya_kemeja' => 'boolean',
     ];
 
     /*

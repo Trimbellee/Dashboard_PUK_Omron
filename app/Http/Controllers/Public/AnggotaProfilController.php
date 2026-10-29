@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Helpers\SeragamHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Anggota;
 use Illuminate\Http\RedirectResponse;
@@ -117,6 +118,10 @@ class AnggotaProfilController extends Controller
             'tanggal_lahir'         => 'nullable|date',
             'tanggal_mulai_bekerja' => 'nullable|date',
             'pendidikan_terakhir'   => 'nullable|in:SD,SMP,SMA,SMK,D1,D2,D3,D4,S1,S2,S3',
+            // Anggota hanya boleh mengisi/mengubah UKURAN. Status "sudah punya"
+            // sengaja tidak divalidasi di sini → tidak ikut tersimpan (diatur admin).
+            'ukuran_kaos'           => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
+            'ukuran_kemeja'         => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
             'provinsi_domisili'     => 'nullable',
             'kota_domisili'         => 'nullable',
             'kecamatan_domisili'    => 'nullable',
