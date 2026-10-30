@@ -6,7 +6,7 @@ namespace App\Helpers;
  * Sumber tunggal untuk data seragam anggota (kaos & kemeja).
  *
  * Dipakai bersama oleh form, validasi, import Excel, dan export,
- * supaya daftar ukuran & aturan "Ya/Tidak" tidak tersebar di banyak tempat.
+ * supaya daftar ukuran & aturan jumlah (0, 1, 2, ... / Ya / Tidak) tidak tersebar di banyak tempat.
  */
 class SeragamHelper
 {
@@ -21,15 +21,12 @@ class SeragamHelper
         'XXXXXL' => '5XL',
     ];
 
-    private const NILAI_YA = [
-        'YA', 'Y', 'YES', 'TRUE', '1',
-        'SUDAH', 'SUDAH PUNYA', 'PUNYA', 'ADA',
-    ];
+    /** Batas wajar jumlah kaos/kemeja per anggota (penangkal salah ketik). */
+    public const JUMLAH_MAKS = 20;
 
-    private const NILAI_TIDAK = [
-        'TIDAK', 'N', 'NO', 'FALSE', '0',
-        'BELUM', 'BELUM PUNYA', 'TIDAK PUNYA', 'TIDAK ADA',
-    ];
+    private const NILAI_YA = ['YA', 'Y', 'YES', 'TRUE', 'SUDAH', 'SUDAH PUNYA', 'PUNYA', 'ADA'];
+
+    private const NILAI_TIDAK = ['TIDAK', 'N', 'NO', 'FALSE', 'BELUM', 'BELUM PUNYA', 'TIDAK PUNYA', 'TIDAK ADA'];
 
     /*
     |--------------------------------------------------------------------------
@@ -64,29 +61,30 @@ class SeragamHelper
 
     /*
     |--------------------------------------------------------------------------
-    | YA / TIDAK  (sudah punya kaos / kemeja)
+    | JUMLAH  (kaos / kemeja yang dimiliki)
     |--------------------------------------------------------------------------
+    | 0 = belum punya (default kolom), 1, 2, 3, ... = jumlah yang dimiliki.
+    | Kolom di database NOT NULL; null di sini hanya berarti "sel Excel kosong / tidak dikenali".
     */
 
     /**
-     * Ubah isi sel Excel menjadi true / false / null.
-     *   true  : Ya, Y, Yes, TRUE, 1, Sudah, Punya, Ada
-     *   false : Tidak, N, No, FALSE, 0, Belum, Belum Punya
-     *   null  : kosong ATAU tidak dikenali
+     * Ubah isi sel Excel menjadi jumlah (int) atau null.
+     *   angka   : 0, 1, 2, ...        → angka itu sendiri
+     *   teks Ya : Ya, Y, Yes, Sudah   → 1
+     *   teks Tdk: Tidak, N, Belum     → 0
+     *   null    : kosong ATAU tidak dikenali
      *
-     * Catatan: Excel bisa mengirim boolean asli (TRUE/FALSE) atau angka 1/0,
-     * jadi tipe bool/angka ditangani lebih dulu sebelum dibersihkan sebagai teks.
+     * Excel bisa mengirim boolean asli (TRUE/FALSE) atau angka (int/float),
+     * jadi tipe-tipe itu ditangani lebih dulu sebelum dibersihkan sebagai teks.
      */
-    public static function parseYaTidak($value): ?bool
+    public static function parseJumlah($value): ?int
     {
         if (is_bool($value)) {
-            return $value;
+            return $value ? 1 : 0;
         }
 
         if (is_int($value) || is_float($value)) {
-            if ((float) $value === 1.0) return true;
-            if ((float) $value === 0.0) return false;
-            return null;
+            return self::angkaJumlah((float) $value);
         }
 
         $v = self::bersihkan($value);
@@ -97,33 +95,42 @@ class SeragamHelper
 
         $v = strtoupper(preg_replace('/\s+/', ' ', $v));
 
-        if (in_array($v, self::NILAI_YA, true))    return true;
-        if (in_array($v, self::NILAI_TIDAK, true)) return false;
+        if (in_array($v, self::NILAI_YA, true))    return 1;
+        if (in_array($v, self::NILAI_TIDAK, true)) return 0;
+
+        if (preg_match('/^\d+(\.0+)?$/', $v)) {
+            return self::angkaJumlah((float) $v);
+        }
 
         return null;
     }
 
-    /** true bila kosong (boleh) atau dikenali sebagai Ya/Tidak. */
-    public static function validYaTidak($value): bool
+    /** true bila kosong (boleh) atau dikenali sebagai jumlah yang wajar. */
+    public static function validJumlah($value): bool
     {
-        if (is_bool($value)) {
-            return true;
-        }
-
-        if (is_int($value) || is_float($value)) {
-            return self::parseYaTidak($value) !== null;
+        if (is_bool($value) || is_int($value) || is_float($value)) {
+            return self::parseJumlah($value) !== null;
         }
 
         return self::bersihkan($value) === null
-            || self::parseYaTidak($value) !== null;
+            || self::parseJumlah($value) !== null;
     }
 
-    /** Teks untuk export Excel: "Ya" / "Tidak" / "" (belum didata). */
-    public static function labelYaTidak(?bool $value): string
+    /** Teks tampilan: "Belum punya" (kosong atau 0) / "Sudah punya (n)". */
+    public static function labelJumlah(?int $jumlah): string
     {
-        if ($value === null) return '';
+        if ($jumlah === null || $jumlah <= 0) return 'Belum punya';
 
-        return $value ? 'Ya' : 'Tidak';
+        return "Sudah punya ({$jumlah})";
+    }
+
+    private static function angkaJumlah(float $n): ?int
+    {
+        if ($n < 0 || $n > self::JUMLAH_MAKS || floor($n) !== $n) {
+            return null;
+        }
+
+        return (int) $n;
     }
 
     /*

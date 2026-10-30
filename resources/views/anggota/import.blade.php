@@ -191,7 +191,7 @@
                     Kolom opsional: data seragam
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px;">
-                    @foreach(['ukuran_kaos','ukuran_kemeja','sudah_punya_kaos','sudah_punya_kemeja'] as $col)
+                    @foreach(['ukuran_kaos','ukuran_kemeja','jumlah_kaos','jumlah_kemeja'] as $col)
                     <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);">
                         <span style="width:5px;height:5px;border-radius:50%;background:var(--text-muted);flex-shrink:0;"></span>
                         <code style="font-family:'DM Mono',monospace;font-size:11.5px;">{{ $col }}</code>
@@ -200,8 +200,9 @@
                 </div>
                 <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
                     Ukuran: {{ implode(', ', \App\Helpers\SeragamHelper::UKURAN) }}.<br>
-                    Sudah punya: isi <b>Ya</b> atau <b>Tidak</b>.<br>
-                    Sel dikosongkan = data yang sudah tersimpan tidak diubah.
+                    Jumlah: angka <b>0</b>, <b>1</b>, <b>2</b>, ... (Ya = 1, Tidak = 0).<br>
+                    Jumlah di Excel dianggap jumlah awal; pengambilan di sekretariat ditambahkan otomatis.<br>
+                    Sel dikosongkan = data yang sudah tersimpan tidak diubah (anggota baru otomatis 0).
                 </div>
             </div>
 

@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Models\Anggota;
-use App\Helpers\SeragamHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Laravolt\Indonesia\Models\Province;
@@ -91,8 +90,8 @@ class AnggotaAktifExport extends StringValueBinder implements
 
             'ukuran_kaos',
             'ukuran_kemeja',
-            'sudah_punya_kaos',
-            'sudah_punya_kemeja',
+            'jumlah_kaos',
+            'jumlah_kemeja',
         ];
     }
 
@@ -170,9 +169,9 @@ class AnggotaAktifExport extends StringValueBinder implements
 
             $row->ukuran_kemeja,
 
-            SeragamHelper::labelYaTidak($row->sudah_punya_kaos),
+            $row->jumlah_kaos,
 
-            SeragamHelper::labelYaTidak($row->sudah_punya_kemeja),
+            $row->jumlah_kemeja,
         ];
     }
 

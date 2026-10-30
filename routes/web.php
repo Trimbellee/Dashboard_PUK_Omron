@@ -43,6 +43,7 @@ use App\Http\Controllers\Public\Admin\AdminKegiatanPendaftaranController;
 use App\Http\Controllers\Public\KegiatanController;
 use App\Http\Controllers\AnggotaRfidPairingController;
 use App\Http\Controllers\Public\Admin\SesiAbsensiController;
+use App\Http\Controllers\Public\Admin\PengambilanSeragamController;
 use App\Http\Controllers\InsentifController;
 use App\Http\Controllers\KasSettingController;
 use App\Http\Controllers\BidangSettingController;
@@ -75,6 +76,16 @@ Route::prefix('landing/admin')->name('admin.')->middleware('anggota.auth', 'chec
         Route::post('/{sesi}/buka', [SesiAbsensiController::class, 'buka'])->name('buka');
         Route::delete('/{sesi}/entri/{entri}', [SesiAbsensiController::class, 'batalHadir'])->whereNumber('entri')->name('batal-hadir');
     });    
+
+	// ===== Pengambilan Seragam (kaos/kemeja di sekretariat) =====
+    // Slug izin = 'pengambilan-seragam' (segmen ke-2 nama route → admin_pages.slug).
+    Route::prefix('pengambilan-seragam')->name('pengambilan-seragam.')->group(function () {
+        Route::get('/', [PengambilanSeragamController::class, 'index'])->name('index');
+        Route::get('/entries', [PengambilanSeragamController::class, 'entries'])->name('entries');
+        Route::get('/ukuran/{jenis}', [PengambilanSeragamController::class, 'ukuran'])->whereIn('jenis', ['kaos', 'kemeja'])->name('ukuran');
+        Route::post('/scan', [PengambilanSeragamController::class, 'scan'])->name('scan');
+        Route::delete('/{pengambilan}', [PengambilanSeragamController::class, 'batal'])->whereNumber('pengambilan')->name('batal');
+    });
 
     // ===== Berita =====
     Route::get('/berita', [NewsAdminController::class, 'index'])->name('berita.index');

@@ -567,21 +567,12 @@
     </section>
 
     {{-- ══ 07 SERAGAM ═════════════════════════════════════════════ --}}
-    @php
-        // Nilai boolean: '' = belum didata, '1' = sudah punya, '0' = belum punya
-        $seragamBool = function (string $field) use ($anggota) {
-            $v = old($field, $anggota->{$field} ?? null);
-            return ($v === null || $v === '') ? '' : (string) (int) $v;
-        };
-        $valKaos   = $seragamBool('sudah_punya_kaos');
-        $valKemeja = $seragamBool('sudah_punya_kemeja');
-    @endphp
     <section class="af-card">
         <div class="af-card-header">
             <div class="af-step-num">07</div>
             <div>
                 <h2 class="af-card-title">Data Seragam</h2>
-                <p class="af-card-sub">Ukuran dan kepemilikan kaos &amp; kemeja organisasi.</p>
+                <p class="af-card-sub">Ukuran dan jumlah kaos &amp; kemeja organisasi yang dimiliki.</p>
             </div>
         </div>
         <div class="af-grid-2">
@@ -598,13 +589,12 @@
             </div>
 
             <div class="af-field">
-                <label class="af-label">Sudah Punya Kaos</label>
-                <select name="sudah_punya_kaos" class="af-input">
-                    <option value=""  {{ $valKaos === ''  ? 'selected' : '' }}>Belum didata</option>
-                    <option value="1" {{ $valKaos === '1' ? 'selected' : '' }}>Sudah punya</option>
-                    <option value="0" {{ $valKaos === '0' ? 'selected' : '' }}>Belum punya</option>
-                </select>
-                @error('sudah_punya_kaos')<p class="af-error">{{ $message }}</p>@enderror
+                <label class="af-label">Jumlah Kaos yang Dimiliki</label>
+                <input type="number" name="jumlah_kaos" class="af-input"
+                       min="0" max="{{ \App\Helpers\SeragamHelper::JUMLAH_MAKS }}" step="1"
+                       value="{{ old('jumlah_kaos', $anggota->jumlah_kaos ?? 0) }}"
+                       placeholder="0 = belum punya">
+                @error('jumlah_kaos')<p class="af-error">{{ $message }}</p>@enderror
             </div>
 
             <div class="af-field">
@@ -619,13 +609,12 @@
             </div>
 
             <div class="af-field">
-                <label class="af-label">Sudah Punya Kemeja</label>
-                <select name="sudah_punya_kemeja" class="af-input">
-                    <option value=""  {{ $valKemeja === ''  ? 'selected' : '' }}>Belum didata</option>
-                    <option value="1" {{ $valKemeja === '1' ? 'selected' : '' }}>Sudah punya</option>
-                    <option value="0" {{ $valKemeja === '0' ? 'selected' : '' }}>Belum punya</option>
-                </select>
-                @error('sudah_punya_kemeja')<p class="af-error">{{ $message }}</p>@enderror
+                <label class="af-label">Jumlah Kemeja yang Dimiliki</label>
+                <input type="number" name="jumlah_kemeja" class="af-input"
+                       min="0" max="{{ \App\Helpers\SeragamHelper::JUMLAH_MAKS }}" step="1"
+                       value="{{ old('jumlah_kemeja', $anggota->jumlah_kemeja ?? 0) }}"
+                       placeholder="0 = belum punya">
+                @error('jumlah_kemeja')<p class="af-error">{{ $message }}</p>@enderror
             </div>
 
         </div>

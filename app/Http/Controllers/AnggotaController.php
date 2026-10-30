@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Anggota;
+use App\Models\PengambilanSeragam;
 use App\Models\TotalKaryawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,7 @@ use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use App\Helpers\RfidHelper;
+use App\Helpers\SeragamHelper;
 
 
 
@@ -154,6 +156,10 @@ class AnggotaController extends Controller
             'alamat_ktp'            => 'nullable',
             'foto'                  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'rfid_code' => 'nullable|string|max:50|unique:anggota,rfid_code',
+            'ukuran_kaos'           => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
+            'ukuran_kemeja'         => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
+            'jumlah_kaos'           => 'nullable|integer|min:0|max:' . SeragamHelper::JUMLAH_MAKS,
+            'jumlah_kemeja'         => 'nullable|integer|min:0|max:' . SeragamHelper::JUMLAH_MAKS,
         ]);
 
         if ($request->hasFile('foto')) {
@@ -175,7 +181,7 @@ class AnggotaController extends Controller
             $validated['nik_karyawan']
         );
 
-        Anggota::create($validated);
+        Anggota::create($this->normalisasiJumlahSeragam($validated));
 
         return redirect()
             ->route('anggota.index')
@@ -238,6 +244,10 @@ class AnggotaController extends Controller
             'alamat_ktp'            => 'nullable',
             'foto'                  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'rfid_code' => 'nullable|string|max:50|unique:anggota,rfid_code,' . $anggota->id,
+            'ukuran_kaos'           => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
+            'ukuran_kemeja'         => 'nullable|in:' . implode(',', SeragamHelper::UKURAN),
+            'jumlah_kaos'           => 'nullable|integer|min:0|max:' . SeragamHelper::JUMLAH_MAKS,
+            'jumlah_kemeja'         => 'nullable|integer|min:0|max:' . SeragamHelper::JUMLAH_MAKS,
         ]);
 
         if ($request->hasFile('foto')) {
@@ -282,7 +292,7 @@ class AnggotaController extends Controller
             $validated['rfid_code'] = null;
         }
         
-        $anggota->update($validated);
+        $anggota->update($this->normalisasiJumlahSeragam($validated));
 
         return redirect()
             ->route('anggota.index')
@@ -609,6 +619,9 @@ class AnggotaController extends Controller
             'kelurahan_domisili', 'alamat_domisili',
             'provinsi_ktp', 'kota_ktp', 'kecamatan_ktp',
             'kelurahan_ktp', 'alamat_ktp', 'foto',
+            'ukuran_kaos', 'ukuran_kemeja',
+            'jumlah_kaos', 'jumlah_kemeja',
+            'sudah_punya_kaos', 'sudah_punya_kemeja', // alias lama → dibaca sebagai jumlah
         ];
 
         $requiredHeaders = [
@@ -721,6 +734,21 @@ class AnggotaController extends Controller
 
             if ($wa !== '' && !preg_match('/^\+?[0-9]{10,13}$/', $wa))
                 $previewErrors[] = "Baris {$excelRow}: Nomor WhatsApp tidak valid ({$wa}).";
+
+            // Data seragam (opsional — kosong boleh, isi harus dikenali)
+            foreach (['ukuran_kaos' => 'Ukuran Kaos', 'ukuran_kemeja' => 'Ukuran Kemeja'] as $kolom => $label) {
+                if (!SeragamHelper::validUkuran($row[$kolom] ?? null)) {
+                    $previewErrors[] = "Baris {$excelRow}: {$label} tidak valid (" . trim((string) $row[$kolom]) . "). Gunakan: " . implode(', ', SeragamHelper::UKURAN) . ".";
+                }
+            }
+
+            foreach (['kaos' => 'Kaos', 'kemeja' => 'Kemeja'] as $jenis => $label) {
+                $nilai = $this->nilaiJumlahSeragam($row, $jenis);
+
+                if (!SeragamHelper::validJumlah($nilai)) {
+                    $previewErrors[] = "Baris {$excelRow}: Jumlah {$label} tidak valid (" . trim((string) $nilai) . "). Isi angka 0 sampai " . SeragamHelper::JUMLAH_MAKS . ", atau Ya/Tidak.";
+                }
+            }
         }
 
         /*
@@ -855,6 +883,15 @@ class AnggotaController extends Controller
             $updatedMembers  = [];
             $uploadedPhotos  = [];
             $existingAnggota = Anggota::withTrashed()->get()->keyBy('nik_karyawan');
+
+            // Pengambilan seragam di sekretariat yang masih berlaku, per anggota & jenis.
+            // Nilai Excel = jumlah AWAL; jumlah akhir = Excel + pengambilan tercatat,
+            // jadi mengimpor ulang file yang sama tidak menghapus pengambilan yang sudah terjadi.
+            $pengambilanAktif = PengambilanSeragam::aktif()
+                ->selectRaw('anggota_id, jenis, COUNT(*) as total')
+                ->groupBy('anggota_id', 'jenis')
+                ->get()
+                ->mapWithKeys(fn ($r) => [$r->anggota_id . '|' . $r->jenis => (int) $r->total]);
  
             DB::beginTransaction();
  
@@ -897,6 +934,18 @@ class AnggotaController extends Controller
  
                 if ($nomorWhatsapp !== '' && !preg_match('/^\+?[0-9]{10,13}$/', $nomorWhatsapp))
                     throw new \Exception('Baris ' . ($index + 2) . ': Nomor WhatsApp harus 10-13 digit');
+
+                if (!SeragamHelper::validUkuran($row['ukuran_kaos'] ?? null))
+                    throw new \Exception('Baris ' . ($index + 2) . ': Ukuran Kaos tidak valid');
+
+                if (!SeragamHelper::validUkuran($row['ukuran_kemeja'] ?? null))
+                    throw new \Exception('Baris ' . ($index + 2) . ': Ukuran Kemeja tidak valid');
+
+                if (!SeragamHelper::validJumlah($this->nilaiJumlahSeragam($row, 'kaos')))
+                    throw new \Exception('Baris ' . ($index + 2) . ': Jumlah Kaos tidak valid');
+
+                if (!SeragamHelper::validJumlah($this->nilaiJumlahSeragam($row, 'kemeja')))
+                    throw new \Exception('Baris ' . ($index + 2) . ': Jumlah Kemeja tidak valid');
  
                 /*
                 |--------------------------------------------------------------
@@ -956,6 +1005,10 @@ class AnggotaController extends Controller
                     'kecamatan_ktp'         => $ktp['kecamatan_id'],
                     'kelurahan_ktp'         => $ktp['kelurahan_id'],
                     'alamat_ktp'            => $this->cleanValue($row['alamat_ktp'] ?? null),
+                    'ukuran_kaos'           => SeragamHelper::normalizeUkuran($row['ukuran_kaos'] ?? null),
+                    'ukuran_kemeja'         => SeragamHelper::normalizeUkuran($row['ukuran_kemeja'] ?? null),
+                    'jumlah_kaos'           => SeragamHelper::parseJumlah($this->nilaiJumlahSeragam($row, 'kaos')),
+                    'jumlah_kemeja'         => SeragamHelper::parseJumlah($this->nilaiJumlahSeragam($row, 'kemeja')),
                     'foto'                  => null,
                 ];
  
@@ -1001,6 +1054,12 @@ class AnggotaController extends Controller
                     $data = collect($data)
                         ->filter(fn ($value) => $value !== null)
                         ->toArray();  
+
+                    foreach (['kaos', 'kemeja'] as $jenis) {
+                        if (isset($data["jumlah_{$jenis}"])) {
+                            $data["jumlah_{$jenis}"] += $pengambilanAktif->get($existing->id . '|' . $jenis, 0);
+                        }
+                    }
  
                     if ($existing->tanggal_keluar_anggota) {
                         $data['tanggal_keluar_anggota'] = null;
@@ -1019,7 +1078,8 @@ class AnggotaController extends Controller
                     $data['tanggal_keluar_anggota'] = null;
                     $data['is_active']              = 1;
 
-                    Anggota::create($data);
+                    // Anggota baru: sel jumlah dikosongkan → 0 (kolom NOT NULL, default 0).
+                    Anggota::create($this->normalisasiJumlahSeragam($data));
                     $newMembers[] = ['nik' => $nik, 'nama' => $namaLengkap];
                 }
             }
@@ -1272,6 +1332,40 @@ class AnggotaController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * jumlah_kaos / jumlah_kemeja wajib angka (kolom NOT NULL, default 0).
+     * Kosong / null dari form atau Excel dijadikan 0. Kunci yang memang tidak dikirim
+     * dibiarkan, sehingga tidak menimpa nilai yang sudah tersimpan.
+     */
+    private function normalisasiJumlahSeragam(array $data): array
+    {
+        foreach (['jumlah_kaos', 'jumlah_kemeja'] as $kolom) {
+            if (array_key_exists($kolom, $data)) {
+                $data[$kolom] = (int) ($data[$kolom] ?? 0);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Ambil isi sel jumlah kaos/kemeja dari satu baris Excel.
+     * Header baru `jumlah_*` didahulukan; header lama `sudah_punya_*` tetap dibaca.
+     * Mengembalikan sel pertama yang terisi (boolean FALSE dianggap terisi), atau null.
+     */
+    private function nilaiJumlahSeragam($row, string $jenis)
+    {
+        foreach (["jumlah_{$jenis}", "sudah_punya_{$jenis}"] as $kolom) {
+            $v = $row[$kolom] ?? null;
+
+            if (is_bool($v) || trim((string) $v) !== '') {
+                return $v;
+            }
+        }
+
+        return null;
     }
 
     private function cleanValue($value)

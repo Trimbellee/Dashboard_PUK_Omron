@@ -50,16 +50,22 @@ class Anggota extends Model
         'rfid_code',
         'ukuran_kaos',
         'ukuran_kemeja',
-        'sudah_punya_kaos',
-        'sudah_punya_kemeja',
+        'jumlah_kaos',
+        'jumlah_kemeja',
+    ];
+
+    /** Nilai bawaan: belum punya kaos/kemeja. Sama dengan default kolom di database. */
+    protected $attributes = [
+        'jumlah_kaos'   => 0,
+        'jumlah_kemeja' => 0,
     ];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
         'tanggal_mulai_bekerja' => 'date',
         'tanggal_masuk_anggota' => 'date',
-        'sudah_punya_kaos' => 'boolean',
-        'sudah_punya_kemeja' => 'boolean',
+        'jumlah_kaos' => 'integer',
+        'jumlah_kemeja' => 'integer',
     ];
 
     /*
@@ -85,6 +91,12 @@ class Anggota extends Model
     public function jabatanStruktur()
     {
         return $this->hasMany(StrukturOrganisasi::class, 'anggota_id');
+    }
+
+    /** Riwayat pengambilan kaos/kemeja di sekretariat. */
+    public function pengambilanSeragam()
+    {
+        return $this->hasMany(PengambilanSeragam::class, 'anggota_id');
     }
 
     /*

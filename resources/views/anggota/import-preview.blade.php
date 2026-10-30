@@ -226,8 +226,8 @@
                                     if ($col === 'foto' && $val) $val = basename($val);
                                     // Kolom seragam: tampilkan nilai yang AKAN disimpan (Ya/Tidak, ukuran baku).
                                     // Nilai tidak valid dibiarkan apa adanya — alasannya muncul di kolom "Masalah".
-                                    if (in_array($col, ['sudah_punya_kaos', 'sudah_punya_kemeja']) && \App\Helpers\SeragamHelper::validYaTidak($val)) {
-                                        $val = \App\Helpers\SeragamHelper::labelYaTidak(\App\Helpers\SeragamHelper::parseYaTidak($val));
+                                    if (in_array($col, ['jumlah_kaos', 'jumlah_kemeja', 'sudah_punya_kaos', 'sudah_punya_kemeja']) && \App\Helpers\SeragamHelper::validJumlah($val)) {
+                                        $val = \App\Helpers\SeragamHelper::parseJumlah($val);
                                     }
                                     if (in_array($col, ['ukuran_kaos', 'ukuran_kemeja']) && \App\Helpers\SeragamHelper::normalizeUkuran($val)) {
                                         $val = \App\Helpers\SeragamHelper::normalizeUkuran($val);
